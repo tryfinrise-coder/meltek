@@ -1,4 +1,5 @@
 import { solve } from './solve.js';
+import { validateDesign } from './validate.js';
 import {
   EngineError,
   type DesignInputs,
@@ -24,6 +25,7 @@ export function optimise(
   settings: ProcessSettings,
 ): OptimiseResult {
   const started = Date.now();
+  validateDesign(inputs, settings);
   const options: RankedOption[] = [];
   const warnings: EngineWarning[] = [];
 
@@ -47,6 +49,8 @@ export function optimise(
       if (!gauge.isAvailable) reasons.push(`SWG ${gauge.swg} not in stock`);
       if (grade.ratePerKg === null) reasons.push(`No rate on record for ${grade.label}`);
       if (!result.converged) reasons.push('Core size did not settle within the iteration limit');
+      if (ref.slitWidthsMm.length && !ref.slitWidthsMm.includes(result.orderedWidthMm)) reasons.push('No stocked slit width is wide enough for this core');
+      if (result.totalCost !== null && !Number.isFinite(result.totalCost)) reasons.push('Material cost is not finite');
 
       const die = pickDie(ref.dies, result.geometry.coreOdMm, result.orderedWidthMm);
       if (ref.dies.length > 0 && !die) {
@@ -83,7 +87,7 @@ export function optimise(
   // returned too, unranked, to be shown greyed with their reason.
   const ranked = options
     .filter((o) => o.isFeasible && o.totalCost !== null)
-    .sort((a, b) => (a.totalCost as number) - (b.totalCost as number));
+    .sort((a, b) => (a.totalCost as number) - (b.totalCost as number) || a.orderedWidthMm - b.orderedWidthMm || a.gradeCode.localeCompare(b.gradeCode) || a.swg - b.swg);
   ranked.forEach((o, i) => { o.rank = i + 1; });
 
   if (ranked.length === 0) {

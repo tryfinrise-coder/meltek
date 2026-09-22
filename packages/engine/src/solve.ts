@@ -1,4 +1,5 @@
 import { interpolateB, type InterpolationResult } from './interpolate.js';
+import { positive, validateDesign } from './validate.js';
 import {
   EngineError,
   type CalcStep,
@@ -41,6 +42,7 @@ export function findClass(ref: ReferenceData, code: string) {
  * side. Confirmed by the client - do not change this.
  */
 export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings): Geometry {
+  validateDesign(inputs, settings);
   if (!(inputs.primaryCurrent > 0)) {
     throw new EngineError('INVALID_INPUT', 'Primary current must be greater than zero.');
   }
@@ -123,6 +125,14 @@ export function solve(
   const grade = findGrade(ref, gradeCode);
   const gauge = findGauge(ref, swg);
   const klass = findClass(ref, inputs.accuracyClass);
+  positive(gauge.ohmPerM20c, 'Wire resistance');
+  positive(gauge.gramPerM, 'Wire mass');
+  positive(klass.percent, 'Class error budget');
+  positive(ref.copperRatePerKg, 'Copper rate', true);
+  if (grade.ratePerKg !== null) positive(grade.ratePerKg, 'Steel rate', true);
+  positive(grade.densityGCm3 ?? settings.steelDensity, 'Steel density');
+  positive(grade.stackingFactor ?? settings.stackingFactor, 'Stacking factor');
+  if ((grade.stackingFactor ?? settings.stackingFactor) > 1) throw new EngineError('INVALID_INPUT', 'Stacking factor cannot exceed 1.');
   const warnings: EngineWarning[] = [];
 
   /* Steps 1-2 */
@@ -204,6 +214,9 @@ export function solve(
 
   /* Steps 13-14 - rounding, weight and cost. PROVISIONAL (§5.9). */
   const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings);
+  // Cost the winding actually ordered, while retaining converged intermediates.
+  const orderedWireLengthM = (((geometry.coreOdMm - geometry.coreIdMm + 2 * orderedWidthMm) * settings.lengthFactor * N) + settings.leadWireMm) / 1000;
+  if (![coreWidthMm, orderedWidthMm, orderedWireLengthM].every(Number.isFinite)) throw new EngineError('INVALID_INPUT', 'The winding calculation overflowed. Check the specification and wire resistance.');
   const finalAreaCm2 = geometry.radialBuildCm * (orderedWidthMm / 10);
   // Volume is area x magnetic path length and nothing else. The spreadsheet multiplies
   // by width a second time; area already contains the width.
@@ -211,7 +224,7 @@ export function solve(
   const density = grade.densityGCm3 ?? settings.steelDensity;
   const stacking = grade.stackingFactor ?? settings.stackingFactor;
   const coreWeightKg = (coreVolumeCm3 * density * stacking) / 1000;
-  const copperWeightKg = (lengthM * gauge.gramPerM) / 1000;
+  const copperWeightKg = (orderedWireLengthM * gauge.gramPerM) / 1000;
 
   const coreCost = grade.ratePerKg === null ? null : coreWeightKg * grade.ratePerKg;
   const copperCost = copperWeightKg * ref.copperRatePerKg;
@@ -343,7 +356,8 @@ function buildSteps(
       substituted: `${f(r.finalAreaCm2, 4)} x ${f(g.mmlCm, 4)} x ${grade.densityGCm3 ?? s.steelDensity} x ${grade.stackingFactor ?? s.stackingFactor} / 1000`,
       value: r.coreWeightKg, unit: 'kg', provisional: true },
     { step: 16, key: 'copperWeight', label: 'Copper weight', formula: 'wire length x g/m / 1000',
-      substituted: `${f(r.wireLengthM, 4)} x ${gauge.gramPerM} / 1000`, value: r.copperWeightKg, unit: 'kg', provisional: true },
+      substituted: `${f(r.copperWeightKg * 1000 / gauge.gramPerM, 4)} x ${gauge.gramPerM} / 1000`, value: r.copperWeightKg, unit: 'kg', provisional: true,
+      note: 'Wire length is recomputed at the ordered slit width, including lead and crossover allowances.' },
     { step: 17, key: 'cost', label: 'Material cost', formula: 'core kg x grade rate + copper kg x copper rate',
       substituted: grade.ratePerKg === null
         ? `no rate on record for ${grade.label}`

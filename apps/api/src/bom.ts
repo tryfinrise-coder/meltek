@@ -10,6 +10,8 @@ import type { BomLine, Design, StoredOption } from './store/index.js';
  */
 export function buildBom(design: Design, option: StoredOption, ref: ReferenceData): BomLine[] {
   const grade = ref.grades.find((g) => g.code === option.gradeCode);
+  const gauge = ref.gauges.find((g) => g.swg === option.swg);
+  const orderedLength = gauge && gauge.gramPerM > 0 ? option.copperWeightKg * 1000 / gauge.gramPerM : option.wireLengthM;
   const line = (
     itemType: BomLine['itemType'], itemRef: string | null,
     description: string, quantity: number, unit: string,
@@ -20,7 +22,7 @@ export function buildBom(design: Design, option: StoredOption, ref: ReferenceDat
       `${grade?.label ?? option.gradeCode} strip, ${option.orderedWidthMm} mm slit width, core ${option.geometry.coreIdMm.toFixed(1)}/${option.geometry.coreOdMm.toFixed(1)} mm`,
       round(option.coreWeightKg, 4), 'kg'),
     line('copper', `SWG ${option.swg}`,
-      `Enamelled copper wire SWG ${option.swg}, ${option.geometry.turns} turns, ${round(option.wireLengthM, 3)} m`,
+      `Enamelled copper wire SWG ${option.swg}, ${option.geometry.turns} turns, ${round(orderedLength, 3)} m at ordered width`,
       round(option.copperWeightKg, 4), 'kg'),
     line('insulation', null,
       'Interlayer insulation, per winding specification', 1, 'set'),

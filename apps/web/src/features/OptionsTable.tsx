@@ -107,7 +107,7 @@ export function OptionsTable({
                     {money(o.totalCost)}
                   </td>
                   <td className="px-3 py-2.5">
-                    {o.totalCost !== null && bestCost !== null ? (
+                    {o.isFeasible && o.totalCost !== null && bestCost !== null && bestCost > 0 ? (
                       <Tooltip
                         content={o.totalCost === bestCost
                           ? 'The cheapest feasible combination.'

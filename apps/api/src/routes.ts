@@ -183,7 +183,7 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved') {
+    if (design.status === 'approved' || design.status === 'in_production') {
       return res.status(409).json({
         error: 'This design is approved and locked. Create a revision to change it.',
       });
@@ -221,7 +221,7 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved') {
+    if (design.status === 'approved' || design.status === 'in_production') {
       return res.status(409).json({ error: 'This design is approved and locked. Create a revision to recalculate.' });
     }
     const { ref, settings } = await contextFor(store, design);
@@ -246,13 +246,15 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved') {
+    if (design.status === 'approved' || design.status === 'in_production') {
       return res.status(409).json({ error: 'This design is approved and locked.' });
     }
     const { optionId } = selectOptionSchema.parse(req.body);
     const options = await store.getOptions(design.id);
     const chosen = options.find((o) => o.id === optionId);
     if (!chosen) return res.status(404).json({ error: 'No option with that id on this design.' });
+
+    if (!chosen.isFeasible || chosen.totalCost === null || !Number.isFinite(chosen.totalCost)) return res.status(409).json({ error: 'Only a feasible, costed option can be selected.' });
 
     for (const o of options) o.isSelected = o.id === optionId;
     await store.replaceOptions(design.id, options);

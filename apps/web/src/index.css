@@ -28,14 +28,14 @@
 
   --text:   #edeff2;
   --text-2: #98a2af;
-  --text-3: #6b7684;
+  --text-3: #93a1b2;
 
-  --brand:       #ff2d4f;
-  --brand-hover: #ff4a66;
-  --brand-press: #e21938;
-  --brand-wash:  rgba(255, 45, 79, 0.1);
-  --brand-glow:  rgba(255, 45, 79, 0.28);
-  --brand-ink:   #ffffff;
+  --brand:       #55ddc5;
+  --brand-hover: #8cedda;
+  --brand-press: #168b79;
+  --brand-wash:  rgba(85, 221, 197, 0.1);
+  --brand-glow:  rgba(85, 221, 197, 0.28);
+  --brand-ink:   #072b26;
 
   --ok:          #3fb37f;
   --warn:        #d9a441;
@@ -59,13 +59,13 @@
 
   --text:   #14181d;
   --text-2: #55606d;
-  --text-3: #828d9a;
+  --text-3: #626f7e;
 
-  --brand:       #e21938;
-  --brand-hover: #c41430;
-  --brand-press: #a81028;
-  --brand-wash:  rgba(226, 25, 56, 0.07);
-  --brand-glow:  rgba(226, 25, 56, 0.2);
+  --brand:       #168b79;
+  --brand-hover: #127363;
+  --brand-press: #105e53;
+  --brand-wash:  rgba(22, 139, 121, 0.07);
+  --brand-glow:  rgba(22, 139, 121, 0.2);
   --brand-ink:   #ffffff;
 
   --ok:          #2e8b62;
@@ -273,3 +273,61 @@
   from { background-position: 200% 0; }
   to   { background-position: -200% 0; }
 }
+
+/* Liquid studio surfaces. Opaque fallbacks preserve readability without blur. */
+body {
+  background-image: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--brand) 9%, transparent), transparent 45%), radial-gradient(ellipse at 90% 35%, color-mix(in srgb, var(--info) 7%, transparent), transparent 50%);
+  background-attachment: fixed;
+}
+.card {
+  border-radius: 20px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--surface-2) 88%, transparent), color-mix(in srgb, var(--surface-1) 94%, transparent));
+  box-shadow: 0 12px 35px -24px #0008, inset 0 1px 0 color-mix(in srgb, var(--text) 9%, transparent);
+}
+.card > header { border-radius: 20px 20px 0 0; }
+.input { border-radius: 10px; }
+.studio-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(240px, 1.2fr) minmax(180px, .7fr) minmax(240px, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding: clamp(20px, 3vw, 36px);
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--line));
+  border-radius: 26px;
+  background: radial-gradient(ellipse at 50% 0%, var(--brand-wash), transparent 70%), linear-gradient(120deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-md), inset 0 1px 0 color-mix(in srgb, var(--text) 14%, transparent);
+  overflow: hidden;
+  animation: studio-arrive .6s ease-out both;
+}
+.studio-recommendation {
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--brand) 24%, var(--line));
+  background: linear-gradient(150deg, var(--brand-wash), color-mix(in srgb, var(--surface-1) 80%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 10%, transparent);
+}
+.studio-pill { border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 12px; }
+.core-scene { color: var(--text-2); max-width: 300px; width: 100%; justify-self: center; }
+.core-float { animation: core-float 6s ease-in-out infinite; }
+.core-flux { transform-origin: 130px 105px; animation: core-flux 25s linear infinite; }
+@keyframes core-float { 50% { transform: translateY(-7px); } }
+@keyframes core-flux { to { transform: rotate(360deg); } }
+@keyframes studio-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 1150px) {
+  .studio-hero { grid-template-columns: 1fr 1fr; }
+  .core-scene { display: none; }
+}
+@media (max-width: 600px) {
+  .studio-hero { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .studio-recommendation { padding: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .core-float, .core-flux, .studio-hero { animation: none; }
+}
+@media print { .studio-hero { background: white; box-shadow: none; } .core-float, .core-flux { animation: none; } }
+
+.card, main, .studio-intro, .studio-recommendation { min-width: 0; }
+
+/* Keep floating table annotations inside their horizontal scroll container. */
+.overflow-x-auto { position: relative; }

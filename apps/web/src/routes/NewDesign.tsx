@@ -5,7 +5,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import type { DesignInputs } from '@meltek/engine';
+import { ltCtFamily, type DesignInputs } from '@meltek/engine';
+import { DesignStudio } from '../features/DesignStudio';
 import { designInputsSchema } from '@meltek/schema';
 import { api, ApiError } from '../lib/api';
 import { useCalculator, useDetail, useReference } from '../features/useCalculator';
@@ -51,6 +52,7 @@ export function NewDesign() {
   const navigate = useNavigate();
   const reference = useReference();
   const canCreate = usePermission('designs.create');
+  const canSelect = usePermission('designs.select');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -86,10 +88,10 @@ export function NewDesign() {
   useEffect(() => {
     if (!result) return;
     const exists = options.some((o) => `${o.gradeCode}:${o.swg}` === selectedKey && o.isFeasible);
-    if (!exists && best) setSelectedKey(`${best.gradeCode}:${best.swg}`);
+    if (!exists) setSelectedKey(best ? `${best.gradeCode}:${best.swg}` : null);
   }, [result, options, selectedKey, best]);
 
-  const selected = options.find((o) => `${o.gradeCode}:${o.swg}` === selectedKey) ?? best;
+  const selected = options.find((o) => `${o.gradeCode}:${o.swg}` === selectedKey) ?? best ?? options[0] ?? null;
   const detail = useDetail(inputs, reference.data, selected?.gradeCode ?? null, selected?.swg ?? null);
   const grade = reference.data?.grades.find((g) => g.code === selected?.gradeCode);
 
@@ -113,7 +115,10 @@ export function NewDesign() {
         insulationType: v.insulationType || null,
         inputs,
       });
-      await api.calculateDesign(design.id);
+      const calculated = await api.calculateDesign(design.id);
+      const choice = calculated.options.find(o => `${o.gradeCode}:${o.swg}` === selectedKey && o.isFeasible)
+        ?? calculated.options.find(o => o.rank === 1);
+      if (choice && canSelect) await api.selectOption(design.id, choice.id);
       return design;
     },
     onSuccess: (design) => navigate({ to: '/designs/$id', params: { id: design.id } }),
@@ -124,15 +129,17 @@ export function NewDesign() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader eyebrow="Calculate" title="New design">
+      <PageHeader eyebrow="Engineering workspace / LT CT" title="Design less. Discover more.">
         Every grade and gauge is computed as you type, ranked by material cost. Nothing is
         saved until you say so.
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,380px)_1fr]">
+      <DesignStudio inputs={inputs} best={best} options={options} quantity={Number(values.quantity) || 1} family={ltCtFamily.label} />
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
         {/* ── the form ── */}
         <form
-          className="flex flex-col gap-4"
+          className="flex min-w-0 flex-col gap-4"
           onSubmit={form.handleSubmit((v) => save.mutate(v))}
         >
           <Card title="Customer & order">
@@ -179,6 +186,7 @@ export function NewDesign() {
                 label="Accuracy class"
                 hint="Permitted error. A tighter class needs more steel."
                 {...form.register('accuracyClass')}
+                value={values.accuracyClass}
               >
                 {classes.map((c) => (
                   <option key={c.code} value={c.code}>{c.code}{c.perIS ? '' : ' (in-house)'}</option>
@@ -272,7 +280,7 @@ export function NewDesign() {
 
           <div className="flex items-center gap-3">
             {canCreate && (
-              <Button type="submit" variant="primary" disabled={!inputs || save.isPending}>
+              <Button type="submit" variant="primary" disabled={!inputs || !result || !best || save.isPending}>
                 {save.isPending ? 'Saving…' : 'Save design & options'}
               </Button>
             )}
@@ -287,7 +295,7 @@ export function NewDesign() {
         </form>
 
         {/* ── results ── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4">
           {reference.isLoading && (
             <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-6 w-48" /><Skeleton className="h-40 w-full" /></div></Card>
           )}
@@ -307,6 +315,8 @@ export function NewDesign() {
               as you type — there is no calculate button and no waiting.
             </EmptyState></Card>
           )}
+
+          {result && !best && <Callout tone="warn" title="No feasible combination">Review the rejected options below, adjust your dimensions, or update stock and reference data.</Callout>}
 
           {result && selected && (
             <>
@@ -351,7 +361,7 @@ export function NewDesign() {
                   options={options}
                   selectedKey={selectedKey}
                   onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
-                  showAll={showAll}
+                  showAll={showAll || !best}
                   onToggleShowAll={() => setShowAll((v) => !v)}
                 />
               </Card>

@@ -303,3 +303,37 @@ If Chromium cannot be launched — a host without the shared libraries, for inst
 endpoint does not fail. It logs a warning, sets `X-Meltek-Pdf-Fallback: html` and serves
 the printable sheet so the operator still gets their document. The Docker image installs
 the distro Chromium and points `PUPPETEER_EXECUTABLE_PATH` at it.
+
+## Design studio and engine reliability update
+
+The LT CT workspace includes a responsive glass-style overview, an animated concept
+preview (not a manufacturing drawing), a lowest-feasible-cost recommendation and a
+batch material estimate. Reduced-motion preferences disable the illustration animation.
+All rejected combinations remain inspectable when no feasible design exists.
+
+Cost ranking now uses copper length at the **ordered slit width**, including the same
+lead and crossover allowances used by the solver. The converged `wireLengthM` remains
+an intermediate for comparison with the supplied calculation vectors; copper weight,
+copper cost and BOM length use the ordered geometry. Labour, resin, scrap, overhead and
+tax are not included in the material estimate. A populated slit register is a stock
+constraint: a fallback width that is not stocked cannot be recommended.
+
+`packages/engine/src/designFamilies.ts` introduces a typed family adapter with separate
+solver and search functions. The active family is `lt-ct`. Future products should add
+their own input schema, validation, solver and tests through this interface. They will
+also need a persisted family discriminator and database migration, API dispatch and
+family-specific forms; the existing CT input model must not be reused for incompatible
+transformer physics. Existing records continue to mean LT CT without a migration.
+
+Verification:
+
+- `npm test`: original 88 vector tests plus 14 reliability regression cases.
+- `npm run build`: engine, schema, browser and API production builds.
+- `node scripts/smoke.mjs`: real login and calculator smoke check using a disposable
+  JSON store; desktop/mobile screenshots, mobile overflow, reduced motion and the
+  no-feasible-result state. Run after building. Requires Puppeteer's installed browser.
+
+Engineering limitations listed above still apply: missing winding tables, unconfirmed
+process settings, incomplete stock/tooling data and lack of measured calibration
+prevent a claim of production-certified accuracy. New pricing fixes do not recost
+previously stored or approved options automatically; create a revision and recalculate.

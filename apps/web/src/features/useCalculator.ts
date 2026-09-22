@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
-  optimise, solve, EngineError,
+  ltCtFamily, EngineError,
   type DesignInputs, type OptimiseResult, type SolveResult,
 } from '@meltek/engine';
 import { api, type ReferenceResponse } from '../lib/api';
@@ -33,7 +33,7 @@ export function useCalculator(inputs: DesignInputs | null, ref: ReferenceRespons
   return useMemo(() => {
     if (!ref || !inputs) return { result: null, error: null, ready: false };
     try {
-      return { result: optimise(inputs, ref, ref.settings), error: null, ready: true };
+      return { result: ltCtFamily.optimise(inputs, ref, ref.settings), error: null, ready: true };
     } catch (err) {
       const message = err instanceof EngineError ? err.message : 'This specification could not be calculated.';
       return { result: null, error: message, ready: true };
@@ -51,7 +51,7 @@ export function useDetail(
   return useMemo(() => {
     if (!ref || !inputs || !gradeCode || swg === null) return null;
     try {
-      return solve(inputs, ref, ref.settings, gradeCode, swg);
+      return ltCtFamily.solve(inputs, ref, ref.settings, gradeCode, swg);
     } catch {
       return null;
     }

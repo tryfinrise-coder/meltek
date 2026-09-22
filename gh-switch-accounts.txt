@@ -1,0 +1,8 @@
+== Switch to tryfinrise-coder ==
+gh auth switch --user tryfinrise-coder
+
+== Switch back to MerkaturaXJaydeep ==
+gh auth switch --user MerkaturaXJaydeep
+
+== Check which account is active ==
+gh auth status

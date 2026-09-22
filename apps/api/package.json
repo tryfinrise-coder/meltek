@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "build": "npx tsc -p tsconfig.json && node ./scripts/copy-assets.mjs",
+    "build": "tsc -p tsconfig.json && node ./scripts/copy-assets.mjs",
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "seed": "tsx src/seed.ts"

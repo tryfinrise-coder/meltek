@@ -4,3 +4,5 @@ dist
 *.log
 **/data/*.json
 coverage
+
+.vercel

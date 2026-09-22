@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { accuracyClassLabel } from '../lib/accuracyClasses';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -40,6 +41,8 @@ const formSchema = z.object({
 });
 
 type FormValues = z.input<typeof formSchema>;
+
+const SelectedDesignPreview = lazy(() => import('../features/SelectedDesignPreview'));
 
 const DEFAULTS: FormValues = {
   customerName: '', enquiryNo: '', poNo: '', prdNo: '', quantity: '', requiredBy: '',
@@ -134,14 +137,16 @@ export function NewDesign() {
         saved until you say so.
       </PageHeader>
 
-      <DesignStudio inputs={inputs} best={best} options={options} quantity={Number(values.quantity) || 1} family={ltCtFamily.label} />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)]">
+
+      <div className="flex flex-col gap-8">
         {/* ── the form ── */}
         <form
           className="flex min-w-0 flex-col gap-4"
           onSubmit={form.handleSubmit((v) => save.mutate(v))}
         >
+          <div className="workflow-heading"><span>01</span><div><h2>Define your design</h2><p>Enter the electrical requirements, dimensions and order details.</p></div></div>
+          <div className="parameter-grid">
           <Card title="Customer & order">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -183,13 +188,13 @@ export function NewDesign() {
                 {...form.register('burdenVA')}
               />
               <SelectField
-                label="Accuracy class"
+                label="Accuracy class" span aria-label="Accuracy class"
                 hint="Permitted error. A tighter class needs more steel."
                 {...form.register('accuracyClass')}
                 value={values.accuracyClass}
               >
                 {classes.map((c) => (
-                  <option key={c.code} value={c.code}>{c.code}{c.perIS ? '' : ' (in-house)'}</option>
+                  <option key={c.code} value={c.code}>{accuracyClassLabel(c.code)}</option>
                 ))}
               </SelectField>
             </div>
@@ -230,6 +235,8 @@ export function NewDesign() {
               <TextField label="Insulation type" span {...form.register('insulationType')} />
             </div>
           </Card>
+
+          </div>
 
           {/* Similar designs, before the calculate/save action (§11.1). */}
           <AnimatePresence>
@@ -320,6 +327,35 @@ export function NewDesign() {
 
           {result && selected && (
             <>
+              <div className="workflow-heading" id="design-guidance"><span>02</span><div><h2>Review the guidance</h2><p>Check these assumptions and reference-data requirements before choosing an option.</p></div></div>
+              <WarningStrip warnings={[
+                ...result.warnings,
+                ...(detail?.warnings ?? []),
+                ...(unconfirmed.length
+                  ? [{
+                      code: 'UNCONFIRMED_SETTINGS',
+                      ref: 'Settings',
+                      message: `${unconfirmed.length} settings still hold their shipped default: ${unconfirmed.map((s) => s.label).join(', ')}. Review them under Reference data.`,
+                    }]
+                  : []),
+              ]} />
+
+              <div className="workflow-heading"><span>03</span><div><h2>Compare design combinations</h2><p>Select a row to inspect its dimensions, diagram and 3D model.</p></div></div>
+      <DesignStudio inputs={inputs} best={best} options={options} quantity={Number(values.quantity) || 1} family={ltCtFamily.label} />
+              <Card
+                title="Ranked options"
+                subtitle="Every grade × gauge combination, cheapest material cost first. Infeasible rows stay visible with their reason."
+              >
+                <OptionsTable
+                  options={options}
+                  selectedKey={selectedKey}
+                  onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
+                  showAll={showAll || !best}
+                  onToggleShowAll={() => setShowAll((v) => !v)}
+                />
+              </Card>
+
+              <div className="workflow-heading"><span>04</span><div><h2>Explore the selected design</h2><p>{selected.gradeLabel} · SWG {selected.swg}</p></div></div>
               <motion.div
                 className="grid grid-cols-2 gap-3 md:grid-cols-4"
                 variants={fadeUp(Boolean(reduce))} initial="hidden" animate="show"
@@ -341,31 +377,8 @@ export function NewDesign() {
                 </StatTile>
               </motion.div>
 
-              <WarningStrip warnings={[
-                ...result.warnings,
-                ...(detail?.warnings ?? []),
-                ...(unconfirmed.length
-                  ? [{
-                      code: 'UNCONFIRMED_SETTINGS',
-                      ref: 'Settings',
-                      message: `${unconfirmed.length} settings still hold their shipped default: ${unconfirmed.map((s) => s.label).join(', ')}. Review them under Reference data.`,
-                    }]
-                  : []),
-              ]} />
 
-              <Card
-                title="Ranked options"
-                subtitle="Every grade × gauge combination, cheapest material cost first. Infeasible rows stay visible with their reason."
-              >
-                <OptionsTable
-                  options={options}
-                  selectedKey={selectedKey}
-                  onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
-                  showAll={showAll || !best}
-                  onToggleShowAll={() => setShowAll((v) => !v)}
-                />
-              </Card>
-
+              {selected.isFeasible && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} /></Suspense>}
               <AnimatePresence mode="wait">
                 {detail && (
                   <motion.div

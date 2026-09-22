@@ -1,3 +1,4 @@
+import type { AdminTab } from '../lib/adminTabs';
 import { useMemo } from 'react';
 import type { ReferenceResponse } from '../lib/api';
 
@@ -8,6 +9,7 @@ export interface Notification {
   detail: string;
   /** Where in the app the operator fixes it. */
   to: string;
+  tab: AdminTab;
   ref: string;
 }
 
@@ -30,6 +32,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: 'No dies on record',
         detail: 'Options are not checked against your tooling, so one may be ranked first that no mould can take.',
         to: '/admin',
+        tab: 'dies',
         ref: 'Tooling',
       });
     }
@@ -41,6 +44,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: 'No slit widths on record',
         detail: 'Core widths round up to the nearest 5 mm instead of to a width you actually buy.',
         to: '/admin',
+        tab: 'dies',
         ref: 'Stock',
       });
     }
@@ -55,6 +59,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: `No rate for ${g.label}`,
         detail: 'This grade is calculated but cannot be costed, so it never appears in the ranking.',
         to: '/admin',
+        tab: 'rates',
         ref: 'Rates',
       });
     }
@@ -67,6 +72,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: `${noCurve.length} grades have no B–H curve`,
         detail: `${noCurve.map((g) => g.label).join(', ')} cannot be calculated until their curves are entered.`,
         to: '/admin',
+        tab: 'grades',
         ref: 'Grades',
       });
     }
@@ -79,6 +85,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: `${unconfirmed.length} settings still on defaults`,
         detail: `${unconfirmed.map((s) => s.label).join(', ')} have not been set for your works yet.`,
         to: '/admin',
+        tab: 'settings',
         ref: 'Settings',
       });
     }
@@ -90,6 +97,7 @@ export function useNotifications(ref: ReferenceResponse | undefined): Notificati
         title: 'No resistance at 75 °C',
         detail: 'Standards reference the hot value. Resistance is calculated at 20 °C until it is entered.',
         to: '/admin',
+        tab: 'gauges',
         ref: 'Wire',
       });
     }

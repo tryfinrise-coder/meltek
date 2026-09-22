@@ -1,3 +1,4 @@
+import { accuracyClassLabel } from '../lib/accuracyClasses';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -151,9 +152,9 @@ export function EditDesignDialog({
                   error={form.formState.errors.burdenVA?.message}
                   {...form.register('burdenVA')}
                 />
-                <SelectField label="Accuracy class" {...form.register('accuracyClass')}>
+                <SelectField label="Accuracy class" span aria-label="Accuracy class" help={classes.find(c => c.code === values.accuracyClass && !c.perIS)?.note} {...form.register('accuracyClass')} value={values.accuracyClass}>
                   {classes.map((c) => (
-                    <option key={c.code} value={c.code}>{c.code}{c.perIS ? '' : ' (in-house)'}</option>
+                    <option key={c.code} value={c.code}>{accuracyClassLabel(c.code)}</option>
                   ))}
                 </SelectField>
                 <TextField

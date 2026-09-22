@@ -11,6 +11,7 @@ import {
   HiOutlineCube, HiPencilAlt, HiRefresh, HiSun, HiViewGrid, HiX,
 } from 'react-icons/hi';
 import { ROLE_LABEL } from '@meltek/schema';
+import { ADMIN_TABS, ADMIN_LABELS, parseAdminTab } from '../lib/adminTabs';
 import { duration, ease } from '../lib/motion';
 import { useCurrentUser, useSignOut } from '../lib/session';
 import { useReference } from '../features/useCalculator';
@@ -30,13 +31,14 @@ function initialsOf(name: string): string {
  * to TanStack Router so navigation stays client-side.
  */
 function RouterLink({ href, ...rest }: { href?: string } & Record<string, unknown>) {
+  if (href?.startsWith('/admin?')) return <Link to="/admin" search={{ tab: parseAdminTab(new URLSearchParams(href.split('?')[1]).get('tab')) }} {...(rest as object)} />;
   return <Link to={href ?? '/'} {...(rest as object)} />;
 }
 
 const EXPANDED = 248;
 const COLLAPSED = 68;
-/** Below this the rail collapses to icons on its own; below 900 it becomes a drawer (§9.4). */
-const AUTO_COLLAPSE_AT = 1280;
+/** Desktop uses a hover rail; below 900 px navigation becomes a touch drawer. */
+
 const DRAWER_AT = 900;
 
 export function Wordmark({ size = 20 }: { size?: number }) {
@@ -57,7 +59,7 @@ function useViewport() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-  return { width, isDrawer: width < DRAWER_AT, shouldAutoCollapse: width < AUTO_COLLAPSE_AT };
+  return { isDrawer: width < DRAWER_AT };
 }
 
 function useTheme() {
@@ -76,28 +78,31 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = useRouterState({ select: (s) => s.location.pathname });
   const currentUser = useCurrentUser();
   const canManageUsers = currentUser?.role === 'admin';
-  const { isDrawer, shouldAutoCollapse } = useViewport();
+  const { isDrawer } = useViewport();
+  const location = useRouterState({ select: s => s.location });
+  const adminTab = parseAdminTab((location.search as { tab?: string }).tab);
 
-  // Pinned open by the operator, auto-collapsed by width, temporarily expanded on hover.
+  // Collapsed by default; pointer hover or keyboard focus reveals labels. Pinning is optional.
   const [pinned, setPinned] = useState(() => {
-    try { return localStorage.getItem('meltek-rail') !== 'collapsed'; } catch { return true; }
+    try { return localStorage.getItem('meltek-rail-mode') === 'pinned'; } catch { return false; }
   });
   const [hovering, setHovering] = useState(false);
+  const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const autoCollapsed = shouldAutoCollapse || !pinned;
-  const expanded = isDrawer ? drawerOpen : !autoCollapsed || hovering;
+  const autoCollapsed = !pinned;
+  const expanded = isDrawer ? drawerOpen : !autoCollapsed || hovering || keyboardFocus;
   const railWidth = isDrawer ? 0 : autoCollapsed ? COLLAPSED : EXPANDED;
 
   const togglePin = useCallback(() => {
     setPinned((p) => {
-      try { localStorage.setItem('meltek-rail', p ? 'collapsed' : 'expanded'); } catch { /* ignore */ }
+      try { localStorage.setItem('meltek-rail-mode', p ? 'auto' : 'pinned'); } catch { /* ignore */ }
       return !p;
     });
   }, []);
 
   // Close the drawer on navigation, otherwise it covers the page you just opened.
-  useEffect(() => { setDrawerOpen(false); }, [path]);
+  useEffect(() => { setDrawerOpen(false); }, [location.href]);
 
   return (
     <div className="min-h-dvh">
@@ -114,6 +119,12 @@ export function Shell({ children }: { children: ReactNode }) {
 
       <motion.aside
         className="glossy-rail fixed inset-y-0 left-0 z-40 flex flex-col no-print"
+        aria-label="Application sidebar"
+        data-expanded={expanded}
+        inert={isDrawer && !drawerOpen}
+        onFocusCapture={e => { if (!isDrawer && e.target.matches(':focus-visible')) setKeyboardFocus(true); }}
+        onBlurCapture={e => { if (!e.currentTarget.contains(e.relatedTarget)) setKeyboardFocus(false); }}
+        onKeyDown={e => { if (e.key === 'Escape') { setDrawerOpen(false); setHovering(false); setKeyboardFocus(false); } }}
         onMouseEnter={() => !isDrawer && autoCollapsed && setHovering(true)}
         onMouseLeave={() => setHovering(false)}
         initial={false}
@@ -133,7 +144,7 @@ export function Shell({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => (isDrawer ? setDrawerOpen(false) : togglePin())}
               className="rounded-[6px] p-1 text-[var(--text-3)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)]"
-              aria-label={isDrawer ? 'Close menu' : pinned ? 'Collapse the sidebar' : 'Keep the sidebar open'}
+              aria-label={isDrawer ? 'Close menu' : pinned ? 'Use hover to expand sidebar' : 'Keep the sidebar open'}
             >
               {isDrawer ? <HiX className="h-4 w-4" /> : <HiChevronDoubleLeft className="h-4 w-4" />}
             </button>
@@ -151,14 +162,14 @@ export function Shell({ children }: { children: ReactNode }) {
               <SidebarItemGroup>
                 {expanded ? (
                   <SidebarCollapse icon={HiCog} label="Reference data" open={path.startsWith('/admin')}>
-                    <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Process settings</SidebarItem>
-                    <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Steel grades &amp; curves</SidebarItem>
-                    <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Wire gauges</SidebarItem>
-                    <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Dies &amp; slit widths</SidebarItem>
-                    <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Rates</SidebarItem>
-                    {canManageUsers && (
-                      <SidebarItem as={RouterLink} href="/admin" className="text-[13px]">Accounts</SidebarItem>
-                    )}
+                    {ADMIN_TABS.filter(tab => tab !== 'accounts' || canManageUsers).map(tab => (
+                      <SidebarItem key={tab} as={RouterLink} href={`/admin?tab=${tab}`}
+                        active={path === '/admin' && adminTab === tab}
+                        aria-current={path === '/admin' && adminTab === tab ? 'page' : undefined}
+                        className="reference-rail-item text-[13px]">
+                        {tab === 'grades' ? 'Steel grades & curves' : ADMIN_LABELS[tab]}
+                      </SidebarItem>
+                    ))}
                   </SidebarCollapse>
                 ) : (
                   <RailItem to="/admin" icon={HiCog} label="Reference data" active={path.startsWith('/admin')} expanded={false} />
@@ -316,7 +327,7 @@ function Header({ onOpenDrawer, isDrawer }: { onOpenDrawer: () => void; isDrawer
             {notifications.map((n) => (
               <DropdownItem
                 key={n.id}
-                onClick={() => void navigate({ to: n.to })}
+                onClick={() => void navigate({ to: '/admin', search: { tab: n.tab } })}
                 className="items-start"
               >
                 <span

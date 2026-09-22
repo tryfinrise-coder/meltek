@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { ADMIN_TABS as TABS, ADMIN_LABELS as LABEL, parseAdminTab } from '../lib/adminTabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Die, SteelGrade, WireGauge } from '@meltek/engine';
@@ -16,18 +18,6 @@ import { UsersPanel } from '../features/admin/UsersPanel';
 import { usePermission } from '../lib/session';
 import { ease, fadeUp } from '../lib/motion';
 
-const TABS = ['settings', 'grades', 'gauges', 'dies', 'rates', 'customers', 'accounts'] as const;
-type Tab = (typeof TABS)[number];
-const LABEL: Record<Tab, string> = {
-  settings: 'Process settings',
-  grades: 'Steel grades',
-  gauges: 'Wire gauges',
-  dies: 'Dies & slit widths',
-  rates: 'Rates',
-  customers: 'Customers',
-  accounts: 'Accounts',
-};
-
 /** Admin — reference data (§11.5). */
 export function Admin() {
   const reduce = useReducedMotion();
@@ -36,7 +26,10 @@ export function Admin() {
   const canEditReference = usePermission('reference.edit');
   const canEditCustomers = usePermission('customers.edit');
   const canDeleteCustomers = usePermission('customers.delete');
-  const [tab, setTab] = useState<Tab>('settings');
+  const search = useSearch({ from: '/admin' });
+  const navigate = useNavigate();
+  const requestedTab = parseAdminTab(search.tab);
+  const tab = requestedTab === 'accounts' && !canManageUsers ? 'settings' : requestedTab;
   // Accounts is an administrator's tab; it is hidden rather than shown and refused.
   const tabs = TABS.filter((t) => t !== 'accounts' || canManageUsers);
 
@@ -60,15 +53,16 @@ export function Admin() {
 
       {unconfirmed.length > 0 && (
         <Callout tone="warn" title={`${unconfirmed.length} settings still hold their shipped default`}>
-          They are safe working values, but they have not been set for your works. Each one
+          These values have not yet been confirmed for your works. Each one
           explains what it controls and what to consider when setting it.
         </Callout>
       )}
 
-      <div className="flex flex-wrap gap-1 border-b border-[var(--line)]">
+      <div className="reference-tabs flex flex-wrap gap-1" aria-label="Reference data sections">
         {tabs.map((t) => (
           <button
-            key={t} type="button" onClick={() => setTab(t)}
+            key={t} type="button" onClick={() => void navigate({ to: '/admin', search: { tab: t } })}
+            aria-current={tab === t ? 'page' : undefined}
             className="relative px-3 py-2.5 text-[13px]"
             style={{ color: tab === t ? 'var(--text)' : 'var(--text-2)' }}
           >

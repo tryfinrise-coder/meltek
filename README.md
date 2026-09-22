@@ -337,3 +337,27 @@ Engineering limitations listed above still apply: missing winding tables, unconf
 process settings, incomplete stock/tooling data and lack of measured calibration
 prevent a claim of production-certified accuracy. New pricing fixes do not recost
 previously stored or approved options automatically; create a revision and recalculate.
+
+
+## Sequential workflow and selected-design views
+
+The new-design screen now presents parameters first, followed by guidance, ranked
+combinations, and the selected design. Cards use tighter 8 px corners. The selected
+option drives a dimensioned front/side SVG and a lazy-loaded Three.js model on both
+new and saved design pages. Drag/pinch, rotate, zoom and reset controls are available;
+rendering runs on interaction rather than in a continuous animation loop.
+
+SVG export includes finished diameters and core dimensions. STL export contains only
+the steel core, using millimetres and the ordered slit width. Winding loops and
+lamination markings are illustrative: the available inputs do not establish actual
+wire routing, insulation layers, terminal positions or finished axial depth. If WebGL
+is unavailable, the diagram and core export remain available.
+
+Reference-data links now use `/admin?tab=grades` (and corresponding tab names).
+Sidebar links, page tabs, notifications, reload and browser history share this state.
+Desktop navigation collapses by default and expands on hover or keyboard focus, with
+an optional pin. On mobile it remains a drawer that closes after navigation.
+
+The browser smoke test also checks selection-driven model changes, 3D rotation,
+SVG/STL downloads, exported dimensions, all reference tabs, browser history, reload,
+and hover expansion/collapse.

@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -16,7 +16,7 @@ await new Promise(resolve => server.once('listening', resolve));
 const url = `http://127.0.0.1:${server.address().port}`;
 let browser;
 try {
-  browser = await puppeteer.launch({ headless: true });
+  browser = await puppeteer.launch({ headless: true, args: ['--enable-unsafe-swiftshader'] });
   const page = await browser.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -27,7 +27,66 @@ try {
   await page.click('button[type=submit]');
   await page.waitForSelector('.studio-recommendation');
   await page.waitForFunction(() => document.querySelector('.studio-recommendation').textContent.includes('SWG'));
-  assert.equal(await page.$eval('select[name=accuracyClass]', el => el.value), '0.5S');
+  await page.waitForSelector('.model-stage[data-model-ready="true"]');
+  assert(await page.evaluate(() => document.querySelector('.parameter-grid').getBoundingClientRect().bottom < document.querySelector('#design-guidance').getBoundingClientRect().top), 'Inputs must precede guidance');
+  const preview = await page.$('.design-views');
+  await preview.screenshot({ path: join(temp, 'selected-design.png') });
+  const selectedBefore = await page.$eval('.design-views', el => el.dataset.selectedModel);
+  await page.click('tbody tr:nth-child(2)');
+  await page.waitForFunction(key => document.querySelector('.design-views')?.dataset.selectedModel !== key, {}, selectedBefore);
+  const selectedAfter = await page.$eval('.design-views', el => el.dataset.selectedModel);
+  const diagramAfter = await page.$eval('.drawing-stage svg', el => el.getAttribute('aria-label'));
+  assert(diagramAfter.includes('ordered width 35'), 'Diagram must follow the selected slit width');
+  const clickText = async text => {
+    const buttons = await page.$$('button');
+    for (const button of buttons) if ((await button.evaluate(el => el.textContent)).trim() === text) { await button.click(); return; }
+    throw new Error(`Missing button: ${text}`);
+  };
+  const modelCanvas = await page.$('.model-stage canvas');
+  const beforeRotation = await modelCanvas.screenshot();
+  await clickText('Rotate left');
+  const afterRotation = await modelCanvas.screenshot();
+  assert.notDeepEqual(beforeRotation, afterRotation, 'Rotation should change the rendered 3D view');
+  await clickText('Reset view');
+  const client = await page.createCDPSession();
+  await client.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: temp });
+  await clickText('Export core STL');
+  await clickText('Download SVG');
+  let files = [];
+  for (let attempt = 0; attempt < 30; attempt++) {
+    files = await readdir(temp);
+    if (files.some(f => f.endsWith('.stl')) && files.some(f => f.endsWith('.svg'))) break;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  const stlName = files.find(f => f.endsWith('.stl'));
+  assert(stlName, 'Core STL should download');
+  const stl = await readFile(join(temp, stlName), 'utf8');
+  const vertices = [...stl.matchAll(/vertex\s+([-\deE+.]+)\s+([-\deE+.]+)\s+([-\deE+.]+)/g)].map(m => m.slice(1).map(Number));
+  const xs = vertices.map(v => v[0]); const zs = vertices.map(v => v[2]);
+  assert(Math.abs(Math.max(...xs) - Math.min(...xs) - 63) < .001, 'STL OD must be 63 mm');
+  assert(Math.abs(Math.max(...zs) - Math.min(...zs) - 35) < .001, 'STL width must be 35 mm for the selected option');
+  assert(files.some(f => f.endsWith('.svg')), 'Diagram SVG should download');
+  await page.mouse.move(600, 100);
+  await page.waitForSelector('aside[data-expanded="false"]');
+  await page.hover('aside');
+  await page.waitForSelector('aside[data-expanded="true"]');
+  await page.goto(`${url}/admin?tab=grades`, { waitUntil: 'networkidle0' });
+  await page.hover('aside');
+  for (const tab of ['grades', 'gauges', 'dies', 'rates', 'customers', 'accounts', 'settings']) {
+    await page.click(`aside a[href="/admin?tab=${tab}"]`);
+    await page.waitForFunction(t => new URL(location.href).searchParams.get('tab') === t && !!document.querySelector('.reference-tabs button[aria-current="page"]'), {}, tab);
+    assert.equal(await page.$eval(`aside a[href="/admin?tab=${tab}"]`, el => el.getAttribute('aria-current')), 'page');
+  }
+  await page.goBack({ waitUntil: 'networkidle0' });
+  assert(new URL(page.url()).searchParams.get('tab') === 'accounts', 'Back should restore the previous tab');
+  await page.reload({ waitUntil: 'networkidle0' });
+  assert.equal(await page.$eval('.reference-tabs button[aria-current="page"]', el => el.textContent.trim()), 'Accounts');
+  await page.mouse.move(600, 100);
+  await page.waitForSelector('aside[data-expanded="false"]');
+  await page.goto(url, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.model-stage[data-model-ready="true"]');
+  console.log(`Selection changed from ${selectedBefore} to ${selectedAfter}; model, downloads and navigation verified.`);
+  assert.equal(await page.$eval('select[name=accuracyClass]' , el => el.value), '0.5S');
   await page.screenshot({ path: join(temp, 'desktop.png'), fullPage: true });
   await page.click('button[aria-label="Switch to dark theme"]');
   await page.screenshot({ path: join(temp, 'desktop-dark.png'), fullPage: true });

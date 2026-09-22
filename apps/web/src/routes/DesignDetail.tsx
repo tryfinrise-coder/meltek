@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from '@tanstack/react-router';
 import { Dropdown, DropdownDivider, DropdownItem } from 'flowbite-react';
@@ -18,6 +18,8 @@ import {
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EditDesignDialog } from '../components/EditDesignDialog';
 import { fadeUp } from '../lib/motion';
+
+const SelectedDesignPreview = lazy(() => import('../features/SelectedDesignPreview'));
 
 /** The saved design screen (§11.3). */
 export function DesignDetail() {
@@ -256,6 +258,8 @@ export function DesignDetail() {
           />
         </Card>
       )}
+
+      {chosen?.isFeasible && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={chosen} /></Suspense>}
 
       {detail && (
         <Card

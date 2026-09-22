@@ -14,6 +14,7 @@ import { Admin } from './routes/Admin';
 import { Card, EmptyState } from './components/primitives';
 import { AuthGate } from './components/AuthGate';
 import './index.css';
+import { validateAdminSearch } from './lib/adminTabs';
 
 const rootRoute = createRootRoute({
   component: () => <Shell><Outlet /></Shell>,
@@ -28,7 +29,7 @@ const routes = [
   createRoute({ getParentRoute: () => rootRoute, path: '/', component: NewDesign }),
   createRoute({ getParentRoute: () => rootRoute, path: '/register', component: Register }),
   createRoute({ getParentRoute: () => rootRoute, path: '/designs/$id', component: DesignDetail }),
-  createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: Admin }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/admin', validateSearch: validateAdminSearch, component: Admin }),
 ];
 
 const router = createRouter({ routeTree: rootRoute.addChildren(routes) });

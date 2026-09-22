@@ -71,7 +71,9 @@ export async function createServer() {
   return { app, store };
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+const thisFile = resolve(fileURLToPath(import.meta.url));
+const isMain = !process.argv[1] || resolve(process.argv[1]) === thisFile
+  || process.argv[1].endsWith('server.js');
 if (isMain) {
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '0.0.0.0';

@@ -9,7 +9,7 @@
     "build": "npm run build -w @meltek/engine && npm run build -w @meltek/schema && npm run build -w @meltek/web && npm run build -w @meltek/api",
     "test": "npm run test -w @meltek/engine",
     "dev": "npm run dev -w @meltek/api",
-    "start": "node apps/api/dist/server.js",
+    "start": "node apps/api/dist/start.js",
     "seed": "node apps/api/dist/seed.js"
   },
   "dependencies": {

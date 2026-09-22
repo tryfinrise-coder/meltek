@@ -62,7 +62,7 @@ function useViewport() {
 
 function useTheme() {
   const [theme, setTheme] = useState<'dark' | 'light'>(
-    () => (document.documentElement.dataset.theme as 'dark' | 'light') ?? 'dark',
+    () => (document.documentElement.dataset.theme as 'dark' | 'light') ?? 'light',
   );
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

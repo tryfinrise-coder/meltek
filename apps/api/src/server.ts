@@ -75,27 +75,29 @@ const thisFile = resolve(fileURLToPath(import.meta.url));
 const isMain = !process.argv[1] || resolve(process.argv[1]) === thisFile
   || process.argv[1].endsWith('server.js');
 if (isMain) {
-  const port = Number(process.env.PORT ?? 3000);
-  const host = process.env.HOST ?? '0.0.0.0';
-  logger.info('starting server…');
-  logger.info({ MYSQL_URL: process.env.MYSQL_URL ? '(set)' : '(not set)', NODE_ENV: process.env.NODE_ENV }, 'env check');
-  let app, store;
-  try {
-    ({ app, store } = await createServer());
-  } catch (err) {
-    logger.error(err, 'FATAL: createServer failed');
-    process.exit(1);
-  }
-  const server = app.listen(port, host, () => {
-    logger.info({ port, host, store: store.kind }, 'meltek api listening');
-  });
-  const shutdown = async (signal: string) => {
-    logger.info({ signal }, 'shutting down');
-    server.close();
-    await closePdfRenderer();
-    await store.close();
-    process.exit(0);
-  };
-  process.on('SIGTERM', () => void shutdown('SIGTERM'));
-  process.on('SIGINT', () => void shutdown('SIGINT'));
+  void (async () => {
+    const port = Number(process.env.PORT ?? 3000);
+    const host = process.env.HOST ?? '0.0.0.0';
+    logger.info('starting server…');
+    logger.info({ MYSQL_URL: process.env.MYSQL_URL ? '(set)' : '(not set)', NODE_ENV: process.env.NODE_ENV }, 'env check');
+    let app, store;
+    try {
+      ({ app, store } = await createServer());
+    } catch (err) {
+      logger.error(err, 'FATAL: createServer failed');
+      process.exit(1);
+    }
+    const server = app.listen(port, host, () => {
+      logger.info({ port, host, store: store.kind }, 'meltek api listening');
+    });
+    const shutdown = async (signal: string) => {
+      logger.info({ signal }, 'shutting down');
+      server.close();
+      await closePdfRenderer();
+      await store.close();
+      process.exit(0);
+    };
+    process.on('SIGTERM', () => void shutdown('SIGTERM'));
+    process.on('SIGINT', () => void shutdown('SIGINT'));
+  })();
 }

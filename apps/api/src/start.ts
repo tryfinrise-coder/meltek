@@ -25,16 +25,9 @@ import('./server.js')
     handler = app;
     logger.info({ store: store.kind }, 'ready');
 
-    const shutdown = async () => {
-      logger.info('shutting down');
-      server.close();
-      const { closePdfRenderer } = await import('./pdf.js');
-      await closePdfRenderer();
-      await store.close();
-      process.exit(0);
-    };
-    process.on('SIGTERM', () => void shutdown());
-    process.on('SIGINT', () => void shutdown());
+    // Let Hostinger's LiteSpeed manage the process lifecycle.
+    // Do NOT call process.exit() on signals — it kills the process
+    // prematurely, causing 503s on subsequent requests.
   })
   .catch((err) => {
     logger.error(err, 'FATAL: createServer failed');

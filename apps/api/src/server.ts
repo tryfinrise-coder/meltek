@@ -77,7 +77,15 @@ const isMain = !process.argv[1] || resolve(process.argv[1]) === thisFile
 if (isMain) {
   const port = Number(process.env.PORT ?? 3000);
   const host = process.env.HOST ?? '0.0.0.0';
-  const { app, store } = await createServer();
+  logger.info('starting server…');
+  logger.info({ MYSQL_URL: process.env.MYSQL_URL ? '(set)' : '(not set)', NODE_ENV: process.env.NODE_ENV }, 'env check');
+  let app, store;
+  try {
+    ({ app, store } = await createServer());
+  } catch (err) {
+    logger.error(err, 'FATAL: createServer failed');
+    process.exit(1);
+  }
   const server = app.listen(port, host, () => {
     logger.info({ port, host, store: store.kind }, 'meltek api listening');
   });

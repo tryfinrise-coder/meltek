@@ -30,6 +30,9 @@ import('./server.js')
     // prematurely, causing 503s on subsequent requests.
   })
   .catch((err) => {
-    logger.error(err, 'FATAL: createServer failed');
+    const code = (err as { code?: string }).code;
+    const summary = err instanceof Error && err.message.startsWith('MySQL migration statement ')
+      ? err.message : `initialization error${code ? ` (${code})` : ''}`;
+    logger.error({ err }, `FATAL: createServer failed — ${summary}`);
     process.exit(1);
   });

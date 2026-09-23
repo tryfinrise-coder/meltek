@@ -12,6 +12,7 @@ import type {
   ManufacturedResult, Session, SettingRow, StoredOption, Store, User, UserWithSecret,
 } from './types.js';
 import { defaultSettingRows } from './json-store.js';
+import { sqlStatements } from './sql-statements.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const num = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v));
@@ -46,11 +47,7 @@ export class MysqlStore implements Store {
 
   async init(): Promise<void> {
     const raw = await readFile(resolve(here, 'schema.mysql.sql'), 'utf8');
-    const ddl = raw.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
-    const statements = ddl
-      .split(';')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    const statements = sqlStatements(raw);
     for (const stmt of statements) {
       try {
         await this.pool.execute(stmt);
@@ -58,7 +55,8 @@ export class MysqlStore implements Store {
         const code = (err as { code?: string }).code;
         // Ignore "duplicate key/index" errors for idempotent re-runs
         if (code === 'ER_DUP_KEYNAME' || code === 'ER_DUP_FIELDNAME') continue;
-        throw err;
+        // Include the migration location without logging SQL values or credentials.
+        throw new Error(`MySQL migration statement ${statements.indexOf(stmt) + 1} failed (${code ?? 'unknown error'})`, { cause: err });
       }
     }
     const countRows = await this.query('SELECT COUNT(*) AS n FROM steel_grade');

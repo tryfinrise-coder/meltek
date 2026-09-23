@@ -15,7 +15,7 @@ export interface SimilarDesign {
  */
 export function findSimilar(inputs: StoredDesignInputs, designs: Design[], limit = 3): SimilarDesign[] {
   const scored = designs
-    .filter((d) => d.status !== 'superseded')
+    .filter((d) => d.status !== 'superseded' && d.status !== 'archived' && (d.inputs.engineering?.purpose ?? 'metering') === (inputs.engineering?.purpose ?? 'metering'))
     .map((d) => {
       const i = d.inputs;
       const matches: string[] = [];

@@ -43,7 +43,7 @@ export function optimise(
         continue;
       }
 
-      const reasons: string[] = [];
+      const reasons: string[] = [...(result.engineering?.issues ?? [])];
 
       if (!grade.isAvailable) reasons.push('Not in stock');
       if (!gauge.isAvailable) reasons.push(`SWG ${gauge.swg} not in stock`);
@@ -62,8 +62,8 @@ export function optimise(
         );
       }
 
-      if (inputs.maxWidthMm != null && result.orderedWidthMm > inputs.maxWidthMm) {
-        reasons.push(`Ordered width ${result.orderedWidthMm.toFixed(0)} mm exceeds the ${inputs.maxWidthMm} mm limit for this part`);
+      if (inputs.maxWidthMm != null && (result.engineering?.finishedWidthMm ?? result.orderedWidthMm) > inputs.maxWidthMm) {
+        reasons.push(`${result.engineering ? 'Finished' : 'Ordered'} width ${(result.engineering?.finishedWidthMm ?? result.orderedWidthMm).toFixed(1)} mm exceeds the ${inputs.maxWidthMm} mm limit for this part`);
       }
 
       const hOutOfRange = result.warnings.some(

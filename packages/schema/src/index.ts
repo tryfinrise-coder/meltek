@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { engineeringSpecSchema } from './engineering.js';
+export * from './engineering.js';
 
 export * from './auth.js';
 
@@ -11,6 +13,7 @@ export const ctTypeSchema = z.enum(['ring', 'wound-primary']);
 
 export const designInputsSchema = z
   .object({
+    engineering: engineeringSpecSchema.nullable().optional(),
     primaryCurrent: z.number().positive('Primary current must be greater than zero.'),
     secondaryCurrent: z.number().positive('Secondary current must be greater than zero.'),
     burdenVA: z.number().positive('Burden must be greater than zero.'),

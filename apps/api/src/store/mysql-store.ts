@@ -475,13 +475,13 @@ export class MysqlStore implements Store {
       `INSERT INTO design (id, design_no, revision, customer_id, customer_name, enquiry_no, po_no,
         prd_no, quantity, required_by, ct_type, primary_current, secondary_current, burden_va,
         accuracy_class, finished_id_mm, finished_od_mm, max_width_mm, insulation_type,
-        settings_snapshot, reference_snapshot, status, created_by, supersedes)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        settings_snapshot, reference_snapshot, status, created_by, supersedes, engineering_spec)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [d.id, d.designNo, d.revision, d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo,
         d.quantity, d.requiredBy, d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent,
         d.inputs.burdenVA, d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm,
         d.inputs.maxWidthMm, d.insulationType, JSON.stringify(d.settingsSnapshot),
-        JSON.stringify(d.referenceSnapshot), d.status, d.createdBy, d.supersedesId],
+        JSON.stringify(d.referenceSnapshot), d.status, d.createdBy, d.supersedesId, JSON.stringify(d.inputs.engineering ?? null)],
     );
     return d;
   }
@@ -492,13 +492,13 @@ export class MysqlStore implements Store {
          quantity=?, required_by=?, ct_type=?, primary_current=?, secondary_current=?,
          burden_va=?, accuracy_class=?, finished_id_mm=?, finished_od_mm=?, max_width_mm=?,
          insulation_type=?, settings_snapshot=?, reference_snapshot=?, status=?,
-         selected_option_id=?, approved_by=?, approved_at=?, superseded_by=?
+         selected_option_id=?, approved_by=?, approved_at=?, superseded_by=?, engineering_spec=?
        WHERE id=?`,
       [d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo, d.quantity, d.requiredBy,
         d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent, d.inputs.burdenVA,
         d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm, d.inputs.maxWidthMm,
         d.insulationType, JSON.stringify(d.settingsSnapshot), JSON.stringify(d.referenceSnapshot),
-        d.status, d.selectedOptionId, d.approvedBy, dt(d.approvedAt), d.supersededById, d.id],
+        d.status, d.selectedOptionId, d.approvedBy, dt(d.approvedAt), d.supersededById, JSON.stringify(d.inputs.engineering ?? null), d.id],
     );
     return d;
   }
@@ -686,6 +686,7 @@ function toDesign(r: Record<string, unknown>): Design {
     requiredBy: r.required_by ? String(r.required_by).slice(0, 10) : null,
     insulationType: (r.insulation_type as string | null) ?? null,
     inputs: {
+      engineering: typeof r.engineering_spec === 'string' ? JSON.parse(r.engineering_spec) : r.engineering_spec ?? null,
       primaryCurrent: num(r.primary_current),
       secondaryCurrent: num(r.secondary_current),
       burdenVA: num(r.burden_va),

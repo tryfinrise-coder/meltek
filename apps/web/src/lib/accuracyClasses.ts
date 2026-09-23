@@ -1,5 +1,9 @@
 /** Display labels only: the reference-data code remains the calculation value. */
 const APPLICATION_NAMES: Record<string, string> = {
+  '5P': 'Protection relay',
+  '10P': 'Protection relay',
+  'PS': 'Special protection',
+  'PX': 'Special protection',
   '0.1': 'Metering',
   '0.2': 'Accurate metering',
   '0.5': 'General metering',

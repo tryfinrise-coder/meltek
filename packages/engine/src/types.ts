@@ -1,3 +1,4 @@
+import type { EngineeringSpec, EngineeringReport } from './engineeringTypes.js';
 /**
  * @meltek/engine — types
  *
@@ -8,6 +9,7 @@
 export type CtType = 'ring' | 'wound-primary';
 
 export interface DesignInputs {
+  engineering?: EngineeringSpec | null;
   primaryCurrent: number; // A   — Ip
   secondaryCurrent: number; // A   — Is, 5 or 1
   burdenVA: number; // VA
@@ -183,6 +185,7 @@ export interface Geometry {
 }
 
 export interface SolveResult {
+  engineering?: EngineeringReport;
   inputs: DesignInputs;
   gradeCode: string;
   swg: number;

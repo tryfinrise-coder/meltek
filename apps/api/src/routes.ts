@@ -29,6 +29,7 @@ import { PdfUnavailable, renderPdf } from './pdf.js';
 const actorOf = (req: Request): string => req.user?.email ?? 'unknown';
 
 const asInputs = (i: StoredDesignInputs | DesignInputs): DesignInputs => ({
+  engineering: i.engineering ?? null,
   primaryCurrent: i.primaryCurrent,
   secondaryCurrent: i.secondaryCurrent,
   burdenVA: i.burdenVA,
@@ -183,12 +184,13 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved' || design.status === 'in_production') {
+    if (['approved','in_production','superseded','archived'].includes(design.status)) {
       return res.status(409).json({
         error: 'This design is approved and locked. Create a revision to change it.',
       });
     }
     const body = patchDesignSchema.parse(req.body);
+    if (body.status && body.status !== design.status) return res.status(409).json({ error: 'Use the calculate, approve, revise or archive action to change design status.' });
     const actor = actorOf(req);
     const before = { ...design };
 
@@ -207,6 +209,8 @@ export function buildRouter(): Router {
       design.inputs = { ...body.inputs, maxWidthMm: body.inputs.maxWidthMm ?? null };
       design.status = 'draft';
       design.selectedOptionId = null;
+      design.settingsSnapshot = null;
+      design.referenceSnapshot = null;
       await store.replaceOptions(design.id, []);
     }
     if (body.status) design.status = body.status;
@@ -221,10 +225,11 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved' || design.status === 'in_production') {
+    if (['approved','in_production','superseded','archived'].includes(design.status)) {
       return res.status(409).json({ error: 'This design is approved and locked. Create a revision to recalculate.' });
     }
-    const { ref, settings } = await contextFor(store, design);
+    const ref = await store.getReference();
+    const settings = await store.getSettings();
     const result = optimise(asInputs(design.inputs), ref, settings);
 
     const options: StoredOption[] = result.options.map((o) => ({
@@ -232,6 +237,8 @@ export function buildRouter(): Router {
     }));
     await store.replaceOptions(design.id, options);
 
+    design.settingsSnapshot = settings;
+    design.referenceSnapshot = ref;
     design.status = 'calculated';
     design.selectedOptionId = null;
     design.updatedAt = new Date().toISOString();
@@ -246,7 +253,7 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
-    if (design.status === 'approved' || design.status === 'in_production') {
+    if (['approved','in_production','superseded','archived'].includes(design.status)) {
       return res.status(409).json({ error: 'This design is approved and locked.' });
     }
     const { optionId } = selectOptionSchema.parse(req.body);
@@ -259,7 +266,7 @@ export function buildRouter(): Router {
     for (const o of options) o.isSelected = o.id === optionId;
     await store.replaceOptions(design.id, options);
 
-    const ref = await store.getReference();
+    const ref = design.referenceSnapshot ?? await store.getReference();
     await store.replaceBom(design.id, buildBom(design, chosen, ref));
 
     design.selectedOptionId = optionId;
@@ -276,14 +283,18 @@ export function buildRouter(): Router {
     const store = store_(req);
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
+    if (design.status === 'approved') return res.json(design);
+    if (design.status !== 'calculated') return res.status(409).json({ error: 'Only a calculated design can be approved.' });
     if (!design.selectedOptionId) {
       return res.status(409).json({ error: 'Select an option before approving this design.' });
     }
     // The approver is whoever is signed in. A typed name would be unverifiable, and an
     // approval is the one record that has to say who actually signed it off.
     const approvedBy = req.user!.name;
-    design.settingsSnapshot = await store.getSettings();
-    design.referenceSnapshot = await store.getReference();
+    const chosen = (await store.getOptions(design.id)).find(o => o.id === design.selectedOptionId);
+    if (!chosen?.isFeasible || chosen.engineering?.issues.length) return res.status(409).json({ error: 'The selected option does not pass engineering screening.' });
+    design.settingsSnapshot ??= await store.getSettings();
+    design.referenceSnapshot ??= await store.getReference();
     design.status = 'approved';
     design.approvedBy = approvedBy;
     design.approvedAt = new Date().toISOString();
@@ -342,7 +353,7 @@ export function buildRouter(): Router {
     const design = await store.getDesign(param(req, 'id'));
     if (!design) return res.status(404).json({ error: 'No design with that id.' });
 
-    if (design.status === 'approved' || design.status === 'in_production') {
+    if (['approved','in_production','superseded','archived'].includes(design.status)) {
       return res.status(409).json({
         error: `${design.designNo} is ${design.status.replace('_', ' ')} and is part of the production record. Archive it instead of deleting it.`,
         code: 'DELETE_BLOCKED_APPROVED',

@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import type { EngineeringSpec } from '@meltek/engine';
+import { engineeringSpecSchema } from '@meltek/schema';
+import { EngineeringEditor } from '../features/EngineeringEditor';
 import { accuracyClassLabel } from '../lib/accuracyClasses';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useForm } from 'react-hook-form';
@@ -62,7 +66,8 @@ export function EditDesignDialog({
   });
 
   const values = form.watch();
-  const specChanged =
+  const [engineering, setEngineering] = useState<EngineeringSpec | null>(design.inputs.engineering ?? null);
+  const specChanged = JSON.stringify(engineering) !== JSON.stringify(design.inputs.engineering ?? null) ||
     Number(values.primaryCurrent) !== design.inputs.primaryCurrent ||
     Number(values.secondaryCurrent) !== design.inputs.secondaryCurrent ||
     Number(values.burdenVA) !== design.inputs.burdenVA ||
@@ -86,6 +91,7 @@ export function EditDesignDialog({
         ...(specChanged
           ? {
               inputs: {
+                engineering,
                 primaryCurrent: Number(v.primaryCurrent),
                 secondaryCurrent: Number(v.secondaryCurrent),
                 burdenVA: Number(v.burdenVA),
@@ -105,7 +111,7 @@ export function EditDesignDialog({
     },
   });
 
-  const classes = reference.data?.classes ?? [];
+  const classes = engineering?.purpose === 'protection' ? ['5P','10P'].map(code=>({code,perIS:false,note:'Engineering screening'})) : engineering?.purpose === 'ps' ? ['PS','PX'].map(code=>({code,perIS:false,note:'Engineering screening'})) : (reference.data?.classes ?? []).filter(c=>!['5P','10P','PS','PX'].includes(c.code));
 
   return (
     <Modal show={open} onClose={onClose} size="3xl" dismissible>
@@ -115,6 +121,11 @@ export function EditDesignDialog({
       <form onSubmit={form.handleSubmit((v) => save.mutate(v))}>
         <ModalBody className="bg-[var(--surface-1)]">
           <div className="flex flex-col gap-5">
+            <EngineeringEditor value={engineering} reference={reference.data} onChange={next=>{
+              if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass',next?.purpose==='protection'?'5P':next?.purpose==='ps'?'PS':'0.5S');
+              setEngineering(next);
+            }}/>
+
             <section>
               <h3 className="eyebrow mb-3">Customer &amp; order</h3>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -192,7 +203,7 @@ export function EditDesignDialog({
         </ModalBody>
         <ModalFooter className="justify-end border-[var(--line)] bg-[var(--surface-1)]">
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" disabled={save.isPending}>
+          <Button type="submit" variant="primary" disabled={save.isPending || (engineering !== null && !engineeringSpecSchema.safeParse(engineering).success)}>
             {save.isPending ? 'Saving…' : 'Save changes'}
           </Button>
         </ModalFooter>

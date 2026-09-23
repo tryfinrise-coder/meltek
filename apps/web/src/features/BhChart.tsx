@@ -57,7 +57,7 @@ export default function BhChart({
                 borderRadius: 8, fontSize: 12, fontVariantNumeric: 'tabular-nums',
               }}
               labelFormatter={(v) => `H ${Number(v).toPrecision(4)} AT/cm`}
-              formatter={(v: number) => [`${v} T`, 'B']}
+              formatter={(v) => [`${v} T`, 'B']}
             />
             <Line
               type="monotone" dataKey="b" stroke="var(--info)" strokeWidth={2} dot={false}
@@ -72,7 +72,6 @@ export default function BhChart({
             <ReferenceDot
               x={h} y={bRaw} r={5}
               fill="var(--brand)" stroke="var(--bg)" strokeWidth={2}
-              isFront
             />
           </LineChart>
         </ResponsiveContainer>

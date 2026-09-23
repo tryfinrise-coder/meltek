@@ -1,0 +1,22 @@
+{
+  "primaryCurrent": 300,
+  "secondaryCurrent": 5,
+  "burdenVA": 5,
+  "accuracyClass": "0.5S",
+  "finishedIdMm": 40,
+  "finishedOdMm": 120,
+  "ctType": "ring",
+  "maxWidthMm": null,
+  "engineering": {
+    "purpose": "metering", "standard": "SYNTHETIC SOFTWARE TEST ONLY - not production material data", "confirmed": false,
+    "frequencyHz": 50, "roomTemperatureC": 25, "operatingTemperatureC": 75, "copperTemperatureConstant": 234.5,
+    "burdenPowerFactor": 0.8, "leadResistanceOhm": 0.02, "parallelStrands": 1, "strandArrangement": "side-by-side", "selectedSwg": 17,
+    "coreInsulation": {"type":"Blister cap", "thicknessMm":0.3}, "outerInsulation":{"type":"Cold-setting epoxy", "thicknessMm":1},
+    "interlayerThicknessMm": 0.1, "interlayerType":"Polyester", "wires":[{"swg":17,"insulatedDiameterMm":1.5,"packingFactor":0.9}],
+    "materials":[{"gradeCode":"M-4","workingFluxT":0.5,"saturationFluxT":1.8,"kneeFluxT":1.4,"lossCurve":[{"fluxT":0.00001,"lossAtCm":0.00001,"magnetisingAtCm":0.00002},{"fluxT":2,"lossAtCm":0.0001,"magnetisingAtCm":0.0002}]}],
+    "allowedAtLoss":1, "accuracyLimitFactor":10, "maxCompositeErrorPercent":5,
+    "requiredKneeVoltage":10, "maxExcitationCurrentA":0.1, "excitationCheckVoltage":null,"maxResistance75Ohm":10,"psVoltageFactor":2,
+    "testPoints":[{"currentPercent":50,"burdenPercent":100,"maxRatioErrorPercent":0.5,"maxPhaseMinutes":30},{"currentPercent":100,"burdenPercent":100,"maxRatioErrorPercent":0.5,"maxPhaseMinutes":30}],
+    "costing":{"basis":"manufacturing","insulationPerUnit":5,"resinPerUnit":8,"labourPerUnit":10,"overheadPerUnit":2,"steelWastePercent":5,"copperWastePercent":3}
+  }
+}

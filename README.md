@@ -1,6 +1,8 @@
 # MELTEK — LT current transformer core design system
 
-Phase 1. A single Node service: the API serves both the JSON API and the built web app,
+See [the engineering workflow and validation boundaries](docs/ENGINEERING.md) for the extended metering, protection and PS design modes, required client data and deployment checks.
+
+A single Node service: the API serves both the JSON API and the built web app,
 so it deploys anywhere Node runs.
 
 ```bash

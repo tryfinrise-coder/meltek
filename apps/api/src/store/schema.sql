@@ -245,3 +245,9 @@ CREATE TABLE IF NOT EXISTS audit_log (
   at        timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS audit_log_entity_idx ON audit_log (entity_id);
+
+ALTER TABLE design ADD COLUMN IF NOT EXISTS engineering_spec jsonb;
+INSERT INTO accuracy_class (code, percent, per_is, note) VALUES
+ ('5P',5,false,'Engineering protection workflow only'), ('10P',10,false,'Engineering protection workflow only'),
+ ('PS',0,false,'Client-defined special protection specification'), ('PX',0,false,'Special protection specification; confirm applicable standard')
+ON CONFLICT (code) DO NOTHING;

@@ -139,7 +139,7 @@ export function renderCalculationSheet(
     <div><span>Copper weight</span>${n(option.copperWeightKg, 4)} kg <span class="tag">estimate</span></div>
     <div><span>Core cost</span>${option.coreCost === null ? '—' : `₹${n(option.coreCost, 2)}`} <span class="tag">estimate</span></div>
     <div><span>Copper cost</span>₹${n(option.copperCost, 2)} <span class="tag">estimate</span></div>
-    <div><span>Total material</span>${option.totalCost === null ? '—' : `₹${n(option.totalCost, 2)}`} <span class="tag">estimate</span></div>
+    <div><span>Total ${option.engineering?.costBasis === 'manufacturing' ? 'manufacturing' : 'material'}</span>${option.totalCost === null ? '—' : `₹${n(option.totalCost, 2)}`} <span class="tag">estimate</span></div>
     <div><span>Die</span>${esc(option.dieNo ?? 'not checked against tooling')}</div>
   </div>
 </section>
@@ -162,6 +162,12 @@ export function renderCalculationSheet(
   </table>
 </section>
 
+${option.engineering ? `<section><h2>Engineering screening</h2>
+<p>${esc(design.inputs.engineering?.purpose)} · ${esc(design.inputs.engineering?.standard)}</p>
+<p>Core insulation: ${esc(design.inputs.engineering?.coreInsulation.type)} (${n(design.inputs.engineering?.coreInsulation.thicknessMm)} mm/side). Outer: ${esc(design.inputs.engineering?.outerInsulation.type)} (${n(design.inputs.engineering?.outerInsulation.thicknessMm)} mm/side). Parallel strands: ${esc(design.inputs.engineering?.parallelStrands)}.</p>
+<table><tbody>${Object.entries(option.engineering).filter(([key,value])=>typeof value==='number' || ['resistance75Source','costBasis'].includes(key)).map(([key,value])=>`<tr><td>${esc(key)}</td><td>${typeof value==='number'?n(value,5):esc(value)}</td></tr>`).join('')}</tbody></table>
+<h3>Metering test-point screening</h3><table><thead><tr><th>Current %</th><th>Burden %</th><th>Ratio error %</th><th>Phase minutes</th><th>Result</th></tr></thead><tbody>${option.engineering.checks.map(p=>`<tr><td>${n(p.currentPercent,1)}</td><td>${n(p.burdenPercent,1)}</td><td>${n(p.ratioErrorPercent,5)}</td><td>${n(p.phaseMinutes,5)}</td><td>${p.passed===null?'Missing data':p.passed?'Pass':'Fail'}</td></tr>`).join('')}</tbody></table>
+<p>Steady-state screening only. Not a certificate of standard compliance or transient fault performance.</p></section>` : ''}
 ${warnings}
 
 <footer>

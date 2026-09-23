@@ -83,12 +83,13 @@ export function DesignDetail() {
   const chosen =
     options.find((o) => `${o.gradeCode}:${o.swg}` === selectedKey) ??
     options.find((o) => (o as unknown as StoredOptionDto).isSelected) ??
-    options.find((o) => o.rank === 1);
+    options.find((o) => o.rank === 1) ?? options.find(o => !!o.engineering) ?? options[0];
 
   const inputs: DesignInputs | null = design ? { ...design.inputs } : null;
-  const detail = useDetail(inputs, reference.data, chosen?.gradeCode ?? null, chosen?.swg ?? null);
-  const grade = reference.data?.grades.find((g) => g.code === chosen?.gradeCode);
-  const locked = design?.status === 'approved' || design?.status === 'superseded';
+  const calculationReference = design?.referenceSnapshot && design.settingsSnapshot && reference.data ? { ...reference.data, ...design.referenceSnapshot, settings: design.settingsSnapshot } : reference.data;
+  const detail = useDetail(inputs, calculationReference, chosen?.gradeCode ?? null, chosen?.swg ?? null);
+  const grade = calculationReference?.grades.find((g) => g.code === chosen?.gradeCode);
+  const locked = !!design && ['approved','in_production','superseded','archived'].includes(design.status);
 
   if (q.isLoading) {
     return <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div></Card>;
@@ -253,13 +254,13 @@ export function DesignDetail() {
             options={options}
             selectedKey={chosen ? `${chosen.gradeCode}:${chosen.swg}` : null}
             onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
-            showAll={showAll}
+            showAll={showAll || !options.some(o=>o.isFeasible)}
             onToggleShowAll={() => setShowAll((v) => !v)}
           />
         </Card>
       )}
 
-      {chosen?.isFeasible && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={chosen} /></Suspense>}
+      {chosen?.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={chosen} /></Suspense>}
 
       {detail && (
         <Card

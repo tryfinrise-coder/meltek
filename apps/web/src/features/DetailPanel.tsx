@@ -1,3 +1,4 @@
+import { EngineeringResults } from './EngineeringResults';
 import { motion, useReducedMotion } from 'motion/react';
 import { lazy, Suspense, useState } from 'react';
 import type { SolveResult, SteelGrade } from '@meltek/engine';
@@ -27,6 +28,7 @@ const TAB_LABEL: Record<Tab, string> = {
 export function DetailPanel({ result, grade }: { result: SolveResult; grade: SteelGrade | undefined }) {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('chain');
+  if (result.engineering) return <EngineeringResults result={result}/>;
 
   return (
     <div>

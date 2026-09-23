@@ -6,6 +6,7 @@ export function DesignStudio({ inputs, best, options, quantity, family }: {
   inputs: DesignInputs | null; best: RankedOption | null; options: RankedOption[]; quantity: number; family: string;
 }) {
   const id = useId().replace(/:/g, '');
+  const manufacturing = inputs?.engineering?.costing.basis === 'manufacturing';
   const feasible = options.filter(o => o.isFeasible);
   const next = feasible.find(o => o.rank === 2);
   const saving = best?.totalCost != null && next?.totalCost != null ? next.totalCost - best.totalCost : 0;
@@ -36,12 +37,12 @@ export function DesignStudio({ inputs, best, options, quantity, family }: {
       </svg>
     </div>
     <div className="studio-recommendation" aria-live="polite">
-      <div className="eyebrow">Lowest feasible material cost</div>
+      <div className="eyebrow">Lowest feasible {manufacturing ? 'manufacturing' : 'material'} cost</div>
       <div className="my-3 text-4xl font-semibold num"><AnimatedNumber value={best?.totalCost ?? null} prefix="₹" dp={2}/><span className="text-xs font-normal text-[var(--text-2)]"> / unit</span></div>
       <p className="text-sm">{best ? `${best.gradeLabel} · SWG ${best.swg}` : 'Awaiting a feasible specification'}</p>
       <div className="my-4 rule-fade"/>
-      <div className="flex justify-between gap-3 text-xs"><span>Material estimate · {quantity} units</span><strong className="num">{best?.totalCost != null ? `₹${(best.totalCost * quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}</strong></div>
-      <p className="mt-3 text-xs text-[var(--text-2)]">{saving > 0 ? `₹${saving.toFixed(2)} less per unit than the next feasible option. ` : ''}Excludes labour, resin, overhead and tax. Tooling checks depend on your reference data.</p>
+      <div className="flex justify-between gap-3 text-xs"><span>{manufacturing ? 'Manufacturing' : 'Material'} estimate · {quantity} units</span><strong className="num">{best?.totalCost != null ? `₹${(best.totalCost * quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}</strong></div>
+      <p className="mt-3 text-xs text-[var(--text-2)]">{saving > 0 ? `₹${saving.toFixed(2)} less per unit than the next feasible option. ` : ''}{manufacturing ? 'Includes entered insulation, resin, labour, overhead and wastage; excludes tax.' : 'Excludes labour, resin, overhead and tax.'} Tooling checks depend on your reference data.</p>
     </div>
   </section>;
 }

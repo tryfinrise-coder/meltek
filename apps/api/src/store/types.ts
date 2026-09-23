@@ -1,3 +1,4 @@
+import type { EngineeringSpec } from '@meltek/engine';
 import type {
   Die, ProcessSettings, RankedOption, ReferenceData, SteelGrade, WireGauge,
 } from '@meltek/engine';
@@ -47,6 +48,7 @@ export interface Customer {
 }
 
 export interface StoredDesignInputs {
+  engineering?: EngineeringSpec | null;
   primaryCurrent: number;
   secondaryCurrent: number;
   burdenVA: number;

@@ -1,0 +1,62 @@
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import assert from 'node:assert/strict';
+import puppeteer from 'puppeteer';
+const temp=await mkdtemp(join(tmpdir(),'meltek-engineering-'));
+const password=randomUUID();
+Object.assign(process.env,{DATA_FILE:join(temp,'data.json'),MYSQL_URL:'',DATABASE_URL:'',LOG_LEVEL:'silent',MELTEK_ADMIN_EMAIL:'engineering@example.test',MELTEK_ADMIN_PASSWORD:password});
+const {createServer}=await import('../apps/api/dist/server.js');
+const {app,store}=await createServer();
+await store.saveDies([{id:randomUUID(),dieNo:'SYNTHETIC TEST',minOdMm:1,maxOdMm:500,maxWidthMm:500,quantity:1,isAvailable:true}]);
+await store.saveSlitWidths(Array.from({length:80},(_,i)=>(i+1)*5));
+const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+const url=`http://127.0.0.1:${server.address().port}`;
+const fixture=JSON.parse((await readFile(new URL('./fixtures/engineering.json',import.meta.url),'utf8')).replace(/^\uFEFF/,''));
+const importPath=join(temp,'engineering-inputs.json');await writeFile(importPath,JSON.stringify(fixture.engineering));
+let browser;
+try {
+ browser=await puppeteer.launch({headless:true,args:['--enable-unsafe-swiftshader']});
+ const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setViewport({width:1512,height:1000});await page.goto(url,{waitUntil:'networkidle0'});
+ await page.type('input[type=email]','engineering@example.test');await page.type('input[type=password]',password);await page.click('button[type=submit]');
+ await page.waitForSelector('input[aria-label="Enable engineering mode"]');await page.click('input[aria-label="Enable engineering mode"]');
+ await page.$eval('input[name=finishedOdMm]',el=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'120');el.dispatchEvent(new Event('input',{bubbles:true}));});
+ await (await page.$('input[aria-label="Import engineering inputs"]')).uploadFile(importPath);
+ await page.waitForFunction(()=>document.body.textContent.includes('No feasible combination'));
+ await page.click('input[aria-label="Confirm engineering inputs"]');
+ await page.waitForFunction(()=>document.querySelector('.studio-recommendation')?.textContent.includes('SWG 17'));
+ assert((await page.$eval('.studio-recommendation',el=>el.textContent)).includes('manufacturing'));
+ await page.waitForSelector('[data-selected-model="M-4:17"]');
+ await page.waitForFunction(()=>document.body.textContent.includes('Configured screening checks passed'));
+ assert(await page.evaluate(()=>Array.from(document.querySelectorAll('select')).some(el=>el.value==='Blister cap' && el.selectedOptions[0]?.textContent==='Blister cap')));
+ await page.screenshot({path:join(temp,'engineering-desktop.png'),fullPage:true});
+ await page.type('input[name=customerName]','Engineering smoke test');await page.click('button[type=submit]');
+ await page.waitForFunction(()=>location.pathname.startsWith('/designs/'));
+ const request=async(path,method='GET',body)=>page.evaluate(async({path,method,body})=>{const response=await fetch(`/api${path}`,{method,headers:{'content-type':'application/json'},...(body!==undefined?{body:JSON.stringify(body)}:{})});return {status:response.status,data:await response.json()};},{path,method,body});
+ const saved=(await request(new URL(page.url()).pathname)).data;
+ assert.equal(saved.design.inputs.engineering.parallelStrands,1);assert.equal(saved.design.inputs.engineering.confirmed,true);
+ const chosen=saved.options.find(o=>o.id===saved.design.selectedOptionId);assert(chosen.engineering);assert.equal(chosen.engineering.issues.length,0);
+ assert(saved.design.settingsSnapshot && saved.design.referenceSnapshot);
+ const approve=await request(`/designs/${saved.design.id}/approve`,'POST',{});assert.equal(approve.status,200);
+ await store.saveCopperRate(5000);
+ const sheet=await page.evaluate(async id=>(await fetch(`/api/designs/${id}/pdf?format=html`)).text(),saved.design.id);
+ assert(sheet.includes('Engineering screening'));assert(sheet.includes(chosen.totalCost.toFixed(2)),'Print must preserve frozen costing');
+ const blocked=await request(`/designs/${saved.design.id}`,'PATCH',{inputs:fixture});assert.equal(blocked.status,409);
+ const pending=(await request('/designs','POST',{customerName:'Missing-data draft',inputs:fixture})).data;
+ const calculation=await request(`/designs/${pending.id}/calculate`,'POST',{});assert(calculation.data.options.every(o=>o.rank===null));
+ const bypass=await request(`/designs/${pending.id}`,'PATCH',{status:'approved'});assert.equal(bypass.status,409);
+ const select=await request(`/designs/${pending.id}/select`,'POST',{optionId:calculation.data.options[0].id});assert.equal(select.status,409);
+ for (const purpose of ['protection','ps']) {
+  const inputs=structuredClone(fixture);inputs.engineering.confirmed=true;inputs.engineering.purpose=purpose;inputs.accuracyClass=purpose==='ps'?'PS':'5P';
+  if(purpose==='ps'){inputs.engineering.burdenPowerFactor=1;inputs.engineering.excitationCheckVoltage=10;}
+  const d=(await request('/designs','POST',{customerName:`Test ${purpose}`,inputs})).data;
+  const result=await request(`/designs/${d.id}/calculate`,'POST',{});assert.equal(result.status,200);assert(result.data.options.some(o=>o.rank===1),`${purpose} synthetic fixture must pass screening`);
+ }
+ await page.goto(url,{waitUntil:'networkidle0'});await page.click('input[aria-label="Enable engineering mode"]');await page.select('select[aria-label="Design purpose"]','ps');
+ assert.equal(await page.$eval('select[name=accuracyClass]',el=>el.value),'PS');
+ await page.setViewport({width:390,height:844});await page.screenshot({path:join(temp,'engineering-mobile.png'),fullPage:true});
+ assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Engineering inputs must fit mobile');
+ assert.deepEqual(errors,[]);console.log(`Engineering UI, API, persistence, approval guards and frozen sheet checks passed: ${temp}`);
+} finally {await browser?.close();await new Promise(resolve=>server.close(resolve));await store.close();}

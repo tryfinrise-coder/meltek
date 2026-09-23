@@ -9,6 +9,7 @@ import type { BomLine, Design, StoredOption } from './store/index.js';
  * therefore provisional until the client signs off on the costing block.
  */
 export function buildBom(design: Design, option: StoredOption, ref: ReferenceData): BomLine[] {
+  const engineering = design.inputs.engineering;
   const grade = ref.grades.find((g) => g.code === option.gradeCode);
   const gauge = ref.gauges.find((g) => g.swg === option.swg);
   const orderedLength = gauge && gauge.gramPerM > 0 ? option.copperWeightKg * 1000 / gauge.gramPerM : option.wireLengthM;
@@ -22,12 +23,12 @@ export function buildBom(design: Design, option: StoredOption, ref: ReferenceDat
       `${grade?.label ?? option.gradeCode} strip, ${option.orderedWidthMm} mm slit width, core ${option.geometry.coreIdMm.toFixed(1)}/${option.geometry.coreOdMm.toFixed(1)} mm`,
       round(option.coreWeightKg, 4), 'kg'),
     line('copper', `SWG ${option.swg}`,
-      `Enamelled copper wire SWG ${option.swg}, ${option.geometry.turns} turns, ${round(orderedLength, 3)} m at ordered width`,
+      `Enamelled copper wire SWG ${option.swg}, ${option.geometry.turns} turns × ${engineering?.parallelStrands ?? 1} strand(s), ${round(orderedLength, 3)} m total at ordered width`,
       round(option.copperWeightKg, 4), 'kg'),
     line('insulation', null,
-      'Interlayer insulation, per winding specification', 1, 'set'),
+      engineering ? `${engineering.coreInsulation.type}, ${engineering.coreInsulation.thicknessMm} mm per side; interlayer ${engineering.interlayerType}, ${engineering.interlayerThicknessMm} mm` : 'Interlayer insulation, per winding specification', 1, 'set'),
     line('resin', null,
-      `Cast epoxy resin body, finished ${design.inputs.finishedIdMm}/${design.inputs.finishedOdMm} mm`,
+      `${engineering?.outerInsulation.type ?? 'Cast epoxy resin'} body, finished ${design.inputs.finishedIdMm}/${design.inputs.finishedOdMm} mm`,
       1, 'set'),
   ];
 }

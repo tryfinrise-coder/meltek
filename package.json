@@ -3,8 +3,13 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "engines": { "node": ">=22" },
-  "workspaces": ["packages/*", "apps/*"],
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "build": "npm run build -w @meltek/engine && npm run build -w @meltek/schema && npm run build -w @meltek/web && npm run build -w @meltek/api",
     "test": "npm run test -w @meltek/engine",
@@ -23,5 +28,8 @@
     "@types/pg": "^8.11.10",
     "tailwindcss": "^4.0.0",
     "@tailwindcss/vite": "^4.0.0"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.0"
   }
 }

@@ -1,4 +1,5 @@
 import { interpolateB, type InterpolationResult } from './interpolate.js';
+import { solveEngineering } from './engineering.js';
 import { positive, validateDesign } from './validate.js';
 import {
   EngineError,
@@ -118,10 +119,12 @@ export function solve(
   swg: number,
   options: SolveOptions = {},
 ): SolveResult {
+  if (inputs.engineering) return solveEngineering(inputs, ref, settings, gradeCode, swg);
   if (inputs.ctType !== 'ring') {
     throw new EngineError('UNSUPPORTED_CT_TYPE', 'Only ring type CTs can be calculated at present. Wound primary is not yet supported.');
   }
 
+  if (['5P','10P','PS','PX'].includes(inputs.accuracyClass)) throw new EngineError('INVALID_INPUT', 'Protection and PS classes require engineering mode.');
   const grade = findGrade(ref, gradeCode);
   const gauge = findGauge(ref, swg);
   const klass = findClass(ref, inputs.accuracyClass);

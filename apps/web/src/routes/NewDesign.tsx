@@ -6,7 +6,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import { ltCtFamily, type DesignInputs } from '@meltek/engine';
+import { ltCtFamily, type DesignInputs, type EngineeringSpec } from '@meltek/engine';
+import { EngineeringEditor } from '../features/EngineeringEditor';
 import { DesignStudio } from '../features/DesignStudio';
 import { designInputsSchema } from '@meltek/schema';
 import { api, ApiError } from '../lib/api';
@@ -58,6 +59,7 @@ export function NewDesign() {
   const canSelect = usePermission('designs.select');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -69,6 +71,7 @@ export function NewDesign() {
   /** Valid electrical spec → live engine run, in the browser, on every keystroke (§3.1). */
   const inputs: DesignInputs | null = useMemo(() => {
     const parsed = designInputsSchema.safeParse({
+      engineering,
       primaryCurrent: Number(values.primaryCurrent),
       secondaryCurrent: Number(values.secondaryCurrent),
       burdenVA: Number(values.burdenVA),
@@ -80,7 +83,7 @@ export function NewDesign() {
     });
     return parsed.success ? (parsed.data as DesignInputs) : null;
   }, [values.primaryCurrent, values.secondaryCurrent, values.burdenVA, values.accuracyClass,
-    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm]);
+    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering]);
 
   const { result, error } = useCalculator(inputs, reference.data);
 
@@ -90,11 +93,12 @@ export function NewDesign() {
   // Keep a selection alive across recalculations, falling back to the leader.
   useEffect(() => {
     if (!result) return;
-    const exists = options.some((o) => `${o.gradeCode}:${o.swg}` === selectedKey && o.isFeasible);
-    if (!exists) setSelectedKey(best ? `${best.gradeCode}:${best.swg}` : null);
+    const exists = options.some((o) => `${o.gradeCode}:${o.swg}` === selectedKey && o.converged);
+    const fallback = best ?? options.find(o => o.converged);
+    if (!exists) setSelectedKey(fallback ? `${fallback.gradeCode}:${fallback.swg}` : null);
   }, [result, options, selectedKey, best]);
 
-  const selected = options.find((o) => `${o.gradeCode}:${o.swg}` === selectedKey) ?? best ?? options[0] ?? null;
+  const selected = options.find((o) => `${o.gradeCode}:${o.swg}` === selectedKey) ?? best ?? options.find(o => o.converged) ?? options[0] ?? null;
   const detail = useDetail(inputs, reference.data, selected?.gradeCode ?? null, selected?.swg ?? null);
   const grade = reference.data?.grades.find((g) => g.code === selected?.gradeCode);
 
@@ -127,7 +131,10 @@ export function NewDesign() {
     onSuccess: (design) => navigate({ to: '/designs/$id', params: { id: design.id } }),
   });
 
-  const classes = reference.data?.classes ?? [];
+  const classes = engineering?.purpose === 'protection'
+    ? ['5P','10P'].map(code=>({code,perIS:false,note:'Protection engineering screening; confirm standard and limits.'}))
+    : engineering?.purpose === 'ps' ? ['PS','PX'].map(code=>({code,perIS:false,note:'Special protection: specify knee voltage, excitation and resistance requirements.'}))
+    : (reference.data?.classes ?? []).filter(c=>!['5P','10P','PS','PX'].includes(c.code));
   const unconfirmed = (reference.data?.settingRows ?? []).filter((s) => !s.isConfirmed);
 
   return (
@@ -221,7 +228,7 @@ export function NewDesign() {
               />
               <TextField
                 label="Max width" unit="mm" type="number" step="any"
-                hint="Optional. Rejects any option whose ordered width exceeds this."
+                hint="Optional. Engineering mode limits finished axial width; legacy mode limits ordered core width."
                 {...form.register('maxWidthMm')}
               />
               <SelectField
@@ -237,6 +244,11 @@ export function NewDesign() {
           </Card>
 
           </div>
+
+          <EngineeringEditor value={engineering} reference={reference.data} onChange={next => {
+            if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass', next?.purpose === 'protection' ? '5P' : next?.purpose === 'ps' ? 'PS' : '0.5S');
+            setEngineering(next);
+          }}/>
 
           {/* Similar designs, before the calculate/save action (§11.1). */}
           <AnimatePresence>
@@ -287,8 +299,8 @@ export function NewDesign() {
 
           <div className="flex items-center gap-3">
             {canCreate && (
-              <Button type="submit" variant="primary" disabled={!inputs || !result || !best || save.isPending}>
-                {save.isPending ? 'Saving…' : 'Save design & options'}
+              <Button type="submit" variant="primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending}>
+                {save.isPending ? 'Saving…' : !best && engineering ? 'Save draft with missing data' : 'Save design & options'}
               </Button>
             )}
             <span className="text-[12px] text-[var(--text-3)]">
@@ -344,7 +356,7 @@ export function NewDesign() {
       <DesignStudio inputs={inputs} best={best} options={options} quantity={Number(values.quantity) || 1} family={ltCtFamily.label} />
               <Card
                 title="Ranked options"
-                subtitle="Every grade × gauge combination, cheapest material cost first. Infeasible rows stay visible with their reason."
+                subtitle="Every grade × gauge combination, cheapest configured cost first. Infeasible rows stay visible with their reason."
               >
                 <OptionsTable
                   options={options}
@@ -372,13 +384,13 @@ export function NewDesign() {
                 >
                   <AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" />
                 </StatTile>
-                <StatTile label="Material cost" tone="provisional" note={<ProvisionalMark />}>
+                <StatTile label={engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'} tone="provisional" note={<ProvisionalMark />}>
                   <AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" />
                 </StatTile>
               </motion.div>
 
 
-              {selected.isFeasible && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} /></Suspense>}
+              {selected.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} /></Suspense>}
               <AnimatePresence mode="wait">
                 {detail && (
                   <motion.div

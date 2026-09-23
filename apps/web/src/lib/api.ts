@@ -1,3 +1,4 @@
+import type { EngineeringSpec } from '@meltek/engine';
 import type { ProcessSettings, ReferenceData } from '@meltek/engine';
 import type { Permission, Role } from '@meltek/schema';
 
@@ -31,6 +32,7 @@ export interface ReferenceResponse extends ReferenceData {
 }
 
 export interface StoredDesignInputs {
+  engineering?: EngineeringSpec | null;
   primaryCurrent: number;
   secondaryCurrent: number;
   burdenVA: number;
@@ -42,6 +44,8 @@ export interface StoredDesignInputs {
 }
 
 export interface Design {
+  settingsSnapshot?: ProcessSettings | null;
+  referenceSnapshot?: ReferenceData | null;
   id: string;
   designNo: string;
   revision: number;

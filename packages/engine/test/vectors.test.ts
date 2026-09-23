@@ -399,7 +399,7 @@ describe('§12.1 winding allowance', () => {
   it('throws MissingReferenceData until the tables exist', () => {
     expect(() =>
       computeWindingAllowance(
-        { turns: 60, wireDiaMm: 1.42, parallelStrands: 1, boreIdMm: 52 },
+        { turns: 60, swg: 17, wireDiaMm: 1.42, parallelStrands: 1, boreIdMm: 52 },
         { layerStackingFactorBySwg: null, interlayerThicknessMm: null, minEpoxyThicknessMm: null },
       ),
     ).toThrow(MissingReferenceData);
@@ -407,8 +407,8 @@ describe('§12.1 winding allowance', () => {
 
   it('computes the chain once the tables are supplied', () => {
     const r = computeWindingAllowance(
-      { turns: 60, wireDiaMm: 1.42, parallelStrands: 1, boreIdMm: 52 },
-      { layerStackingFactorBySwg: { 1.42: 0.95 }, interlayerThicknessMm: 0.2, minEpoxyThicknessMm: 3 },
+      { turns: 60, swg: 17, wireDiaMm: 1.42, parallelStrands: 1, boreIdMm: 52 },
+      { layerStackingFactorBySwg: { 17: 0.95 }, interlayerThicknessMm: 0.2, minEpoxyThicknessMm: 3 },
     );
     expect(r.layers).toBeGreaterThanOrEqual(1);
     expect(r.allowanceMm).toBeGreaterThan(3);

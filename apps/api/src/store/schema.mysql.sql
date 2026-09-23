@@ -250,3 +250,8 @@ CREATE TABLE IF NOT EXISTS audit_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE INDEX audit_log_entity_idx ON audit_log (entity_id);
+
+ALTER TABLE design ADD COLUMN engineering_spec JSON;
+INSERT IGNORE INTO accuracy_class (code, percent, per_is, note) VALUES
+ ('5P',5,0,'Engineering protection workflow only'), ('10P',10,0,'Engineering protection workflow only'),
+ ('PS',0,0,'Client-defined special protection specification'), ('PX',0,0,'Special protection specification; confirm applicable standard');

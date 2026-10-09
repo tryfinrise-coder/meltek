@@ -11,6 +11,7 @@ import { NewDesign } from './routes/NewDesign';
 import { Register } from './routes/Register';
 import { DesignDetail } from './routes/DesignDetail';
 import { Admin } from './routes/Admin';
+import { WindingCalc } from './routes/WindingCalc';
 import { Card, EmptyState } from './components/primitives';
 import { AuthGate } from './components/AuthGate';
 import './index.css';
@@ -30,6 +31,7 @@ const routes = [
   createRoute({ getParentRoute: () => rootRoute, path: '/register', component: Register }),
   createRoute({ getParentRoute: () => rootRoute, path: '/designs/$id', component: DesignDetail }),
   createRoute({ getParentRoute: () => rootRoute, path: '/admin', validateSearch: validateAdminSearch, component: Admin }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/winding-calc', component: WindingCalc }),
 ];
 
 const router = createRouter({ routeTree: rootRoute.addChildren(routes) });

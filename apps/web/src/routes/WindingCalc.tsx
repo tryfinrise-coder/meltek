@@ -62,6 +62,13 @@ interface CalcResult {
   copperByGauge: { swg: number; count: number; dia: number; area: number; weightPractical: number; weightFlat: number }[];
   totalCuPractical: number;
   totalCuFlat: number;
+  totalCuArea: number;
+  cuSurfacePerTurn: number;
+  windingBuildMm: number;
+  possibleID: number;
+  reqWireLength: number;
+  shortLength: number;
+  windingFits: boolean;
 }
 
 function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
@@ -80,6 +87,9 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const wires = gauges
     .filter(g => (s.wireMap[g.swg] ?? 0) > 0)
     .map(g => ({ swg: g.swg, count: s.wireMap[g.swg], dia: g.diaMm, area: g.areaSqmm }));
+
+  const totalCuArea = wires.reduce((sum, w) => sum + w.count * w.area, 0);
+  const cuSurfacePerTurn = wires.reduce((sum, w) => sum + w.count * w.dia, 0);
 
   const totalWireWidth = wires.reduce((sum, w) => sum + w.count * (w.dia + s.insThickness), 0);
   const effectiveDia = wires.length > 0
@@ -109,6 +119,13 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const practicalAvgMLT = turns > 0 ? totalWireLength / turns : 0;
   const actualAllowancePct = mltBase > 0 ? ((practicalAvgMLT / mltBase) - 1) * 100 : 0;
 
+  const windingBuildMm = numLayers * layerThickness;
+  const possibleID = ID - (windingBuildMm * 2);
+  const reqWireLength = turns * cuSurfacePerTurn * 1.05;
+  const boreCirc = (ID - 2) * PI;
+  const shortLength = reqWireLength - boreCirc;
+  const windingFits = possibleID > 0;
+
   let totalCuPractical = 0;
   let totalCuFlat = 0;
   const copperByGauge = wires.map(w => {
@@ -124,6 +141,8 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     mltBase, mltFlat, mltPractical: practicalAvgMLT,
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
+    totalCuArea, cuSurfacePerTurn, windingBuildMm, possibleID,
+    reqWireLength, shortLength, windingFits,
   };
 }
 
@@ -243,10 +262,33 @@ export function WindingCalc() {
             </div>
             {result && result.copperByGauge.length > 0 && (
               <div className="border-t border-[var(--line)] bg-[var(--surface-2)] px-5 py-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
+                  Wire Combination Result
+                </p>
                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+                  <ResultPill label="Total Cu Area" value={fmt(result.totalCuArea, 3) + ' mm²'} />
+                  <ResultPill label="Cu Surface / Turn" value={fmt(result.cuSurfacePerTurn, 3) + ' mm'} />
+                  <ResultPill label="Winding Build" value={fmt(result.windingBuildMm, 2) + ' mm'} />
+                  <ResultPill label="Possible ID" value={fmt(result.possibleID, 1) + ' mm'}
+                    accent={result.windingFits} warn={!result.windingFits} />
+                </div>
+                {!result.windingFits && (
+                  <p className="mt-2 text-[12px] font-medium" style={{ color: 'var(--warn)' }}>
+                    Winding does not fit — possible ID is negative. Reduce wire count or use thinner gauge.
+                  </p>
+                )}
+                {result.windingFits && (
+                  <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+                    <ResultPill label="Req. Wire Length" value={fmt(result.reqWireLength, 1) + ' mm'} />
+                    <ResultPill label={result.shortLength > 0 ? 'Short by' : 'Spare'}
+                      value={fmt(Math.abs(result.shortLength), 1) + ' mm'}
+                      warn={result.shortLength > 0} accent={result.shortLength <= 0} />
+                  </div>
+                )}
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 border-t border-[var(--line)] pt-2 text-[13px]">
                   {result.copperByGauge.map(c => (
                     <ResultPill key={c.swg} label={`${c.swg} SWG × ${c.count}`}
-                      value={fmt(c.weightPractical, 4) + ' kg'} />
+                      value={fmt(c.area * c.count, 3) + ' mm² · ' + fmt(c.weightPractical, 4) + ' kg'} />
                   ))}
                 </div>
               </div>
@@ -427,11 +469,11 @@ export function WindingCalc() {
 
 /* ─── Small reusable pieces ─── */
 
-function ResultPill({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+function ResultPill({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
   return (
     <span className="inline-flex items-baseline gap-1.5 py-0.5">
       <span className="text-[var(--text-3)]">{label}:</span>
-      <span className={`mono font-medium ${accent ? 'text-[var(--brand)]' : ''}`}>{value}</span>
+      <span className={`mono font-medium ${warn ? 'text-[var(--warn)]' : accent ? 'text-[var(--brand)]' : ''}`}>{value}</span>
     </span>
   );
 }

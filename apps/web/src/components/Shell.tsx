@@ -7,7 +7,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
-  HiBell, HiCalculator, HiChevronDoubleLeft, HiCog, HiDocumentText, HiKey, HiLogout, HiMenu, HiMoon,
+  HiBell, HiChevronDoubleLeft, HiCog, HiDocumentText, HiKey, HiLogout, HiMenu, HiMoon,
   HiOutlineCube, HiPencilAlt, HiRefresh, HiSun, HiViewGrid, HiX,
 } from 'react-icons/hi';
 import { ROLE_LABEL } from '@meltek/schema';
@@ -157,7 +157,6 @@ export function Shell({ children }: { children: ReactNode }) {
               <SidebarItemGroup>
                 <RailItem to="/" icon={HiPencilAlt} label="New design" active={path === '/'} expanded={expanded} />
                 <RailItem to="/register" icon={HiViewGrid} label="Design register" active={path.startsWith('/register') || path.startsWith('/designs')} expanded={expanded} />
-                <RailItem to="/winding-calc" icon={HiCalculator} label="Winding calculator" active={path === '/winding-calc'} expanded={expanded} />
               </SidebarItemGroup>
 
               <SidebarItemGroup>

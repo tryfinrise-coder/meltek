@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { ltCtFamily, type DesignInputs, type EngineeringSpec } from '@meltek/engine';
 import { EngineeringEditor } from '../features/EngineeringEditor';
 import { DesignStudio } from '../features/DesignStudio';
+import { WindingAnalysis } from '../features/WindingAnalysis';
 import { designInputsSchema } from '@meltek/schema';
 import { api, ApiError } from '../lib/api';
 import { useCalculator, useDetail, useReference } from '../features/useCalculator';
@@ -409,6 +410,18 @@ export function NewDesign() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              <div className="workflow-heading"><span>05</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · SWG {selected.swg}</p></div></div>
+              <WindingAnalysis
+                reduce={Boolean(reduce)}
+                gauges={reference.data?.gauges ?? []}
+                coreIdMm={selected.geometry.coreIdMm}
+                coreOdMm={selected.geometry.coreOdMm}
+                coreWidthMm={selected.coreWidthMm}
+                turns={selected.geometry.turns}
+                selectedSwg={selected.swg}
+                coreWeightKg={selected.coreWeightKg}
+              />
             </>
           )}
         </div>

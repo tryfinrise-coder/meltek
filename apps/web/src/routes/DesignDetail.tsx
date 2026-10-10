@@ -215,7 +215,7 @@ export function DesignDetail() {
 
       {chosen && (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <StatTile label="Grade" note={`SWG ${chosen.swg}`}>{chosen.gradeLabel}</StatTile>
+          <StatTile label="Grade" note={chosen.wireCombinationLabel || `SWG ${chosen.swg}`}>{chosen.gradeLabel}</StatTile>
           <StatTile label="Core width">{chosen.coreWidthMm.toFixed(2)} mm</StatTile>
           <StatTile label="Ordered width" tone="provisional" note={<ProvisionalMark />}>
             {chosen.orderedWidthMm.toFixed(0)} mm
@@ -264,7 +264,7 @@ export function DesignDetail() {
 
       {detail && (
         <Card
-          title={`${chosen?.gradeLabel} · SWG ${chosen?.swg}`}
+          title={`${chosen?.gradeLabel} · ${chosen?.wireCombinationLabel || `SWG ${chosen?.swg}`}`}
           subtitle="The full chain, as calculated. Every number traces back to the inputs above."
         >
           <DetailPanel result={detail} grade={grade} />

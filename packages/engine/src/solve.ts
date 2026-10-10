@@ -14,6 +14,7 @@ import {
   type SolveResult,
   type SteelGrade,
   type WireGauge,
+  type WireCombinationEntry,
 } from './types.js';
 
 const f = (n: number, dp = 4): string => (Number.isFinite(n) ? n.toFixed(dp) : String(n));
@@ -34,6 +35,54 @@ export function findClass(ref: ReferenceData, code: string) {
   const c = ref.classes.find((x) => x.code === code);
   if (!c) throw new EngineError('UNKNOWN_CLASS', `No accuracy class "${code}" in the reference data.`, { code });
   return c;
+}
+
+/**
+ * Build a virtual WireGauge from a wire combination (multiple SWG wires in parallel).
+ * Resistance is parallel (1/Σ(count/R)), weight and area are summed.
+ */
+export function virtualGaugeFromCombination(
+  entries: WireCombinationEntry[],
+  ref: ReferenceData,
+): { gauge: WireGauge; label: string } {
+  const active = entries.filter(e => e.count > 0);
+  if (active.length === 0) throw new EngineError('INVALID_INPUT', 'Wire combination has no wires selected.');
+  const primarySwg = active[0]!.swg;
+
+  let conductance = 0;
+  let gramPerM = 0;
+  let areaSqmm = 0;
+  let maxDiaMm = 0;
+  const parts: string[] = [];
+
+  for (const e of active) {
+    const g = findGauge(ref, e.swg);
+    positive(g.ohmPerM20c, `SWG ${e.swg} resistance`);
+    positive(g.gramPerM, `SWG ${e.swg} mass`);
+    conductance += e.count / g.ohmPerM20c;
+    gramPerM += e.count * g.gramPerM;
+    areaSqmm += e.count * g.areaSqmm;
+    maxDiaMm = Math.max(maxDiaMm, g.diaMm);
+    parts.push(`${e.count}×${e.swg}`);
+  }
+
+  return {
+    gauge: {
+      swg: primarySwg,
+      diaMm: maxDiaMm,
+      areaSqmm,
+      ohmPerM20c: 1 / conductance,
+      ohmPerM75c: null,
+      gramPerM,
+      isAvailable: true,
+    },
+    label: parts.join(' + '),
+  };
+}
+
+/** Format a wire combination label for display. */
+export function wireCombinationLabel(entries: WireCombinationEntry[]): string {
+  return entries.filter(e => e.count > 0).map(e => `${e.count}×${e.swg}`).join(' + ');
 }
 
 /** Resin cover depends on the number of secondary turns (from the PDF spec, page 14). */
@@ -158,10 +207,19 @@ export function solve(
 
   if (['5P','10P','PS','PX'].includes(inputs.accuracyClass)) throw new EngineError('INVALID_INPUT', 'Protection and PS classes require engineering mode.');
   const grade = findGrade(ref, gradeCode);
-  const gauge = findGauge(ref, swg);
+
+  const combo = inputs.wireCombination?.filter(e => e.count > 0);
+  const isCombo = combo && combo.length > 0;
+  const { gauge: resolvedGauge, label: comboLabel } = isCombo
+    ? virtualGaugeFromCombination(combo, ref)
+    : { gauge: findGauge(ref, swg), label: '' };
+  const gauge = resolvedGauge;
+
   const klass = findClass(ref, inputs.accuracyClass);
-  positive(gauge.ohmPerM20c, 'Wire resistance');
-  positive(gauge.gramPerM, 'Wire mass');
+  if (!isCombo) {
+    positive(gauge.ohmPerM20c, 'Wire resistance');
+    positive(gauge.gramPerM, 'Wire mass');
+  }
   positive(klass.percent, 'Class error budget');
   positive(ref.copperRatePerKg, 'Copper rate', true);
   if (grade.ratePerKg !== null) positive(grade.ratePerKg, 'Steel rate', true);
@@ -300,6 +358,7 @@ export function solve(
     inputs,
     gradeCode: grade.code,
     swg: gauge.swg,
+    ...(isCombo ? { wireCombination: combo, wireCombinationLabel: comboLabel } : {}),
     geometry,
     burdenVoltage,
     classPercent: klass.percent,
@@ -331,7 +390,7 @@ export function solve(
   };
 
   if (options.withSteps !== false) {
-    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild);
+    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild, comboLabel);
   }
   return result;
 }
@@ -348,6 +407,7 @@ function buildSteps(
   denominator: number,
   k: number,
   windingBuild: WindingResult | null,
+  comboLabel: string,
 ): CalcStep[] {
   const g = r.geometry;
   const i = r.inputs;
@@ -392,7 +452,7 @@ function buildSteps(
     { step: 12, key: 'area', label: 'Core area (converged)', formula: 'A = V / (4.44 x f x 1e-4 x N x B)',
       substituted: `${f(r.vTotal, 5)} / (${f(k, 5)} x ${g.turns} x ${f(r.bUsedT, 4)}) = ${f(r.vTotal, 5)} / ${f(denominator, 6)}`,
       value: r.coreAreaCm2, unit: 'cm2',
-      note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of SWG ${gauge.swg}.` },
+      note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
       substituted: `${f(r.coreAreaCm2, 4)} / ${f(g.radialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
     { step: 14, key: 'orderedWidth', label: 'Ordered width', formula: 'smallest stocked slit width >= core width',
@@ -405,7 +465,9 @@ function buildSteps(
       value: r.coreWeightKg, unit: 'kg', provisional: true },
     { step: 16, key: 'copperWeight', label: 'Copper weight', formula: 'wire length x g/m / 1000',
       substituted: `${f(r.copperWeightKg * 1000 / gauge.gramPerM, 4)} x ${gauge.gramPerM} / 1000`, value: r.copperWeightKg, unit: 'kg', provisional: true,
-      note: 'Wire length is recomputed at the ordered slit width, including lead and crossover allowances.' },
+      note: comboLabel
+        ? `Wire combination ${comboLabel}. Combined ${f(gauge.gramPerM, 2)} g/m. Wire length recomputed at the ordered slit width.`
+        : 'Wire length is recomputed at the ordered slit width, including lead and crossover allowances.' },
     { step: 17, key: 'cost', label: 'Material cost', formula: 'core kg x grade rate + copper kg x copper rate',
       substituted: grade.ratePerKg === null
         ? `no rate on record for ${grade.label}`

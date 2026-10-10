@@ -126,7 +126,7 @@ export function renderCalculationSheet(
   <h2>Selected option</h2>
   <div class="grid">
     <div><span>Grade</span>${esc(option.gradeLabel)}</div>
-    <div><span>Wire</span>SWG ${option.swg}</div>
+    <div><span>Wire</span>${option.wireCombinationLabel || `SWG ${option.swg}`}</div>
     <div><span>B used</span>${n(option.bUsedT, 4)} T${option.wasCapped ? ' (capped)' : ''}</div>
     <div><span>B from curve</span>${n(option.bRawT, 4)} T</div>
     <div><span>Core ID / OD</span>${n(g.coreIdMm, 1)} / ${n(g.coreOdMm, 1)} mm</div>

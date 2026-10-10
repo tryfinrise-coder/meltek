@@ -41,6 +41,7 @@ export interface StoredDesignInputs {
   finishedOdMm: number;
   ctType: 'ring' | 'wound-primary';
   maxWidthMm: number | null;
+  wireCombination?: { swg: number; count: number }[] | null;
 }
 
 export interface Design {
@@ -272,6 +273,7 @@ export interface StoredOptionDto {
   gradeCode: string;
   gradeLabel: string;
   swg: number;
+  wireCombinationLabel?: string;
   bRawT: number;
   bUsedT: number;
   wasCapped: boolean;

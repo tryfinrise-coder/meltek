@@ -11,6 +11,11 @@ export * from './auth.js';
 
 export const ctTypeSchema = z.enum(['ring', 'wound-primary']);
 
+export const wireCombinationEntrySchema = z.object({
+  swg: z.number().int().positive(),
+  count: z.number().int().nonnegative(),
+});
+
 export const designInputsSchema = z
   .object({
     engineering: engineeringSpecSchema.nullable().optional(),
@@ -22,6 +27,7 @@ export const designInputsSchema = z
     finishedOdMm: z.number().positive('Finished OD must be greater than zero.'),
     ctType: ctTypeSchema.default('ring'),
     maxWidthMm: z.number().positive().nullable().optional(),
+    wireCombination: z.array(wireCombinationEntrySchema).nullable().optional(),
   })
   .refine((v) => v.finishedOdMm > v.finishedIdMm, {
     message: 'Finished OD must be larger than finished ID.',

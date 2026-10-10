@@ -1,4 +1,4 @@
-import { solve } from './solve.js';
+import { solve, virtualGaugeFromCombination } from './solve.js';
 import { validateDesign } from './validate.js';
 import {
   EngineError,
@@ -29,57 +29,75 @@ export function optimise(
   const options: RankedOption[] = [];
   const warnings: EngineWarning[] = [];
 
-  for (const grade of ref.grades) {
-    for (const gauge of ref.gauges) {
-      let result: SolveResult;
-      try {
-        result = solve(inputs, ref, settings, grade.code, gauge.swg, { withSteps: false });
-      } catch (err) {
-        // A combination that cannot be solved at all is still shown, with its reason.
-        // Hiding options makes the tool feel arbitrary (§5.10).
-        const reason =
-          err instanceof EngineError ? err.message : 'This combination could not be calculated.';
-        options.push(infeasibleStub(inputs, grade.code, grade.label, gauge.swg, reason));
-        continue;
+  const combo = inputs.wireCombination?.filter(e => e.count > 0);
+  const isCombo = combo && combo.length > 0;
+  const comboSwg = isCombo ? virtualGaugeFromCombination(combo, ref).gauge.swg : 0;
+
+  const solveOne = (grade: typeof ref.grades[0], gaugeSwg: number, gaugeAvailable: boolean) => {
+    let result: SolveResult;
+    try {
+      result = solve(inputs, ref, settings, grade.code, gaugeSwg, { withSteps: false });
+    } catch (err) {
+      const reason =
+        err instanceof EngineError ? err.message : 'This combination could not be calculated.';
+      options.push(infeasibleStub(inputs, grade.code, grade.label, gaugeSwg, reason));
+      return;
+    }
+
+    const reasons: string[] = [...(result.engineering?.issues ?? [])];
+
+    if (!grade.isAvailable) reasons.push('Not in stock');
+    if (!isCombo && !gaugeAvailable) reasons.push(`SWG ${gaugeSwg} not in stock`);
+    if (isCombo) {
+      for (const e of combo) {
+        const g = ref.gauges.find(g => g.swg === e.swg);
+        if (g && !g.isAvailable) reasons.push(`SWG ${e.swg} not in stock`);
       }
+    }
+    if (grade.ratePerKg === null) reasons.push(`No rate on record for ${grade.label}`);
+    if (!result.converged) reasons.push('Core size did not settle within the iteration limit');
+    if (ref.slitWidthsMm.length && !ref.slitWidthsMm.includes(result.orderedWidthMm)) reasons.push('No stocked slit width is wide enough for this core');
+    if (result.totalCost !== null && !Number.isFinite(result.totalCost)) reasons.push('Material cost is not finite');
 
-      const reasons: string[] = [...(result.engineering?.issues ?? [])];
-
-      if (!grade.isAvailable) reasons.push('Not in stock');
-      if (!gauge.isAvailable) reasons.push(`SWG ${gauge.swg} not in stock`);
-      if (grade.ratePerKg === null) reasons.push(`No rate on record for ${grade.label}`);
-      if (!result.converged) reasons.push('Core size did not settle within the iteration limit');
-      if (ref.slitWidthsMm.length && !ref.slitWidthsMm.includes(result.orderedWidthMm)) reasons.push('No stocked slit width is wide enough for this core');
-      if (result.totalCost !== null && !Number.isFinite(result.totalCost)) reasons.push('Material cost is not finite');
-
-      const die = pickDie(ref.dies, result.geometry.coreOdMm, result.orderedWidthMm);
-      if (ref.dies.length > 0 && !die) {
-        const widest = Math.max(...ref.dies.map((d) => d.maxWidthMm));
-        reasons.push(
-          result.orderedWidthMm > widest
-            ? `No die accommodates a ${result.orderedWidthMm.toFixed(0)} mm core`
-            : `No die fits a ${result.geometry.coreOdMm.toFixed(1)} mm core OD`,
-        );
-      }
-
-      if (inputs.maxWidthMm != null && (result.engineering?.finishedWidthMm ?? result.orderedWidthMm) > inputs.maxWidthMm) {
-        reasons.push(`${result.engineering ? 'Finished' : 'Ordered'} width ${(result.engineering?.finishedWidthMm ?? result.orderedWidthMm).toFixed(1)} mm exceeds the ${inputs.maxWidthMm} mm limit for this part`);
-      }
-
-      const hOutOfRange = result.warnings.some(
-        (w) => w.code === 'H_BELOW_CURVE' || w.code === 'H_ABOVE_CURVE',
+    const die = pickDie(ref.dies, result.geometry.coreOdMm, result.orderedWidthMm);
+    if (ref.dies.length > 0 && !die) {
+      const widest = Math.max(...ref.dies.map((d) => d.maxWidthMm));
+      reasons.push(
+        result.orderedWidthMm > widest
+          ? `No die accommodates a ${result.orderedWidthMm.toFixed(0)} mm core`
+          : `No die fits a ${result.geometry.coreOdMm.toFixed(1)} mm core OD`,
       );
-      if (hOutOfRange) reasons.push('Outside the characterised range for this grade');
+    }
 
-      options.push({
-        ...result,
-        gradeLabel: grade.label,
-        dieId: die?.id ?? null,
-        dieNo: die?.dieNo ?? null,
-        isFeasible: reasons.length === 0,
-        infeasibleReasons: reasons,
-        rank: null,
-      });
+    if (inputs.maxWidthMm != null && (result.engineering?.finishedWidthMm ?? result.orderedWidthMm) > inputs.maxWidthMm) {
+      reasons.push(`${result.engineering ? 'Finished' : 'Ordered'} width ${(result.engineering?.finishedWidthMm ?? result.orderedWidthMm).toFixed(1)} mm exceeds the ${inputs.maxWidthMm} mm limit for this part`);
+    }
+
+    const hOutOfRange = result.warnings.some(
+      (w) => w.code === 'H_BELOW_CURVE' || w.code === 'H_ABOVE_CURVE',
+    );
+    if (hOutOfRange) reasons.push('Outside the characterised range for this grade');
+
+    options.push({
+      ...result,
+      gradeLabel: grade.label,
+      dieId: die?.id ?? null,
+      dieNo: die?.dieNo ?? null,
+      isFeasible: reasons.length === 0,
+      infeasibleReasons: reasons,
+      rank: null,
+    });
+  };
+
+  if (isCombo) {
+    for (const grade of ref.grades) {
+      solveOne(grade, comboSwg, true);
+    }
+  } else {
+    for (const grade of ref.grades) {
+      for (const gauge of ref.gauges) {
+        solveOne(grade, gauge.swg, gauge.isAvailable);
+      }
     }
   }
 

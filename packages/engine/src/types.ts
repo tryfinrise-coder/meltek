@@ -8,6 +8,11 @@ import type { EngineeringSpec, EngineeringReport } from './engineeringTypes.js';
 
 export type CtType = 'ring' | 'wound-primary';
 
+export interface WireCombinationEntry {
+  swg: number;
+  count: number;
+}
+
 export interface DesignInputs {
   engineering?: EngineeringSpec | null;
   primaryCurrent: number; // A   — Ip
@@ -19,6 +24,8 @@ export interface DesignInputs {
   ctType: CtType; // Phase 1: 'ring' only
   /** Optional customer-imposed ceiling on the moulded width. */
   maxWidthMm?: number | null;
+  /** When set, the optimizer uses this fixed wire combination instead of iterating gauges. */
+  wireCombination?: WireCombinationEntry[] | null;
 }
 
 export interface ProcessSettings {
@@ -195,6 +202,9 @@ export interface SolveResult {
   inputs: DesignInputs;
   gradeCode: string;
   swg: number;
+  /** Present when the solve used a wire combination instead of a single gauge. */
+  wireCombination?: WireCombinationEntry[];
+  wireCombinationLabel?: string;
   geometry: Geometry;
   burdenVoltage: number;
   classPercent: number;

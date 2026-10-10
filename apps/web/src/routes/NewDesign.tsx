@@ -1,12 +1,12 @@
 import { accuracyClassLabel } from '../lib/accuracyClasses';
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import { ltCtFamily, type DesignInputs, type EngineeringSpec } from '@meltek/engine';
+import { ltCtFamily, type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
 import { EngineeringEditor } from '../features/EngineeringEditor';
 import { DesignStudio } from '../features/DesignStudio';
 import { WindingAnalysis } from '../features/WindingAnalysis';
@@ -61,6 +61,8 @@ export function NewDesign() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
+  const [wireComboEnabled, setWireComboEnabled] = useState(false);
+  const [wireMap, setWireMap] = useState<Record<number, number>>({});
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -68,6 +70,18 @@ export function NewDesign() {
     mode: 'onChange',
   });
   const values = form.watch();
+
+  const wireCombination: WireCombinationEntry[] | null = useMemo(() => {
+    if (!wireComboEnabled) return null;
+    const entries = Object.entries(wireMap)
+      .filter(([, count]) => count > 0)
+      .map(([swg, count]) => ({ swg: Number(swg), count }));
+    return entries.length > 0 ? entries : null;
+  }, [wireComboEnabled, wireMap]);
+
+  const setWireCount = useCallback((swg: number, count: number) => {
+    setWireMap(prev => ({ ...prev, [swg]: Math.max(0, count) }));
+  }, []);
 
   /** Valid electrical spec → live engine run, in the browser, on every keystroke (§3.1). */
   const inputs: DesignInputs | null = useMemo(() => {
@@ -81,10 +95,11 @@ export function NewDesign() {
       finishedOdMm: Number(values.finishedOdMm),
       ctType: values.ctType,
       maxWidthMm: values.maxWidthMm === '' ? null : Number(values.maxWidthMm),
+      wireCombination,
     });
     return parsed.success ? (parsed.data as DesignInputs) : null;
   }, [values.primaryCurrent, values.secondaryCurrent, values.burdenVA, values.accuracyClass,
-    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering]);
+    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination]);
 
   const { result, error } = useCalculator(inputs, reference.data);
 
@@ -246,6 +261,67 @@ export function NewDesign() {
 
           </div>
 
+          {/* Wire combination picker */}
+          <Card title="Wire combination" subtitle={wireComboEnabled && wireCombination
+            ? `${wireCombination.map(e => `${e.count}×${e.swg} SWG`).join(' + ')} — optimizer ranks grades only`
+            : 'Fix the wire selection and rank by grade alone'}>
+            <div className="px-4 py-3">
+              <label className="flex items-center gap-2 text-[13px] cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={wireComboEnabled}
+                  onChange={e => setWireComboEnabled(e.target.checked)}
+                  className="accent-[var(--accent)]"
+                />
+                <span>Use a fixed wire combination</span>
+              </label>
+              <p className="mt-1 text-[12px] text-[var(--text-3)]">
+                {wireComboEnabled
+                  ? 'Set the number of wires for each gauge. The optimizer will rank by grade using this combination.'
+                  : 'When off, the optimizer explores every grade × gauge pair independently.'}
+              </p>
+            </div>
+            {wireComboEnabled && (
+              <div className="border-t border-[var(--line)] px-4 py-3">
+                <div className="grid gap-1" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+                  <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Gauge</div>
+                  <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Diameter</div>
+                  <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Wires</div>
+                  {(reference.data?.gauges ?? []).filter(g => g.isAvailable).map(g => {
+                    const key = g.swg;
+                    return (
+                      <div key={key} className="contents">
+                        <div className="text-[13px] py-1 font-medium">{g.swg} SWG</div>
+                        <div className="text-[13px] py-1 text-[var(--text-3)]">⌀ {g.diaMm.toFixed(3)} mm</div>
+                        <input
+                          type="number"
+                          min={0}
+                          max={10}
+                          value={wireMap[g.swg] ?? 0}
+                          onChange={e => setWireCount(g.swg, parseInt(e.target.value) || 0)}
+                          className="w-14 rounded border border-[var(--line)] bg-[var(--surface-1)] px-2 py-1 text-center text-[13px]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                {wireCombination && (
+                  <div className="mt-3 rounded bg-[var(--surface-2)] px-3 py-2 text-[13px]">
+                    <strong>Active:</strong>{' '}
+                    {wireCombination.map(e => `${e.count}×${e.swg} SWG`).join(' + ')}
+                    {' · '}Total area: {wireCombination.reduce((sum, e) => {
+                      const g = (reference.data?.gauges ?? []).find(g => g.swg === e.swg);
+                      return sum + (g ? g.areaSqmm * e.count : 0);
+                    }, 0).toFixed(3)} mm²
+                  </div>
+                )}
+                {wireComboEnabled && !wireCombination && (
+                  <p className="mt-2 text-[12px] text-[var(--text-warn)]">Select at least one wire to enable combination mode.</p>
+                )}
+              </div>
+            )}
+          </Card>
+
           <EngineeringEditor value={engineering} reference={reference.data} onChange={next => {
             if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass', next?.purpose === 'protection' ? '5P' : next?.purpose === 'ps' ? 'PS' : '0.5S');
             setEngineering(next);
@@ -368,12 +444,12 @@ export function NewDesign() {
                 />
               </Card>
 
-              <div className="workflow-heading"><span>04</span><div><h2>Explore the selected design</h2><p>{selected.gradeLabel} · SWG {selected.swg}</p></div></div>
+              <div className="workflow-heading"><span>04</span><div><h2>Explore the selected design</h2><p>{selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <motion.div
                 className="grid grid-cols-2 gap-3 md:grid-cols-4"
                 variants={fadeUp(Boolean(reduce))} initial="hidden" animate="show"
               >
-                <StatTile label="Core width" note={`${selected.gradeLabel} · SWG ${selected.swg}`}>
+                <StatTile label="Core width" note={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}>
                   <AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" />
                 </StatTile>
                 <StatTile label="Ordered width" tone="provisional" note={<ProvisionalMark />}>
@@ -402,7 +478,7 @@ export function NewDesign() {
                     transition={{ duration: duration.base, ease: ease.out }}
                   >
                     <Card
-                      title={`${selected.gradeLabel} · SWG ${selected.swg}`}
+                      title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
                       subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
                     >
                       <DetailPanel result={detail} grade={grade} />
@@ -411,7 +487,7 @@ export function NewDesign() {
                 )}
               </AnimatePresence>
 
-              <div className="workflow-heading"><span>05</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · SWG {selected.swg}</p></div></div>
+              <div className="workflow-heading"><span>05</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <WindingAnalysis
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}

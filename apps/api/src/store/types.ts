@@ -57,6 +57,7 @@ export interface StoredDesignInputs {
   finishedOdMm: number;
   ctType: 'ring' | 'wound-primary';
   maxWidthMm: number | null;
+  wireCombination?: { swg: number; count: number }[] | null;
 }
 
 export type DesignStatus =

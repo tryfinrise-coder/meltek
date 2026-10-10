@@ -7,6 +7,7 @@ import {
   transformerConstant,
   interpolateB,
   computeWindingAllowance,
+  virtualGaugeFromCombination,
   seedReferenceData,
   DEFAULT_SETTINGS,
   EngineError,
@@ -14,6 +15,7 @@ import {
   type DesignInputs,
   type ProcessSettings,
   type ReferenceData,
+  type WireCombinationEntry,
 } from '../src/index.js';
 
 const ref: ReferenceData = seedReferenceData();
@@ -444,5 +446,52 @@ describe('the substituted chain', () => {
   it('shows where 0.0222 comes from', () => {
     const area = r.steps.find((s) => s.key === 'area')!;
     expect(area.formula).toContain('4.44');
+  });
+});
+
+describe('wire combination', () => {
+  const combo: WireCombinationEntry[] = [
+    { swg: 21, count: 1 },
+    { swg: 22, count: 2 },
+    { swg: 23, count: 1 },
+  ];
+
+  it('virtualGaugeFromCombination computes parallel resistance', () => {
+    const { gauge, label } = virtualGaugeFromCombination(combo, ref);
+    const g21 = ref.gauges.find((g) => g.swg === 21)!;
+    const g22 = ref.gauges.find((g) => g.swg === 22)!;
+    const g23 = ref.gauges.find((g) => g.swg === 23)!;
+    const expectedConductance = 1 / g21.ohmPerM20c + 2 / g22.ohmPerM20c + 1 / g23.ohmPerM20c;
+    expect(gauge.ohmPerM20c).toBeCloseTo(1 / expectedConductance, 8);
+    expect(gauge.gramPerM).toBeCloseTo(g21.gramPerM + 2 * g22.gramPerM + g23.gramPerM, 8);
+    expect(gauge.areaSqmm).toBeCloseTo(g21.areaSqmm + 2 * g22.areaSqmm + g23.areaSqmm, 8);
+    expect(label).toBe('1×21 + 2×22 + 1×23');
+  });
+
+  it('virtualGaugeFromCombination throws on empty combination', () => {
+    expect(() => virtualGaugeFromCombination([], ref)).toThrow(EngineError);
+    expect(() => virtualGaugeFromCombination([{ swg: 21, count: 0 }], ref)).toThrow(EngineError);
+  });
+
+  it('solve() accepts wireCombination and labels the result', () => {
+    const comboInputs: DesignInputs = { ...INPUTS, wireCombination: combo };
+    const r = solve(comboInputs, ref, settings, 'M-4', 21);
+    expect(r.wireCombination).toEqual(combo);
+    expect(r.wireCombinationLabel).toBe('1×21 + 2×22 + 1×23');
+    expect(r.converged).toBe(true);
+  });
+
+  it('optimise() with wireCombination iterates grades only', () => {
+    const comboInputs: DesignInputs = { ...INPUTS, wireCombination: combo };
+    const result = optimise(comboInputs, ref, settings);
+    expect(result.options.length).toBe(ref.grades.length);
+    const solved = result.options.filter((o) => o.wireCombinationLabel);
+    expect(solved.length).toBeGreaterThan(0);
+    expect(solved.every((o) => o.wireCombinationLabel === '1×21 + 2×22 + 1×23')).toBe(true);
+  });
+
+  it('optimise() without wireCombination still iterates grade x gauge', () => {
+    const result = optimise(INPUTS, ref, settings);
+    expect(result.options.length).toBe(ref.grades.length * ref.gauges.length);
   });
 });

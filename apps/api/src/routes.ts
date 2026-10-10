@@ -38,6 +38,7 @@ const asInputs = (i: StoredDesignInputs | DesignInputs): DesignInputs => ({
   finishedOdMm: i.finishedOdMm,
   ctType: i.ctType,
   maxWidthMm: i.maxWidthMm ?? null,
+  wireCombination: i.wireCombination ?? null,
 });
 
 const store_ = (req: Request): Store => (req.app.locals.store as Store);

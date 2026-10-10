@@ -43,20 +43,18 @@ describe('§5.8 derived intermediates', () => {
   it('core OD = 62 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(62, 10));
   it('radial build = 4.5 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(4.5, 10));
   it('burden voltage = 1.0 V', () => expect(r.burdenVoltage).toBeCloseTo(1.0, 10));
-  it('AT loss = 1.881 AT (includes x 0.95)', () => expect(r.atLoss).toBeCloseTo(1.881, 9));
+  it('AT loss = 1.98 AT', () => expect(r.atLoss).toBeCloseTo(1.98, 9));
   it('MML = 18.0642 cm', () => expect(r.geometry.mmlCm).toBeCloseTo(18.0642, 4));
-  it('H = 0.104129 AT/cm', () => expect(r.h).toBeCloseTo(0.104129, 6));
+  it('H = 0.10961 AT/cm', () => expect(r.h).toBeCloseTo(0.10961, 5));
 });
 
 /** §5.8 - per grade, after convergence. Tolerance +/-0.5% on area and width. */
 const VECTORS = [
-  { grade: 'M-4',           bRaw: 0.5427, bUsed: 0.5427, capped: false, area: 1.8905, width: 42.01, wire: 6.7375, passes: 8 },
-  { grade: '23-MOH',        bRaw: 0.7125, bUsed: 0.7125, capped: false, area: 1.3387, width: 29.75, wire: 4.9719, passes: 7 },
-  { grade: 'LASER-SCRIBED', bRaw: 1.1013, bUsed: 0.6500, capped: true,  area: 1.5000, width: 33.33, wire: 5.4879, passes: 7 },
-  // The 30 MOH wire figure in §5.8 is 4.373 m. That cell is internally inconsistent with
-  // the rest of its own row - see the "§5.8 discrepancy" block below.
-  // Vectors updated for turns-dependent resin cover (60 turns → 4mm, was 3mm).
-  { grade: '30-MOH',        bRaw: 0.8014, bUsed: 0.8014, capped: false, area: 1.1613, width: 25.81, wire: 4.4041, passes: 7 },
+  { grade: 'M-4',           bRaw: 0.5884, bUsed: 0.5884, capped: false, area: 1.7018, width: 37.82, wire: 6.1338, passes: 8 },
+  { grade: '23-MOH',        bRaw: 0.7734, bUsed: 0.7734, capped: false, area: 1.2119, width: 26.93, wire: 4.5660, passes: 7 },
+  { grade: 'LASER-SCRIBED', bRaw: 1.1561, bUsed: 0.6500, capped: true,  area: 1.5000, width: 33.33, wire: 5.4879, passes: 7 },
+  // Vectors updated after removing test margin factor (0.95) from AT loss.
+  { grade: '30-MOH',        bRaw: 0.8623, bUsed: 0.8623, capped: false, area: 1.0646, width: 23.66, wire: 4.0948, passes: 6 },
 ] as const;
 
 describe.each(VECTORS)('§5.8 vector - $grade', (v) => {
@@ -92,9 +90,9 @@ describe('§5.8 discrepancy - 30 MOH wire length', () => {
 
   it('reproduces B, area and width for 30 MOH exactly', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
-    expect(r.bRawT).toBeCloseTo(0.8014, 3);
-    expect(within(r.coreAreaCm2, 1.1613, 0.5)).toBe(true);
-    expect(within(r.coreWidthMm, 25.81, 0.5)).toBe(true);
+    expect(r.bRawT).toBeCloseTo(0.8623, 3);
+    expect(within(r.coreAreaCm2, 1.0646, 0.5)).toBe(true);
+    expect(within(r.coreWidthMm, 23.66, 0.5)).toBe(true);
   });
 
   it('derives wire length from that row\'s own width, not the printed 4.373 m', () => {

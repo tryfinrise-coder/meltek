@@ -244,7 +244,7 @@ export function solve(
   const burdenVoltage = inputs.burdenVA / inputs.secondaryCurrent;
 
   /* Step 4 - AT loss, the error budget */
-  const atLoss = (inputs.primaryCurrent * klass.percent * 2 * settings.testMarginFactor) / 100;
+  const atLoss = (inputs.primaryCurrent * klass.percent * 2) / 100;
   if (!klass.perIS) {
     warnings.push({
       code: 'CLASS_NOT_PER_IS',
@@ -429,10 +429,10 @@ function buildSteps(
       substituted: `(${f(g.coreOdMm, 2)} - ${f(g.coreIdMm, 2)}) / 2`, value: g.radialBuildMm, unit: 'mm' },
     { step: 6, key: 'burdenVoltage', label: 'Burden voltage', formula: 'VA / Is',
       substituted: `${i.burdenVA} / ${i.secondaryCurrent}`, value: r.burdenVoltage, unit: 'V' },
-    { step: 7, key: 'atLoss', label: 'AT loss', formula: '(Ip x class% x 2 x test margin) / 100',
-      substituted: `(${i.primaryCurrent} x ${classPercent} x 2 x ${s.testMarginFactor}) / 100`,
+    { step: 7, key: 'atLoss', label: 'AT loss', formula: '(Ip x class% x 2) / 100',
+      substituted: `(${i.primaryCurrent} x ${classPercent} x 2) / 100`,
       value: r.atLoss, unit: 'AT',
-      note: 'The x2 covers the full error band, minus through plus. The x0.95 is a deliberate margin, because external test rigs read slightly differently from the works rig.' },
+      note: 'The x2 covers the full error band, minus through plus.' },
     { step: 8, key: 'mml', label: 'Mean magnetic length', formula: 'pi x ((core ID + core OD) / 2) / 10',
       substituted: `pi x ((${f(g.coreIdMm, 2)} + ${f(g.coreOdMm, 2)}) / 2) / 10`, value: g.mmlCm, unit: 'cm' },
     { step: 9, key: 'h', label: 'Magnetising force', formula: 'H = AT loss / MML',

@@ -70,37 +70,77 @@ export function DetailPanel({ result, grade }: { result: SolveResult; grade: Ste
   );
 }
 
+const SECTIONS: { title: string; keys: string[]; color: string; bg: string }[] = [
+  { title: 'Geometry & Inputs',
+    keys: ['turns', 'allowance', 'coreId', 'coreOd', 'radialBuild'],
+    color: 'var(--chain-geometry)',
+    bg: 'var(--chain-geometry-bg)' },
+  { title: 'Electrical Calculation',
+    keys: ['burdenVoltage', 'atLoss', 'mml', 'h', 'bRaw', 'bUsed', 'area', 'width'],
+    color: 'var(--chain-electrical)',
+    bg: 'var(--chain-electrical-bg)' },
+  { title: 'Costing Estimates',
+    keys: ['orderedWidth', 'coreWeight', 'copperWeight', 'cost'],
+    color: 'var(--chain-costing)',
+    bg: 'var(--chain-costing-bg)' },
+];
+
 function Chain({ result, reduce }: { result: SolveResult; reduce: boolean }) {
+  const grouped = SECTIONS.map((sec) => ({
+    ...sec,
+    steps: result.steps.filter((s) => sec.keys.includes(s.key)),
+  })).filter((sec) => sec.steps.length > 0);
+
   return (
-    <motion.div variants={stagger(reduce)} initial="hidden" animate="show" className="divide-y divide-[var(--line)]">
-      {result.steps.map((s) => (
-        <motion.div
-          key={s.key}
-          variants={{
-            hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 8 },
-            show: reduce
-              ? { opacity: 1, transition: { duration: duration.instant } }
-              : { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.out } },
-          }}
-          className="grid grid-cols-[28px_1fr] gap-x-3 px-4 py-3 md:grid-cols-[28px_200px_1fr_auto]"
-          style={s.provisional ? { background: 'color-mix(in srgb, var(--provisional) 5%, transparent)' } : undefined}
-        >
-          <div className="num text-[12px] text-[var(--text-3)]">{s.step}</div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
-              {s.label}
-              {s.provisional && <ProvisionalMark />}
-            </div>
-            <div className="mono text-[11px] text-[var(--text-3)]">{s.formula}</div>
+    <motion.div variants={stagger(reduce)} initial="hidden" animate="show" className="flex flex-col gap-5 py-4">
+      {grouped.map((sec) => (
+        <div key={sec.title}>
+          <div
+            className="mx-4 mb-2 flex items-center gap-2 border-l-[3px] pl-3 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ borderColor: sec.color, color: sec.color }}
+          >
+            {sec.title}
           </div>
-          <div className="col-start-2 md:col-start-3">
-            <div className="mono text-[12px] text-[var(--text-2)] break-all">{s.substituted}</div>
-            {s.note && <div className="mt-1 text-[11.5px] text-[var(--text-3)] measure">{s.note}</div>}
+          <div className="divide-y divide-[var(--line)]">
+            {sec.steps.map((s) => (
+              <motion.div
+                key={s.key}
+                variants={{
+                  hidden: reduce ? { opacity: 0 } : { opacity: 0, y: 8 },
+                  show: reduce
+                    ? { opacity: 1, transition: { duration: duration.instant } }
+                    : { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.out } },
+                }}
+                className="grid grid-cols-[32px_1fr] gap-x-3 px-4 py-3 md:grid-cols-[32px_200px_1fr_auto]"
+                style={{
+                  background: s.provisional ? 'color-mix(in srgb, var(--provisional) 5%, transparent)' : undefined,
+                  borderLeft: `3px solid ${sec.color}`,
+                }}
+              >
+                <div
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold"
+                  style={{ background: sec.bg, color: sec.color }}
+                >
+                  {s.step}
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 text-[13px] font-medium">
+                    {s.label}
+                    {s.provisional && <ProvisionalMark />}
+                  </div>
+                  <div className="mono text-[11px] text-[var(--text-3)]">{s.formula}</div>
+                </div>
+                <div className="col-start-2 md:col-start-3">
+                  <div className="mono text-[12px] text-[var(--text-2)] break-all">{s.substituted}</div>
+                  {s.note && <div className="mt-1 text-[11.5px] text-[var(--text-3)] measure">{s.note}</div>}
+                </div>
+                <div className="col-start-2 mono text-[14px] font-semibold num md:col-start-4 md:text-right" style={{ color: sec.color }}>
+                  {n(s.value)} <span className="text-[var(--text-3)] font-normal text-[12px]">{s.unit}</span>
+                </div>
+              </motion.div>
+            ))}
           </div>
-          <div className="col-start-2 mono text-[13px] font-medium num md:col-start-4 md:text-right">
-            {n(s.value)} <span className="text-[var(--text-3)]">{s.unit}</span>
-          </div>
-        </motion.div>
+        </div>
       ))}
     </motion.div>
   );

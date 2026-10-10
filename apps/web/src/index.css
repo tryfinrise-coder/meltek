@@ -42,6 +42,13 @@
   --info:        #5b9bd5;
   --provisional: #8c7bb8;
 
+  --chain-geometry:      #5b9bd5;
+  --chain-geometry-bg:   rgba(91, 155, 213, 0.12);
+  --chain-electrical:    #55ddc5;
+  --chain-electrical-bg: rgba(85, 221, 197, 0.10);
+  --chain-costing:       #d9a441;
+  --chain-costing-bg:    rgba(217, 164, 65, 0.12);
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
@@ -72,6 +79,13 @@
   --warn:        #a8791f;
   --info:        #3a72a8;
   --provisional: #6b5a99;
+
+  --chain-geometry:      #3a72a8;
+  --chain-geometry-bg:   rgba(58, 114, 168, 0.08);
+  --chain-electrical:    #168b79;
+  --chain-electrical-bg: rgba(22, 139, 121, 0.07);
+  --chain-costing:       #a8791f;
+  --chain-costing-bg:    rgba(168, 121, 31, 0.08);
 
   --shadow-sm: 0 1px 2px rgba(16, 20, 28, 0.06);
   --shadow-md: 0 8px 24px -8px rgba(16, 20, 28, 0.12);

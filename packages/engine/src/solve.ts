@@ -464,7 +464,7 @@ function buildSteps(
       substituted: `${f(r.finalAreaCm2, 4)} x ${f(g.mmlCm, 4)} x ${grade.densityGCm3 ?? s.steelDensity} x ${grade.stackingFactor ?? s.stackingFactor} / 1000`,
       value: r.coreWeightKg, unit: 'kg', provisional: true },
     { step: 16, key: 'copperWeight', label: 'Copper weight', formula: 'wire length x g/m / 1000',
-      substituted: `${f(r.copperWeightKg * 1000 / gauge.gramPerM, 4)} x ${gauge.gramPerM} / 1000`, value: r.copperWeightKg, unit: 'kg', provisional: true,
+      substituted: `${f(r.copperWeightKg * 1000 / gauge.gramPerM, 4)} x ${f(gauge.gramPerM, 2)} / 1000`, value: r.copperWeightKg, unit: 'kg', provisional: true,
       note: comboLabel
         ? `Wire combination ${comboLabel}. Combined ${f(gauge.gramPerM, 2)} g/m. Wire length recomputed at the ordered slit width.`
         : 'Wire length is recomputed at the ordered slit width, including lead and crossover allowances.' },

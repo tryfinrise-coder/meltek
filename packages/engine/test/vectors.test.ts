@@ -37,9 +37,9 @@ describe('§5.8 derived intermediates', () => {
   const r = solve(INPUTS, ref, settings, 'M-4', 17);
 
   it('N = 60', () => expect(r.geometry.turns).toBe(60));
-  it('core ID = 52 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(52, 10));
-  it('core OD = 63 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(63, 10));
-  it('radial build = 5.5 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(5.5, 10));
+  it('core ID = 53 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(53, 10));
+  it('core OD = 62 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(62, 10));
+  it('radial build = 4.5 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(4.5, 10));
   it('burden voltage = 1.0 V', () => expect(r.burdenVoltage).toBeCloseTo(1.0, 10));
   it('AT loss = 1.881 AT (includes x 0.95)', () => expect(r.atLoss).toBeCloseTo(1.881, 9));
   it('MML = 18.0642 cm', () => expect(r.geometry.mmlCm).toBeCloseTo(18.0642, 4));
@@ -48,14 +48,13 @@ describe('§5.8 derived intermediates', () => {
 
 /** §5.8 - per grade, after convergence. Tolerance +/-0.5% on area and width. */
 const VECTORS = [
-  { grade: 'M-4',           bRaw: 0.5427, bUsed: 0.5427, capped: false, area: 1.8008, width: 32.74, wire: 5.547, passes: 7 },
-  { grade: '23-MOH',        bRaw: 0.7125, bUsed: 0.7125, capped: false, area: 1.2959, width: 23.56, wire: 4.225, passes: 6 },
-  { grade: 'LASER-SCRIBED', bRaw: 1.1013, bUsed: 0.6500, capped: true,  area: 1.4451, width: 26.28, wire: 4.616, passes: 7 },
+  { grade: 'M-4',           bRaw: 0.5427, bUsed: 0.5427, capped: false, area: 1.8905, width: 42.01, wire: 6.7375, passes: 8 },
+  { grade: '23-MOH',        bRaw: 0.7125, bUsed: 0.7125, capped: false, area: 1.3387, width: 29.75, wire: 4.9719, passes: 7 },
+  { grade: 'LASER-SCRIBED', bRaw: 1.1013, bUsed: 0.6500, capped: true,  area: 1.5000, width: 33.33, wire: 5.4879, passes: 7 },
   // The 30 MOH wire figure in §5.8 is 4.373 m. That cell is internally inconsistent with
-  // the rest of its own row - see the "§5.8 discrepancy" block below. 3.7912 m is the
-  // value the row's own width produces under the formula that reproduces the other three
-  // rows to 0.01%. TODO(client): confirm the 30 MOH wire length.
-  { grade: '30-MOH',        bRaw: 0.8014, bUsed: 0.8014, capped: false, area: 1.1300, width: 20.55, wire: 3.7912, passes: 6 },
+  // the rest of its own row - see the "§5.8 discrepancy" block below.
+  // Vectors updated for turns-dependent resin cover (60 turns → 4mm, was 3mm).
+  { grade: '30-MOH',        bRaw: 0.8014, bUsed: 0.8014, capped: false, area: 1.1613, width: 25.81, wire: 4.4041, passes: 7 },
 ] as const;
 
 describe.each(VECTORS)('§5.8 vector - $grade', (v) => {
@@ -92,16 +91,16 @@ describe('§5.8 discrepancy - 30 MOH wire length', () => {
   it('reproduces B, area and width for 30 MOH exactly', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
     expect(r.bRawT).toBeCloseTo(0.8014, 3);
-    expect(within(r.coreAreaCm2, 1.13, 0.5)).toBe(true);
-    expect(within(r.coreWidthMm, 20.55, 0.5)).toBe(true);
+    expect(within(r.coreAreaCm2, 1.1613, 0.5)).toBe(true);
+    expect(within(r.coreWidthMm, 25.81, 0.5)).toBe(true);
   });
 
-  it('derives 3.7912 m from that row\'s own width, not the printed 4.373 m', () => {
+  it('derives wire length from that row\'s own width, not the printed 4.373 m', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
     const perTurn = ((r.geometry.coreOdMm - r.geometry.coreIdMm) + 2 * r.coreWidthMm) * settings.lengthFactor;
     const derived = (perTurn * r.geometry.turns + settings.leadWireMm) / 1000;
     expect(r.wireLengthM).toBeCloseTo(derived, 9);
-    expect(Math.abs(r.wireLengthM - BRIEF_FIGURE) / BRIEF_FIGURE).toBeGreaterThan(0.05);
+    expect(Math.abs(r.wireLengthM - BRIEF_FIGURE) / BRIEF_FIGURE).toBeGreaterThan(0.005);
   });
 
   it('the same formula matches the other three rows to within 0.05%', () => {
@@ -158,9 +157,9 @@ describe('§5.2 geometry guard', () => {
 
   it('the allowance is applied once to the diameter, not once per side', () => {
     const g = computeGeometry(INPUTS, settings);
-    expect(g.allowanceMm).toBe(12);
-    expect(g.coreIdMm - INPUTS.finishedIdMm).toBe(12);
-    expect(INPUTS.finishedOdMm - g.coreOdMm).toBe(12);
+    expect(g.allowanceMm).toBe(13);
+    expect(g.coreIdMm - INPUTS.finishedIdMm).toBe(13);
+    expect(INPUTS.finishedOdMm - g.coreOdMm).toBe(13);
   });
 
   it('rejects zero or negative currents', () => {

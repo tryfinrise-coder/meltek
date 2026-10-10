@@ -39,6 +39,12 @@ export interface ProcessSettings {
   slitStepMm: number; // 5
   /** §12.4 — "+5 above 400 A". Ambiguous instruction; default OFF. */
   plusFiveAbove400A: boolean; // false
+  /** Enamel insulation thickness per side on the wire, mm. */
+  wireInsulationMm: number; // 0.05
+  /** Interlayer tape/insulation thickness, mm. */
+  interLayerTapeMm: number; // 0.1
+  /** Packing factor for wire in winding layers (0 < f <= 1). */
+  windingPackingFactor: number; // 0.9
 }
 
 export interface BhPoint {

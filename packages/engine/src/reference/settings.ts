@@ -22,6 +22,9 @@ export const DEFAULT_SETTINGS: ProcessSettings = {
   convergenceTolerance: 2e-5,
   slitStepMm: 5,
   plusFiveAbove400A: false,
+  wireInsulationMm: 0,
+  interLayerTapeMm: 0,
+  windingPackingFactor: 0,
 };
 
 export interface SettingMeta {
@@ -39,8 +42,8 @@ export interface SettingMeta {
 
 /** Drives the settings screen and the setup checklist in the header. */
 export const SETTING_META: readonly SettingMeta[] = [
-  { key: 'resinCoverMm', unit: 'mm', label: 'Resin cover', isConfirmed: false,
-    sourceNote: 'Radial space reserved for the cast resin body. Set this to your moulding practice — whether 3 mm is a per-side minimum or the total across both sides changes how much room the winding gets.' },
+  { key: 'resinCoverMm', unit: 'mm', label: 'Resin cover (fallback)', isConfirmed: false,
+    sourceNote: 'Fallback resin cover. The engine uses a turns-dependent rule: 4 mm for up to 100 turns, 6 mm for up to 200 turns, and the larger of this setting or 6 mm above 200 turns.' },
   { key: 'windingAllowanceMm', unit: 'mm', label: 'Winding allowance', isConfirmed: false,
     sourceNote: 'Radial space reserved for the secondary winding, entered by hand. It depends on turns, wire selection, interlayer insulation and minimum epoxy thickness; once those tables are entered this can be calculated instead.' },
   { key: 'lengthFactor', unit: '—', label: 'Wire length factor', isConfirmed: false,
@@ -67,4 +70,10 @@ export const SETTING_META: readonly SettingMeta[] = [
     sourceNote: 'Used only while no stocked slit widths are on record. Enter your widths under Reference data and the calculation rounds to a width you actually buy.' },
   { key: 'plusFiveAbove400A', unit: 'flag', label: 'Extra 5-turn margin above 400 A', isConfirmed: false,
     sourceNote: 'Adds five secondary turns on designs above 400 A primary. Off by default: the flux ceiling already guards against saturation, and switching both on makes every large core wider than the calculation requires.' },
+  { key: 'wireInsulationMm', unit: 'mm', label: 'Wire insulation per side', isConfirmed: false,
+    sourceNote: 'Enamel insulation thickness added to each side of the bare wire diameter to get the insulated diameter used in winding build calculations.' },
+  { key: 'interLayerTapeMm', unit: 'mm', label: 'Interlayer tape thickness', isConfirmed: false,
+    sourceNote: 'Tape or insulation placed between winding layers. Used when computing the winding build from the actual wire geometry.' },
+  { key: 'windingPackingFactor', unit: '—', label: 'Winding packing factor', isConfirmed: false,
+    sourceNote: 'How tightly the wire packs in each layer — 1.0 is perfect packing, 0.9 allows 10% extra space for crossover and irregularity.' },
 ];

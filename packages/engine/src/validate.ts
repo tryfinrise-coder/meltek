@@ -11,7 +11,7 @@ export function validateDesign(inputs: DesignInputs, settings: ProcessSettings):
   for (const key of ['primaryCurrent', 'secondaryCurrent', 'burdenVA', 'finishedIdMm', 'finishedOdMm'] as const) positive(inputs[key], key);
   if (inputs.maxWidthMm != null) positive(inputs.maxWidthMm, 'Maximum width');
   for (const [key, value] of Object.entries(settings)) {
-    if (typeof value === 'number') positive(value, key, ['resinCoverMm', 'windingAllowanceMm', 'leadWireMm'].includes(key));
+    if (typeof value === 'number') positive(value, key, ['resinCoverMm', 'windingAllowanceMm', 'leadWireMm', 'wireInsulationMm', 'interLayerTapeMm', 'windingPackingFactor'].includes(key));
   }
   if (!Number.isInteger(settings.maxIterations) || settings.maxIterations > 500) throw new EngineError('INVALID_INPUT', 'Iteration limit must be an integer from 1 to 500.');
   if (settings.stackingFactor > 1 || settings.saturationCapTesla > settings.saturationTriggerTesla) throw new EngineError('INVALID_INPUT', 'Check stacking factor and saturation ceiling settings.');

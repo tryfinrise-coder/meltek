@@ -61,6 +61,14 @@ export class MysqlStore implements Store {
     }
     const countRows = await this.query('SELECT COUNT(*) AS n FROM steel_grade');
     if (Number(countRows[0]?.n ?? 0) === 0) await this.seed();
+    for (const row of defaultSettingRows()) {
+      await this.pool.execute(
+        `INSERT IGNORE INTO process_setting (\`key\`, value, unit, label, is_confirmed, source_note)
+         VALUES (?,?,?,?,?,?)`,
+        [row.key, typeof row.value === 'boolean' ? (row.value ? 1 : 0) : row.value,
+          row.unit, row.label, row.isConfirmed ? 1 : 0, row.sourceNote],
+      );
+    }
   }
 
   async close(): Promise<void> { await this.pool.end(); }

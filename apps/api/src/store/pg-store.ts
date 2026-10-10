@@ -39,6 +39,14 @@ export class PgStore implements Store {
     await this.pool.query(ddl);
     const { rows } = await this.pool.query<{ n: string }>('SELECT count(*)::text AS n FROM steel_grade');
     if (Number(rows[0]?.n ?? 0) === 0) await this.seed();
+    for (const row of defaultSettingRows()) {
+      await this.pool.query(
+        `INSERT INTO process_setting (key, value, unit, label, is_confirmed, source_note)
+         VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (key) DO NOTHING`,
+        [row.key, typeof row.value === 'boolean' ? (row.value ? 1 : 0) : row.value,
+          row.unit, row.label, row.isConfirmed, row.sourceNote],
+      );
+    }
   }
 
   async close(): Promise<void> { await this.pool.end(); }

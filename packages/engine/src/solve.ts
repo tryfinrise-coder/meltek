@@ -1,5 +1,6 @@
 import { interpolateB, type InterpolationResult } from './interpolate.js';
 import { solveEngineering } from './engineering.js';
+import { computeWindingAllowance, type WindingResult } from './winding.js';
 import { positive, validateDesign } from './validate.js';
 import {
   EngineError,
@@ -35,6 +36,36 @@ export function findClass(ref: ReferenceData, code: string) {
   return c;
 }
 
+/** Resin cover depends on the number of secondary turns (from the PDF spec, page 14). */
+export function resinCoverForTurns(turns: number, defaultMm: number): number {
+  if (turns <= 100) return 4;
+  if (turns <= 200) return 6;
+  return Math.max(defaultMm, 6);
+}
+
+/**
+ * Compute the winding build for a given SWG using the wire geometry.
+ * Returns null when the new settings have not been confirmed yet (all zeros/defaults)
+ * and the caller should fall back to the fixed windingAllowanceMm.
+ */
+export function computeWindingBuild(
+  turns: number,
+  gauge: WireGauge,
+  finishedIdMm: number,
+  settings: ProcessSettings,
+): WindingResult | null {
+  if (settings.wireInsulationMm <= 0 || settings.windingPackingFactor <= 0 || settings.windingPackingFactor > 1) return null;
+  const insulatedDiaMm = gauge.diaMm + 2 * settings.wireInsulationMm;
+  try {
+    return computeWindingAllowance(
+      { turns: Math.round(turns), swg: gauge.swg, wireDiaMm: insulatedDiaMm, parallelStrands: 1, boreIdMm: finishedIdMm },
+      { layerStackingFactorBySwg: { [gauge.swg]: settings.windingPackingFactor }, interlayerThicknessMm: settings.interLayerTapeMm, minEpoxyThicknessMm: 0 },
+    );
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Steps 1-2 - turns and core geometry (§5.2).
  *
@@ -42,7 +73,7 @@ export function findClass(ref: ReferenceData, code: string) {
  * diameter, not once per side. A 12 mm allowance leaves 6 mm of radial space each
  * side. Confirmed by the client - do not change this.
  */
-export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings): Geometry {
+export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings, overrideAllowanceMm?: number): Geometry {
   validateDesign(inputs, settings);
   if (!(inputs.primaryCurrent > 0)) {
     throw new EngineError('INVALID_INPUT', 'Primary current must be greater than zero.');
@@ -61,7 +92,8 @@ export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings)
   // TODO(client §12.4): confirm whether this margin exists and where it applies.
   if (settings.plusFiveAbove400A && inputs.primaryCurrent > 400) turns += 5;
 
-  const allowanceMm = settings.resinCoverMm + settings.windingAllowanceMm;
+  const resinCover = resinCoverForTurns(turns, settings.resinCoverMm);
+  const allowanceMm = overrideAllowanceMm ?? (resinCover + settings.windingAllowanceMm);
   const coreIdMm = inputs.finishedIdMm + allowanceMm;
   const coreOdMm = inputs.finishedOdMm - allowanceMm;
 
@@ -138,8 +170,16 @@ export function solve(
   if ((grade.stackingFactor ?? settings.stackingFactor) > 1) throw new EngineError('INVALID_INPUT', 'Stacking factor cannot exceed 1.');
   const warnings: EngineWarning[] = [];
 
-  /* Steps 1-2 */
-  const geometry = computeGeometry(inputs, settings);
+  /* Steps 1-2: compute turns first, then SWG-specific winding build */
+  const prelimTurns = inputs.primaryCurrent / inputs.secondaryCurrent
+    + (settings.plusFiveAbove400A && inputs.primaryCurrent > 400 ? 5 : 0);
+  const resinCover = resinCoverForTurns(prelimTurns, settings.resinCoverMm);
+  const windingBuild = computeWindingBuild(prelimTurns, gauge, inputs.finishedIdMm, settings);
+  const allowanceMm = windingBuild
+    ? resinCover + 2 * windingBuild.windingBuildMm
+    : resinCover + settings.windingAllowanceMm;
+
+  const geometry = computeGeometry(inputs, settings, allowanceMm);
   const N = geometry.turns;
 
   /* Step 3 - burden voltage */
@@ -291,7 +331,7 @@ export function solve(
   };
 
   if (options.withSteps !== false) {
-    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k);
+    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild);
   }
   return result;
 }
@@ -307,15 +347,20 @@ function buildSteps(
   interp: InterpolationResult,
   denominator: number,
   k: number,
+  windingBuild: WindingResult | null,
 ): CalcStep[] {
   const g = r.geometry;
   const i = r.inputs;
+  const resinCover = resinCoverForTurns(g.turns, s.resinCoverMm);
+  const windingDesc = windingBuild
+    ? `${f(resinCover, 1)} + 2 × ${f(windingBuild.windingBuildMm, 2)} (${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''}, ${windingBuild.turnsPerLayer} turns/layer)`
+    : `${f(resinCover, 1)} + ${s.windingAllowanceMm} (fixed)`;
   return [
     { step: 1, key: 'turns', label: 'Secondary turns', formula: 'N = Ip / Is',
       substituted: `${i.primaryCurrent} / ${i.secondaryCurrent}`, value: g.turns, unit: 'turns' },
-    { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + winding allowance',
-      substituted: `${s.resinCoverMm} + ${s.windingAllowanceMm}`, value: g.allowanceMm, unit: 'mm',
-      note: 'Total for both sides, so it is added once to the diameter and leaves half of it radially on each side.' },
+    { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + winding build',
+      substituted: windingDesc, value: g.allowanceMm, unit: 'mm',
+      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. ${windingBuild ? `Winding build computed from SWG ${gauge.swg} insulated dia ${f(gauge.diaMm + 2 * s.wireInsulationMm, 2)} mm.` : 'Winding allowance is fixed — set wire insulation and packing data to compute it.'}` },
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${g.allowanceMm}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',

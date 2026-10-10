@@ -8,7 +8,8 @@ describe('cost and recommendation reliability', () => {
   it('costs copper using the ordered width rather than the smaller theoretical width', () => {
     const result = solve(inputs, { ...ref, slitWidthsMm: [60] }, DEFAULT_SETTINGS, 'M-4', 17);
     const wire = ref.gauges.find(g => g.swg === 17)!;
-    const actualLength = ((11 + 2 * 60) * DEFAULT_SETTINGS.lengthFactor * 60 + DEFAULT_SETTINGS.leadWireMm) / 1000;
+    const radial = result.geometry.coreOdMm - result.geometry.coreIdMm;
+    const actualLength = ((radial + 2 * 60) * DEFAULT_SETTINGS.lengthFactor * 60 + DEFAULT_SETTINGS.leadWireMm) / 1000;
     expect(result.copperWeightKg).toBeCloseTo(actualLength * wire.gramPerM / 1000, 10);
     expect(result.copperCost).toBeCloseTo(result.copperWeightKg * ref.copperRatePerKg, 10);
     expect(actualLength).toBeGreaterThan(result.wireLengthM);

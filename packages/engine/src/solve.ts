@@ -96,8 +96,9 @@ export function resinCoverForTurns(turns: number, defaultMm: number): number {
  * Compute the winding build using wire geometry.
  * Returns null when the packing factor is not set (0 or invalid).
  *
- * The bore for the winding = finishedIdMm + resinCover + coreInsulationMm,
- * since the winding sits outside the resin cover and core insulation layers.
+ * The bore for the winding = finishedIdMm + resinCover.
+ * The winding wraps around the resin. Core insulation sits between
+ * the winding and the steel, so it does not affect the bore circumference.
  */
 export function computeWindingBuild(
   turns: number,
@@ -108,7 +109,7 @@ export function computeWindingBuild(
   combo?: { entries: WireCombinationEntry[]; ref: ReferenceData },
 ): WindingResult | null {
   if (settings.windingPackingFactor <= 0 || settings.windingPackingFactor > 1) return null;
-  const boreIdMm = finishedIdMm + resinCover + settings.coreInsulationMm;
+  const boreIdMm = finishedIdMm + resinCover;
   const roundedTurns = Math.round(turns);
   const active = combo?.entries.filter(e => e.count > 0);
   if (active && active.length > 0) {
@@ -121,7 +122,7 @@ export function computeWindingBuild(
       maxInsulatedDiaMm = Math.max(maxInsulatedDiaMm, insulatedDia);
     }
     const pitch = bundleWidthMm / settings.windingPackingFactor;
-    const turnsPerLayer = Math.floor(Math.PI * (boreIdMm + maxInsulatedDiaMm) / pitch);
+    const turnsPerLayer = Math.floor(Math.PI * boreIdMm / pitch);
     if (turnsPerLayer < 1) return null;
     const layers = Math.ceil(roundedTurns / turnsPerLayer);
     const windingBuildMm = layers * maxInsulatedDiaMm + (layers - 1) * settings.interLayerTapeMm;
@@ -446,7 +447,7 @@ function buildSteps(
       substituted: `${i.primaryCurrent} / ${i.secondaryCurrent}`, value: g.turns, unit: 'turns' },
     { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + core insulation + 2 × winding build',
       substituted: windingDesc, value: g.allowanceMm, unit: 'mm',
-      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover + s.coreInsulationMm, 1)} mm. Winding build computed from ${comboLabel || `SWG ${gauge.swg}`} insulated dia ${f(gauge.diaMm + 2 * s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — check packing factor in Settings.'}` },
+      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover, 1)} mm (circumference ${f(Math.PI * (i.finishedIdMm + resinCover), 1)} mm). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(gauge.diaMm + 2 * s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — check packing factor in Settings.'}` },
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${g.allowanceMm}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',

@@ -10,7 +10,7 @@ const change=(p:Partial<EngineeringSpec>)=>{const i=make();Object.assign(i.engin
 describe('construction and electrical engineering',()=>{
  it('indexes packing factors by SWG and rounds turn capacity down',()=>{
   const r=computeWindingAllowance({turns:100,swg:17,wireDiaMm:1.5,parallelStrands:1,boreIdMm:42},{layerStackingFactorBySwg:{17:0.9},interlayerThicknessMm:0.1,minEpoxyThicknessMm:1});
-  expect(r.turnsPerLayer).toBe(Math.floor(Math.PI*43.5/(1.5/.9)));
+  expect(r.turnsPerLayer).toBe(Math.floor(Math.PI*42/(1.5/.9)));
   expect(r.layers).toBe(2);expect(r.windingBuildMm).toBeCloseTo(3.1);
  });
  it('does not silently substitute a packing factor for an unknown gauge',()=>{

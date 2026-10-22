@@ -34,8 +34,7 @@ export function computeWindingAllowance(inputs: WindingInputs, ref: WindingRefer
   if (factor > 1 || !Number.isInteger(inputs.turns) || !Number.isInteger(inputs.parallelStrands)) throw new EngineError('INVALID_INPUT', 'Packing must be at most 1; turns and strands must be integers.');
   const radial = inputs.arrangement === 'radial-stack';
   const pitch = inputs.wireDiaMm * (radial ? 1 : inputs.parallelStrands) / factor;
-  // Conservative capacity: every layer uses the limiting bore circumference.
-  const turnsPerLayer = Math.floor(Math.PI * (inputs.boreIdMm + inputs.wireDiaMm) / pitch);
+  const turnsPerLayer = Math.floor(Math.PI * inputs.boreIdMm / pitch);
   if (turnsPerLayer < 1) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
   const layers = Math.ceil(inputs.turns / turnsPerLayer);
   const windingBuildMm = layers * inputs.wireDiaMm * (radial ? inputs.parallelStrands : 1) + (layers - 1) * ref.interlayerThicknessMm;

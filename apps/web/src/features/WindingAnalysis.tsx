@@ -20,6 +20,7 @@ interface State {
   layerTape: number;
   spacingFactor: number;
   flatAllowance: number;
+  coreInsulation: number;
   coreRate: number;
   cuRate: number;
   wireMap: Record<number, number>;
@@ -31,6 +32,7 @@ const initial: State = {
   turns: 0, leadLength: 0,
   insThickness: 0.15, layerTape: 0.10,
   spacingFactor: 1.10, flatAllowance: 15,
+  coreInsulation: 1,
   coreRate: 315, cuRate: 950,
   wireMap: {},
 };
@@ -273,13 +275,16 @@ export function WindingAnalysis({
       <motion.div variants={fadeUp(reduce)}>
         <Card eyebrow="Winding parameters" title="Insulation & Spacing"
           subtitle="Insulation thickness, inter-layer tape and winding tightness">
-          <div className="grid grid-cols-3 gap-4 px-5 py-4">
+          <div className="grid grid-cols-4 gap-4 px-5 py-4">
             <TextField label="Insulation" unit="mm" type="number" step="0.01" value={s.insThickness}
               hint="Tape/coating on each wire"
               onChange={e => setField('insThickness', e.target.value)} />
             <TextField label="Inter-layer Tape" unit="mm" type="number" step="0.01" value={s.layerTape}
               hint="Tape between winding layers"
               onChange={e => setField('layerTape', e.target.value)} />
+            <TextField label="Core Insulation" unit="mm" type="number" step="0.1" value={s.coreInsulation}
+              hint="Blister cap between winding and steel"
+              onChange={e => setField('coreInsulation', e.target.value)} />
             <SelectField label="Spacing"
               hint="How tightly the wire is wound"
               value={String(s.spacingFactor)}

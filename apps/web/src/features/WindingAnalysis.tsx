@@ -94,13 +94,14 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const cuSurfacePerTurn = wires.reduce((sum, w) => sum + w.count * w.dia, 0);
 
   const totalWireWidth = wires.reduce((sum, w) => sum + w.count * (w.dia + s.insThickness), 0);
-  const effectiveDia = wires.length > 0
+  const maxWireDia = wires.length > 0
     ? Math.max(...wires.map(w => w.dia)) + s.insThickness : 0;
 
   const turnPitch = totalWireWidth * s.spacingFactor;
-  const turnsPerLayer = turnPitch > 0 ? Math.max(1, Math.floor(W / turnPitch)) : turns;
+  const boreCirc = ID * PI;
+  const turnsPerLayer = turnPitch > 0 ? Math.max(1, Math.floor(boreCirc / turnPitch)) : turns;
   const numLayers = Math.ceil(turns / turnsPerLayer);
-  const layerThickness = effectiveDia + s.layerTape;
+  const layerThickness = maxWireDia + s.layerTape;
 
   const layers: LayerRow[] = [];
   let totalWireLength = 0;
@@ -121,10 +122,9 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const practicalAvgMLT = turns > 0 ? totalWireLength / turns : 0;
   const actualAllowancePct = mltBase > 0 ? ((practicalAvgMLT / mltBase) - 1) * 100 : 0;
 
-  const windingBuildMm = numLayers * layerThickness;
-  const possibleID = ID - (windingBuildMm * 2);
+  const windingBuildMm = numLayers * maxWireDia + (numLayers > 1 ? (numLayers - 1) * s.layerTape : 0);
+  const possibleID = ID - (windingBuildMm * 2) - (s.coreInsulation * 2);
   const reqWireLength = turns * cuSurfacePerTurn * 1.05;
-  const boreCirc = (ID - 2) * PI;
   const shortLength = reqWireLength - boreCirc;
   const windingFits = possibleID > 0;
 

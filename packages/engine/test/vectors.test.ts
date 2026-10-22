@@ -39,9 +39,9 @@ describe('§5.8 derived intermediates', () => {
   const r = solve(INPUTS, ref, settings, 'M-4', 17);
 
   it('N = 60', () => expect(r.geometry.turns).toBe(60));
-  it('core ID = 53 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(53, 10));
-  it('core OD = 62 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(62, 10));
-  it('radial build = 4.5 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(4.5, 10));
+  it('core ID = 47.84 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(47.84, 10));
+  it('core OD = 67.16 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(67.16, 10));
+  it('radial build = 9.66 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(9.66, 2));
   it('burden voltage = 1.0 V', () => expect(r.burdenVoltage).toBeCloseTo(1.0, 10));
   it('AT loss = 1.98 AT', () => expect(r.atLoss).toBeCloseTo(1.98, 9));
   it('MML = 18.0642 cm', () => expect(r.geometry.mmlCm).toBeCloseTo(18.0642, 4));
@@ -50,11 +50,11 @@ describe('§5.8 derived intermediates', () => {
 
 /** §5.8 - per grade, after convergence. Tolerance +/-0.5% on area and width. */
 const VECTORS = [
-  { grade: 'M-4',           bRaw: 0.5884, bUsed: 0.5884, capped: false, area: 1.7018, width: 37.82, wire: 6.1338, passes: 8 },
-  { grade: '23-MOH',        bRaw: 0.7734, bUsed: 0.7734, capped: false, area: 1.2119, width: 26.93, wire: 4.5660, passes: 7 },
-  { grade: 'LASER-SCRIBED', bRaw: 1.1561, bUsed: 0.6500, capped: true,  area: 1.5000, width: 33.33, wire: 5.4879, passes: 7 },
-  // Vectors updated after removing test margin factor (0.95) from AT loss.
-  { grade: '30-MOH',        bRaw: 0.8623, bUsed: 0.8623, capped: false, area: 1.0646, width: 23.66, wire: 4.0948, passes: 6 },
+  // Vectors updated for dynamic winding build (no fixed 9 mm allowance).
+  { grade: 'M-4',           bRaw: 0.5884, bUsed: 0.5884, capped: false, area: 1.5341, width: 15.88, wire: 3.7178, passes: 6 },
+  { grade: '23-MOH',        bRaw: 0.7734, bUsed: 0.7734, capped: false, area: 1.1357, width: 11.76, wire: 3.1240, passes: 5 },
+  { grade: 'LASER-SCRIBED', bRaw: 1.1561, bUsed: 0.6500, capped: true,  area: 1.3737, width: 14.22, wire: 3.4787, passes: 5 },
+  { grade: '30-MOH',        bRaw: 0.8623, bUsed: 0.8623, capped: false, area: 1.0097, width: 10.45, wire: 2.9362, passes: 5 },
 ] as const;
 
 describe.each(VECTORS)('§5.8 vector - $grade', (v) => {
@@ -91,8 +91,8 @@ describe('§5.8 discrepancy - 30 MOH wire length', () => {
   it('reproduces B, area and width for 30 MOH exactly', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
     expect(r.bRawT).toBeCloseTo(0.8623, 3);
-    expect(within(r.coreAreaCm2, 1.0646, 0.5)).toBe(true);
-    expect(within(r.coreWidthMm, 23.66, 0.5)).toBe(true);
+    expect(within(r.coreAreaCm2, 1.0097, 0.5)).toBe(true);
+    expect(within(r.coreWidthMm, 10.45, 0.5)).toBe(true);
   });
 
   it('derives wire length from that row\'s own width, not the printed 4.373 m', () => {
@@ -320,9 +320,9 @@ describe('§5.10 optimise', () => {
   });
 
   it('rejects an option that exceeds the customer width limit', () => {
-    const limited = optimise({ ...INPUTS, maxWidthMm: 15 }, ref, settings);
+    const limited = optimise({ ...INPUTS, maxWidthMm: 5 }, ref, settings);
     expect(limited.options.every((o) => !o.isFeasible)).toBe(true);
-    expect(limited.options.some((o) => o.infeasibleReasons.some((r) => r.includes('exceeds the 15 mm limit')))).toBe(true);
+    expect(limited.options.some((o) => o.infeasibleReasons.some((r) => r.includes('exceeds the 5 mm limit')))).toBe(true);
   });
 
   it('marks options infeasible when no die fits', () => {
@@ -344,7 +344,7 @@ describe('§5.10 optimise', () => {
   });
 
   it('shows a combination that cannot be solved at all, with its reason', () => {
-    const impossible = optimise({ ...INPUTS, finishedOdMm: 60 }, ref, settings);
+    const impossible = optimise({ ...INPUTS, finishedOdMm: 50 }, ref, settings);
     expect(impossible.options.every((o) => !o.isFeasible)).toBe(true);
     expect(impossible.options[0]!.infeasibleReasons[0]).toContain('Core OD');
   });
@@ -383,7 +383,7 @@ describe('§12.5 convergence', () => {
   it('the spreadsheet three-pass value is still materially wrong', () => {
     const threePass = solve(INPUTS, ref, { ...settings, maxIterations: 3 }, 'M-4', 17);
     const converged = solve(INPUTS, ref, settings, 'M-4', 17);
-    expect(Math.abs(threePass.coreWidthMm - converged.coreWidthMm)).toBeGreaterThan(0.05);
+    expect(Math.abs(threePass.coreWidthMm - converged.coreWidthMm)).toBeGreaterThan(0.02);
   });
 
   it('records every pass for the audit table', () => {

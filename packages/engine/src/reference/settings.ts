@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS: ProcessSettings = {
   plusFiveAbove400A: false,
   wireInsulationMm: 0,
   interLayerTapeMm: 0,
-  windingPackingFactor: 0,
+  windingPackingFactor: 0.95,
   coreInsulationMm: 1,
 };
 

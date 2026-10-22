@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS: ProcessSettings = {
   wireInsulationMm: 0,
   interLayerTapeMm: 0,
   windingPackingFactor: 0,
+  coreInsulationMm: 1,
 };
 
 export interface SettingMeta {
@@ -76,4 +77,6 @@ export const SETTING_META: readonly SettingMeta[] = [
     sourceNote: 'Tape or insulation placed between winding layers. Used when computing the winding build from the actual wire geometry.' },
   { key: 'windingPackingFactor', unit: '—', label: 'Winding packing factor', isConfirmed: false,
     sourceNote: 'How tightly the wire packs in each layer — 1.0 is perfect packing, 0.9 allows 10% extra space for crossover and irregularity.' },
+  { key: 'coreInsulationMm', unit: 'mm', label: 'Core insulation (blister cap)', isConfirmed: true,
+    sourceNote: 'Insulation between the secondary winding and the steel core. A diameter quantity — 1 mm means 0.5 mm radial thickness each side.' },
 ];

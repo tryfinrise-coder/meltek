@@ -52,6 +52,8 @@ export interface ProcessSettings {
   interLayerTapeMm: number; // 0.1
   /** Packing factor for wire in winding layers (0 < f <= 1). */
   windingPackingFactor: number; // 0.9
+  /** Core insulation (blister cap) between winding and steel, mm — diameter quantity. */
+  coreInsulationMm: number; // 1
 }
 
 export interface BhPoint {

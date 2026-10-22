@@ -9,6 +9,8 @@ const PI = Math.PI;
 const CU_DENSITY = 8.89;
 
 interface State {
+  finishedID: number;
+  resinCover: number;
   coreID: number;
   coreOD: number;
   coreWidth: number;
@@ -27,6 +29,7 @@ interface State {
 }
 
 const initial: State = {
+  finishedID: 0, resinCover: 0,
   coreID: 0, coreOD: 0, coreWidth: 0,
   density: 7.89, stackingFactor: 0.97,
   turns: 0, leadLength: 0,
@@ -67,7 +70,9 @@ interface CalcResult {
   totalCuArea: number;
   cuSurfacePerTurn: number;
   windingBuildMm: number;
+  afterInsulation: number;
   possibleID: number;
+  numLayers: number;
   reqWireLength: number;
   shortLength: number;
   windingFits: boolean;
@@ -97,8 +102,10 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const maxWireDia = wires.length > 0
     ? Math.max(...wires.map(w => w.dia)) + s.insThickness : 0;
 
+  // Bore = finished ID + resin cover (winding wraps around the resin)
+  const boreMm = s.finishedID + s.resinCover;
+  const boreCirc = boreMm * PI;
   const turnPitch = totalWireWidth * s.spacingFactor;
-  const boreCirc = ID * PI;
   const turnsPerLayer = turnPitch > 0 ? Math.max(1, Math.floor(boreCirc / turnPitch)) : turns;
   const numLayers = Math.ceil(turns / turnsPerLayer);
   const layerThickness = maxWireDia + s.layerTape;
@@ -123,10 +130,12 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const actualAllowancePct = mltBase > 0 ? ((practicalAvgMLT / mltBase) - 1) * 100 : 0;
 
   const windingBuildMm = numLayers * maxWireDia + (numLayers > 1 ? (numLayers - 1) * s.layerTape : 0);
-  const possibleID = ID - (windingBuildMm * 2) - (s.coreInsulation * 2);
+  // Possible ID = required core ID = finishedID + resinCover + coreInsulation + 2 × windingBuild
+  const afterInsulation = s.finishedID + s.resinCover + s.coreInsulation;
+  const possibleID = afterInsulation + 2 * windingBuildMm;
   const reqWireLength = turns * cuSurfacePerTurn * 1.05;
   const shortLength = reqWireLength - boreCirc;
-  const windingFits = possibleID > 0;
+  const windingFits = possibleID < OD;
 
   let totalCuPractical = 0;
   let totalCuFlat = 0;
@@ -143,7 +152,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     mltBase, mltFlat, mltPractical: practicalAvgMLT,
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
-    totalCuArea, cuSurfacePerTurn, windingBuildMm, possibleID,
+    totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers,
     reqWireLength, shortLength, windingFits,
   };
 }
@@ -153,6 +162,8 @@ function fmt(n: number, d = 2) { return n.toFixed(d); }
 interface WindingAnalysisProps {
   reduce: boolean;
   gauges: WireGauge[];
+  finishedIdMm: number;
+  resinCoverMm: number;
   coreIdMm: number;
   coreOdMm: number;
   coreWidthMm: number;
@@ -162,7 +173,7 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  reduce, gauges, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
 
@@ -178,6 +189,8 @@ export function WindingAnalysis({
     dispatch({
       type: 'sync',
       patch: {
+        finishedID: finishedIdMm,
+        resinCover: resinCoverMm,
         coreID: coreIdMm,
         coreOD: coreOdMm,
         coreWidth: coreWidthMm,
@@ -185,7 +198,7 @@ export function WindingAnalysis({
         wireMap,
       },
     });
-  }, [coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg]);
+  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg]);
 
   const result = useMemo(() => calculate(s, gauges), [s, gauges]);
 
@@ -201,6 +214,7 @@ export function WindingAnalysis({
         <Card eyebrow="From selected design" title="Core & Turns"
           subtitle="Pre-filled from your selected grade × gauge combination">
           <div className="flex flex-wrap gap-x-8 gap-y-1 px-5 py-3 text-[13px]">
+            <ResultPill label="Finished ID" value={fmt(s.finishedID, 1) + ' mm'} />
             <ResultPill label="Core ID" value={fmt(s.coreID, 1) + ' mm'} />
             <ResultPill label="Core OD" value={fmt(s.coreOD, 1) + ' mm'} />
             <ResultPill label="Core Width" value={fmt(s.coreWidth, 1) + ' mm'} />
@@ -243,13 +257,16 @@ export function WindingAnalysis({
               <div className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
                 <ResultPill label="Total Cu Area" value={fmt(result.totalCuArea, 3) + ' mm²'} />
                 <ResultPill label="Cu Surface / Turn" value={fmt(result.cuSurfacePerTurn, 3) + ' mm'} />
-                <ResultPill label="Winding Build" value={fmt(result.windingBuildMm, 2) + ' mm'} />
-                <ResultPill label="Possible ID" value={fmt(result.possibleID, 1) + ' mm'}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+                <ResultPill label="After Resin + Insulation" value={fmt(result.afterInsulation, 1) + ' mm'} />
+                <ResultPill label={`Winding Build (${result.numLayers} layer${result.numLayers > 1 ? 's' : ''})`} value={fmt(result.windingBuildMm, 2) + ' mm'} />
+                <ResultPill label="Possible ID (Req. Core ID)" value={fmt(result.possibleID, 1) + ' mm'}
                   accent={result.windingFits} warn={!result.windingFits} />
               </div>
               {!result.windingFits && (
                 <p className="mt-2 text-[12px] font-medium" style={{ color: 'var(--warn)' }}>
-                  Winding does not fit — possible ID is negative. Reduce wire count or use thinner gauge.
+                  Required core ID exceeds core OD — winding does not fit. Reduce wire count or use thinner gauge.
                 </p>
               )}
               {result.windingFits && (

@@ -491,6 +491,8 @@ export function NewDesign() {
               <WindingAnalysis
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}
+                finishedIdMm={selected.inputs.finishedIdMm}
+                resinCoverMm={reference.data?.settings.resinCoverMm ?? 4}
                 coreIdMm={selected.geometry.coreIdMm}
                 coreOdMm={selected.geometry.coreOdMm}
                 coreWidthMm={selected.coreWidthMm}

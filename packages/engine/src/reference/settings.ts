@@ -9,7 +9,6 @@ import type { ProcessSettings } from '../types.js';
  */
 export const DEFAULT_SETTINGS: ProcessSettings = {
   resinCoverMm: 3,
-  windingAllowanceMm: 9,
   lengthFactor: 1.2,
   leadWireMm: 40,
   testMarginFactor: 0.95,
@@ -45,8 +44,6 @@ export interface SettingMeta {
 export const SETTING_META: readonly SettingMeta[] = [
   { key: 'resinCoverMm', unit: 'mm', label: 'Resin cover (fallback)', isConfirmed: false,
     sourceNote: 'Fallback resin cover. The engine uses a turns-dependent rule: 4 mm for up to 100 turns, 6 mm for up to 200 turns, and the larger of this setting or 6 mm above 200 turns.' },
-  { key: 'windingAllowanceMm', unit: 'mm', label: 'Winding allowance', isConfirmed: false,
-    sourceNote: 'Radial space reserved for the secondary winding, entered by hand. It depends on turns, wire selection, interlayer insulation and minimum epoxy thickness; once those tables are entered this can be calculated instead.' },
   { key: 'lengthFactor', unit: '—', label: 'Wire length factor', isConfirmed: false,
     sourceNote: 'Allowance for crossover as the wire is wound. 1.2 adds 20% to the bare turn length.' },
   { key: 'leadWireMm', unit: 'mm', label: 'Lead wire', isConfirmed: true,

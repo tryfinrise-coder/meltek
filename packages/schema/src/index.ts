@@ -38,7 +38,6 @@ export type DesignInputsDto = z.infer<typeof designInputsSchema>;
 
 export const processSettingsSchema = z.object({
   resinCoverMm: z.number().nonnegative(),
-  windingAllowanceMm: z.number().nonnegative(),
   lengthFactor: z.number().positive(),
   leadWireMm: z.number().nonnegative(),
   testMarginFactor: z.number().positive(),

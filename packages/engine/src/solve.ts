@@ -94,8 +94,7 @@ export function resinCoverForTurns(turns: number, defaultMm: number): number {
 
 /**
  * Compute the winding build using wire geometry.
- * Returns null when the winding settings have not been confirmed yet (all zeros/defaults)
- * and the caller should fall back to the fixed windingAllowanceMm.
+ * Returns null when the packing factor is not set (0 or invalid).
  *
  * The bore for the winding = finishedIdMm + resinCover + coreInsulationMm,
  * since the winding sits outside the resin cover and core insulation layers.
@@ -166,7 +165,7 @@ export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings,
   if (settings.plusFiveAbove400A && inputs.primaryCurrent > 400) turns += 5;
 
   const resinCover = resinCoverForTurns(turns, settings.resinCoverMm);
-  const allowanceMm = overrideAllowanceMm ?? (resinCover + settings.windingAllowanceMm);
+  const allowanceMm = overrideAllowanceMm ?? (resinCover + settings.coreInsulationMm);
   const coreIdMm = inputs.finishedIdMm + allowanceMm;
   const coreOdMm = inputs.finishedOdMm - allowanceMm;
 

@@ -30,7 +30,6 @@ export interface DesignInputs {
 
 export interface ProcessSettings {
   resinCoverMm: number; // 3    — UNCONFIRMED §12.2
-  windingAllowanceMm: number; // 9    — UNCONFIRMED §12.1
   lengthFactor: number; // 1.2  — wire crossover allowance
   leadWireMm: number; // 40   — CONFIRMED
   testMarginFactor: number; // 0.95 — CONFIRMED §5.4

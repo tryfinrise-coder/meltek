@@ -144,7 +144,7 @@ describe('§5.5 no truncation of H', () => {
 
 describe('§5.2 geometry guard', () => {
   it('returns a typed error, not NaN, when the allowance eats the ring', () => {
-    const impossible: DesignInputs = { ...INPUTS, finishedIdMm: 40, finishedOdMm: 60 };
+    const impossible: DesignInputs = { ...INPUTS, finishedIdMm: 40, finishedOdMm: 48 };
     try {
       computeGeometry(impossible, settings);
       expect.unreachable('should have thrown');
@@ -157,9 +157,9 @@ describe('§5.2 geometry guard', () => {
 
   it('the allowance is applied once to the diameter, not once per side', () => {
     const g = computeGeometry(INPUTS, settings);
-    expect(g.allowanceMm).toBe(13);
-    expect(g.coreIdMm - INPUTS.finishedIdMm).toBe(13);
-    expect(INPUTS.finishedOdMm - g.coreOdMm).toBe(13);
+    expect(g.allowanceMm).toBe(5);
+    expect(g.coreIdMm - INPUTS.finishedIdMm).toBe(5);
+    expect(INPUTS.finishedOdMm - g.coreOdMm).toBe(5);
   });
 
   it('rejects zero or negative currents', () => {

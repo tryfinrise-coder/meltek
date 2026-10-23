@@ -168,7 +168,7 @@ export function solveEngineering(inputs: DesignInputs, ref: ReferenceData, setti
   };
   for (const value of [el.r20,el.r75,el.rOp,el.volts,el.area,coreWeight,copperWeight,copperCost,materialCost,manufacturingCost]) if (value !== null && !Number.isFinite(value)) throw new EngineError('INVALID_INPUT', 'Engineering calculation overflowed. Check the input magnitudes.');
   const totalCost = e.costing.basis === 'manufacturing' ? manufacturingCost : materialCost;
-  const geometry = { turns: N, allowanceMm: 2 * perSide, coreIdMm: coreId, coreOdMm: coreOd, radialBuildMm: radialCm * 10, radialBuildCm: radialCm, mmlCm };
+  const geometry = { turns: N, allowanceMm: 2 * perSide, windingBuildMm: 0, windingLayers: 0, turnsPerLayer: 0, coreIdMm: coreId, coreOdMm: coreOd, radialBuildMm: radialCm * 10, radialBuildCm: radialCm, mmlCm };
   const rows: [string,string,number,string][] = [
     ['Core ID','finished ID + 2 × per-side insulation and winding build',coreId,'mm'],
     ['Core OD','finished OD − 2 × per-side insulation and winding build',coreOd,'mm'],

@@ -167,7 +167,7 @@ function infeasibleStub(
 ): RankedOption {
   const zeroGeom = {
     turns: inputs.secondaryCurrent > 0 ? inputs.primaryCurrent / inputs.secondaryCurrent : 0,
-    allowanceMm: 0, coreIdMm: 0, coreOdMm: 0, radialBuildMm: 0, radialBuildCm: 0, mmlCm: 0,
+    allowanceMm: 0, windingBuildMm: 0, windingLayers: 0, turnsPerLayer: 0, coreIdMm: 0, coreOdMm: 0, radialBuildMm: 0, radialBuildCm: 0, mmlCm: 0,
   };
   return {
     inputs, gradeCode, swg, geometry: zeroGeom,

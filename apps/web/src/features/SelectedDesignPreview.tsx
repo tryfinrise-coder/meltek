@@ -336,50 +336,61 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
       model.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial));
     }
     if (windings) {
-      const count = Math.min(48, Math.max(1, Math.round(turns)));
+      const numLayers = Math.max(1, option.geometry.windingLayers || 1);
+      const tpl = option.geometry.turnsPerLayer || turns;
       const baseRadius = Math.min((outer - inner) / 18, outer / 180);
       const clearance = baseRadius * 2;
-      const riBase = Math.max(inner / 2 - clearance, baseRadius);
+      const layerGap = baseRadius * 2.5;
       const roBase = outer / 2 + clearance;
       const half = width / 2 + clearance;
 
-      if (wireCount > 1) {
-        // Multiple wires: each gauge gets a distinct color, strands are offset radially
-        let wireIdx = 0;
-        for (let ei = 0; ei < wireEntries.length; ei++) {
-          const entry = wireEntries[ei];
-          const color = WIRE_COLORS_3D[ei % WIRE_COLORS_3D.length];
-          const mat = new THREE.MeshStandardMaterial({ color, metalness: .65, roughness: .27 });
-          const strandRadius = baseRadius * 0.7;
-          for (let w = 0; w < entry.count; w++) {
-            const radialOffset = (wireIdx / wireCount - 0.5) * baseRadius * 2.2;
-            for (let n = 0; n < count; n++) {
-              const angle = n / count * Math.PI * 2;
-              const ri = riBase + radialOffset;
-              const ro = roBase + radialOffset;
-              const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
-              const curve = new THREE.CatmullRomCurve3([
-                point(ri, -half + clearance), point(ri + clearance, -half), point(ro - clearance, -half), point(ro, -half + clearance),
-                point(ro, half - clearance), point(ro - clearance, half), point(ri + clearance, half), point(ri, half - clearance),
-              ], true, 'centripetal');
-              model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, strandRadius, 6, true), mat));
+      let turnsLeft = Math.round(turns);
+      for (let layer = 0; layer < numLayers; layer++) {
+        const layerTurns = Math.min(tpl, turnsLeft);
+        turnsLeft -= layerTurns;
+        const count = Math.min(48, Math.max(1, layerTurns));
+        const layerOffset = layer * layerGap;
+        const riLayer = Math.max(inner / 2 - clearance - layerOffset, baseRadius);
+        const roLayer = roBase + layerOffset;
+        const layerAlpha = numLayers > 1 ? 1 - layer * 0.2 : 1;
+
+        if (wireCount > 1) {
+          let wireIdx = 0;
+          for (let ei = 0; ei < wireEntries.length; ei++) {
+            const entry = wireEntries[ei];
+            const baseColor = new THREE.Color(WIRE_COLORS_3D[ei % WIRE_COLORS_3D.length]);
+            if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), 0.15 * layer);
+            const mat = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha });
+            const strandRadius = baseRadius * 0.7;
+            for (let w = 0; w < entry.count; w++) {
+              const radialOffset = (wireIdx / wireCount - 0.5) * baseRadius * 2.2;
+              for (let n = 0; n < count; n++) {
+                const angle = n / count * Math.PI * 2;
+                const ri = riLayer + radialOffset;
+                const ro = roLayer + radialOffset;
+                const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
+                const curve = new THREE.CatmullRomCurve3([
+                  point(ri, -half + clearance), point(ri + clearance, -half), point(ro - clearance, -half), point(ro, -half + clearance),
+                  point(ro, half - clearance), point(ro - clearance, half), point(ri + clearance, half), point(ri, half - clearance),
+                ], true, 'centripetal');
+                model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, strandRadius, 6, true), mat));
+              }
+              wireIdx++;
             }
-            wireIdx++;
           }
-        }
-      } else {
-        // Single wire: original behavior
-        const copper = new THREE.MeshStandardMaterial({ color: 0xf0a45e, metalness: .65, roughness: .27 });
-        const ri = riBase;
-        const ro = roBase;
-        for (let n = 0; n < count; n++) {
-          const angle = n / count * Math.PI * 2;
-          const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
-          const curve = new THREE.CatmullRomCurve3([
-            point(ri, -half + clearance), point(ri + clearance, -half), point(ro - clearance, -half), point(ro, -half + clearance),
-            point(ro, half - clearance), point(ro - clearance, half), point(ri + clearance, half), point(ri, half - clearance),
-          ], true, 'centripetal');
-          model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, baseRadius, 6, true), copper));
+        } else {
+          const baseColor = new THREE.Color(0xf0a45e);
+          if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), 0.15 * layer);
+          const copper = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha });
+          for (let n = 0; n < count; n++) {
+            const angle = n / count * Math.PI * 2;
+            const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
+            const curve = new THREE.CatmullRomCurve3([
+              point(riLayer, -half + clearance), point(riLayer + clearance, -half), point(roLayer - clearance, -half), point(roLayer, -half + clearance),
+              point(roLayer, half - clearance), point(roLayer - clearance, half), point(riLayer + clearance, half), point(riLayer, half - clearance),
+            ], true, 'centripetal');
+            model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, baseRadius, 6, true), copper));
+          }
         }
       }
     }
@@ -439,7 +450,7 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [inner, outer, width, turns, windings, valid, wireCount]);
+  }, [inner, outer, width, turns, windings, valid, wireCount, option.geometry.windingLayers, option.geometry.turnsPerLayer]);
 
   if (!valid) return null;
   const scale = 152 / Math.max(option.inputs.finishedOdMm, outer);
@@ -554,7 +565,7 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
           ))}
         </div>
       )}
-      <p className="px-4 pb-4 text-xs text-[var(--text-2)]">{turns} calculated secondary turns.{wireCount > 1 ? ` ${wireCount} parallel wires shown in distinct colours.` : ''} Copper loops and lamination lines are representative; wire diameter and routing are not manufacturing geometry. STL contains the steel core only, in mm.</p>
+      <p className="px-4 pb-4 text-xs text-[var(--text-2)]">{turns} calculated secondary turns{option.geometry.windingLayers > 1 ? ` in ${option.geometry.windingLayers} layers (${option.geometry.turnsPerLayer} turns/layer)` : ''}.{wireCount > 1 ? ` ${wireCount} parallel wires shown in distinct colours.` : ''} Copper loops and lamination lines are representative; wire diameter and routing are not manufacturing geometry. STL contains the steel core only, in mm.</p>
     </Card>
   </div>;
 }

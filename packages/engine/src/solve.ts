@@ -183,6 +183,9 @@ export function computeGeometry(inputs: DesignInputs, settings: ProcessSettings,
   return {
     turns,
     allowanceMm,
+    windingBuildMm: 0,
+    windingLayers: 0,
+    turnsPerLayer: 0,
     coreIdMm,
     coreOdMm,
     radialBuildMm,
@@ -265,6 +268,11 @@ export function solve(
     : resinCover + settings.coreInsulationMm;
 
   const geometry = computeGeometry(inputs, settings, allowanceMm);
+  if (windingBuild) {
+    geometry.windingBuildMm = windingBuild.windingBuildMm;
+    geometry.windingLayers = windingBuild.layers;
+    geometry.turnsPerLayer = windingBuild.turnsPerLayer;
+  }
   const N = geometry.turns;
 
   /* Step 3 - burden voltage */

@@ -191,6 +191,9 @@ export interface CalcStep {
 export interface Geometry {
   turns: number;
   allowanceMm: number;
+  windingBuildMm: number;
+  windingLayers: number;
+  turnsPerLayer: number;
   coreIdMm: number;
   coreOdMm: number;
   radialBuildMm: number;

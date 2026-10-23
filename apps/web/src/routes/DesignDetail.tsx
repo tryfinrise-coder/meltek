@@ -267,7 +267,7 @@ export function DesignDetail() {
           title={`${chosen?.gradeLabel} · ${chosen?.wireCombinationLabel || `SWG ${chosen?.swg}`}`}
           subtitle="The full chain, as calculated. Every number traces back to the inputs above."
         >
-          <DetailPanel result={detail} grade={grade} />
+          <DetailPanel result={detail} grade={grade} gradeLabel={chosen?.gradeLabel} />
         </Card>
       )}
 

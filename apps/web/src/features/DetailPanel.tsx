@@ -1,9 +1,10 @@
 import { EngineeringResults } from './EngineeringResults';
 import { motion, useReducedMotion } from 'motion/react';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import type { SolveResult, SteelGrade } from '@meltek/engine';
 import { Badge, Callout, ProvisionalMark, Skeleton, StatTile } from '../components/primitives';
 import { duration, ease, stagger } from '../lib/motion';
+import { exportCalcChain } from '../lib/exportCalcChain';
 
 const BhChart = lazy(() => import('./BhChart'));
 
@@ -25,14 +26,18 @@ const TAB_LABEL: Record<Tab, string> = {
  * "Show the working. Every result should be traceable to the inputs that produced it in
  * one click." (§16)
  */
-export function DetailPanel({ result, grade }: { result: SolveResult; grade: SteelGrade | undefined }) {
+export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string }) {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('chain');
-  if (result.engineering) return <EngineeringResults result={result}/>;
+  const handleExport = useCallback(() => {
+    exportCalcChain(result, gradeLabel ?? result.gradeCode);
+  }, [result, gradeLabel]);
+
+  if (result.engineering) return <EngineeringResults result={result} gradeLabel={gradeLabel ?? result.gradeCode} />;
 
   return (
     <div>
-      <div className="flex gap-1 border-b border-[var(--line)] px-3">
+      <div className="flex items-center gap-1 border-b border-[var(--line)] px-3">
         {TABS.map((t) => (
           <button
             key={t}
@@ -53,6 +58,14 @@ export function DetailPanel({ result, grade }: { result: SolveResult; grade: Ste
             )}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={handleExport}
+          className="ml-auto rounded-md border border-[var(--line)] px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-2)]"
+          title="Download calculation as Excel"
+        >
+          Download Excel
+        </button>
       </div>
 
       {tab === 'chain' && <Chain result={result} reduce={Boolean(reduce)} />}

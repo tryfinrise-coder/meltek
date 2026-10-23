@@ -486,7 +486,7 @@ export function NewDesign() {
                       title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
                       subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
                     >
-                      <DetailPanel result={detail} grade={grade} />
+                      <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} />
                     </Card>
                   </motion.div>
                 )}

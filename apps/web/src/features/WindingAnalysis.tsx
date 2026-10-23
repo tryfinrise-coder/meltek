@@ -259,7 +259,7 @@ export function WindingAnalysis({
                 <ResultPill label="Cu Surface / Turn" value={fmt(result.cuSurfacePerTurn, 3) + ' mm'} />
               </div>
               <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-                <ResultPill label="After Resin + Insulation" value={fmt(result.afterInsulation, 1) + ' mm'} />
+                <ResultPill label="After Resin + Insulation ID" value={fmt(result.afterInsulation, 1) + ' mm'} />
                 <ResultPill label={`Winding Build (${result.numLayers} layer${result.numLayers > 1 ? 's' : ''})`} value={fmt(result.windingBuildMm, 2) + ' mm'} />
                 <ResultPill label="Possible ID (Req. Core ID)" value={fmt(result.possibleID, 1) + ' mm'}
                   accent={result.windingFits} warn={!result.windingFits} />

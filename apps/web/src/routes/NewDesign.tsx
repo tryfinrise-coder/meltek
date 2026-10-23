@@ -467,7 +467,7 @@ export function NewDesign() {
               </motion.div>
 
 
-              {selected.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} /></Suspense>}
+              {selected.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} resinCoverMm={reference.data?.settings.resinCoverMm ?? 4} coreInsulationMm={reference.data?.settings.coreInsulationMm ?? 1} /></Suspense>}
               <AnimatePresence mode="wait">
                 {detail && (
                   <motion.div

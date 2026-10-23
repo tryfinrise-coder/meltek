@@ -292,7 +292,7 @@ ${warnings}
   }
 }
 
-export default function SelectedDesignPreview({ option }: { option: RankedOption }) {
+export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreInsulationMm = 1 }: { option: RankedOption; resinCoverMm?: number; coreInsulationMm?: number }) {
   const container = useRef<HTMLDivElement>(null);
   const drawing = useRef<SVGSVGElement>(null);
   const actions = useRef<ModelActions | null>(null);
@@ -466,6 +466,14 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
     <text x={(x1+x2)/2} y={y-9} textAnchor="middle" stroke="none" fontSize="11">{text}</text>
   </g>;
 
+  // Concentric zone radii (inside the bore, between finished ID and core ID)
+  const windingBuild = option.geometry.windingBuildMm;
+  const finID = option.inputs.finishedIdMm;
+  const afterResinMm = finID + resinCoverMm;
+  const afterWindingMm = afterResinMm + 2 * windingBuild;
+  const afterResinR = afterResinMm * scale / 2;
+  const afterWindingR = afterWindingMm * scale / 2;
+
   // Wire cross-section dots in the front view annulus
   const wireRadius = Math.min((ro - ri) * 0.12, 4);
   const midR = (ri + ro) / 2;
@@ -482,15 +490,34 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
       }}>Download SVG</Button>
     </div>}>
       <div className="drawing-stage">
-        <svg ref={drawing} viewBox="0 0 520 340" role="img" aria-label={`Core diagram: ID ${mm(inner)}, OD ${mm(outer)}, ordered width ${mm(width)} millimetres`}>
+        <svg ref={drawing} viewBox="0 0 520 345" role="img" aria-label={`Core diagram: ID ${mm(inner)}, OD ${mm(outer)}, ordered width ${mm(width)} millimetres`}>
           <title>{`${option.gradeLabel} · ${wireLabel}`} — core dimensions in millimetres</title>
           <defs><marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M10 5L0 0v10Z" fill="currentColor"/></marker></defs>
           <g fill="none" stroke="currentColor">
+            {/* Core steel (outer and inner) */}
             <circle cx="145" cy="165" r={ro} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
             <circle cx="145" cy="165" r={ri} fill="#9eb7bf" fillOpacity=".1" strokeWidth="1.5"/>
+            {/* Insulation & winding zones inside bore (front view) */}
+            {windingBuild > 0 && <>
+              {/* Core insulation zone: between core ID and after-winding radius */}
+              <circle cx="145" cy="165" r={afterWindingR} fill="#d4a56a" fillOpacity=".12" stroke="#d4a56a" strokeWidth=".6" strokeDasharray="3 2"/>
+              {/* Winding zone: between after-winding and after-resin */}
+              <circle cx="145" cy="165" r={afterResinR} fill="#e8a040" fillOpacity=".15" stroke="#c08030" strokeWidth=".6" strokeDasharray="3 2"/>
+            </>}
+            {/* Resin cover zone: between after-resin and finished ID */}
+            {resinCoverMm > 0 && afterResinR > fi + 1 &&
+              <circle cx="145" cy="165" r={fi} fill="none" stroke="#5898b8" strokeWidth=".6" strokeDasharray="3 2"/>
+            }
+            {/* Finished dimensions (dashed) */}
             <g strokeDasharray="4 4" opacity=".45"><circle cx="145" cy="165" r={fo}/><circle cx="145" cy="165" r={fi}/></g>
             <path d="M45 165H245 M145 65V265" strokeDasharray="8 4 2 4" opacity=".4"/>
+            {/* Side view */}
             <rect x={365-sideW/2} y={165-sideH/2} width={sideW} height={sideH} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
+            {/* Side view: bore zones */}
+            {windingBuild > 0 && <>
+              <rect x={365-sideW/2} y={165-afterWindingMm*sideScale/2} width={sideW} height={afterWindingMm*sideScale} fill="none" stroke="#d4a56a" strokeWidth=".6" strokeDasharray="3 2"/>
+              <rect x={365-sideW/2} y={165-afterResinMm*sideScale/2} width={sideW} height={afterResinMm*sideScale} fill="#e8a040" fillOpacity=".08" stroke="#c08030" strokeWidth=".6" strokeDasharray="3 2"/>
+            </>}
             <path d={`M${365-sideW/2} ${165-inner*sideScale/2}h${sideW} M${365-sideW/2} ${165+inner*sideScale/2}h${sideW}`} strokeDasharray="4 4"/>
           </g>
           {/* Wire cross-sections in the annulus for wire combinations */}
@@ -516,8 +543,11 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
           {dimension(365-sideW/2,365+sideW/2,55,`Width ${mm(width)}`)}
           <g fill="currentColor" fontFamily="system-ui, sans-serif" fontSize="11" textAnchor="middle">
             <text x="145" y="277">FRONT VIEW</text><text x="365" y="277">SIDE VIEW · CORE</text>
-            <text x="260" y="305">Finished ID / OD: {mm(option.inputs.finishedIdMm)} / {mm(option.inputs.finishedOdMm)} mm (dashed)</text>
-            <text x="260" y="325">All dimensions in mm · Width is the ordered slit width</text>
+            <text x="260" y="300" fontSize="10">Finished ID / OD: {mm(option.inputs.finishedIdMm)} / {mm(option.inputs.finishedOdMm)} mm (dashed)</text>
+            {windingBuild > 0 && <text x="260" y="315" fontSize="10" opacity=".7">
+              Resin {mm(resinCoverMm)} + Insulation {mm(coreInsulationMm)} + Winding {mm(windingBuild * 2)} = Allowance {mm(option.geometry.allowanceMm)} mm
+            </text>}
+            <text x="260" y={windingBuild > 0 ? 330 : 320} fontSize="10">All dimensions in mm · Width is the ordered slit width</text>
           </g>
         </svg>
       </div>
@@ -532,7 +562,14 @@ export default function SelectedDesignPreview({ option }: { option: RankedOption
           ))}
         </div>
       )}
-      <p className="p-4 pt-0 text-xs text-[var(--text-2)]">Steel core geometry. Dashed circles show the specified finished diameters.{wireCount > 1 ? ' Coloured dots show the wire cross-section arrangement (illustrative).' : ''} Finished axial width, terminals and mould details are not specified.</p>
+      {windingBuild > 0 && (
+        <div className="flex flex-wrap items-center gap-4 px-4 pb-2 text-[11px] text-[var(--text-2)]">
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(88,152,184,0.3)', border: '1px dashed #5898b8' }}/> Resin cover ({mm(resinCoverMm)} mm)</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(232,160,64,0.2)', border: '1px dashed #c08030' }}/> Winding ({option.geometry.windingLayers} layer{option.geometry.windingLayers > 1 ? 's' : ''}, {mm(windingBuild * 2)} mm dia)</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(212,165,106,0.15)', border: '1px dashed #d4a56a' }}/> Core insulation ({mm(coreInsulationMm)} mm)</span>
+        </div>
+      )}
+      <p className="p-4 pt-0 text-xs text-[var(--text-2)]">Steel core geometry. Dashed circles show the specified finished diameters.{wireCount > 1 ? ' Coloured dots show the wire cross-section arrangement (illustrative).' : ''}{windingBuild > 0 ? ' Inner zones show the resin cover, winding build and core insulation that make up the allowance.' : ''} Finished axial width, terminals and mould details are not specified.</p>
     </Card>
     <Card title="Interactive 3D model" subtitle={`${option.gradeLabel} · ${wireLabel}`} actions={<Button size="xs" onClick={() => {
       const geometry = coreGeometry(inner, outer, width);

@@ -97,7 +97,6 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const totalCuArea = wires.reduce((sum, w) => sum + w.count * w.area, 0);
   const cuSurfacePerTurn = wires.reduce((sum, w) => sum + w.count * w.dia, 0);
 
-  const totalWireWidth = wires.reduce((sum, w) => sum + w.count * (w.dia + s.insThickness), 0);
   const maxWireDia = wires.length > 0
     ? Math.max(...wires.map(w => w.dia)) + s.insThickness : 0;
 

@@ -490,35 +490,19 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
       }}>Download SVG</Button>
     </div>}>
       <div className="drawing-stage">
-        <svg ref={drawing} viewBox="0 0 520 345" role="img" aria-label={`Core diagram: ID ${mm(inner)}, OD ${mm(outer)}, ordered width ${mm(width)} millimetres`}>
+        <svg ref={drawing} viewBox="0 0 520 430" role="img" aria-label={`Core diagram: ID ${mm(inner)}, OD ${mm(outer)}, ordered width ${mm(width)} millimetres`}>
           <title>{`${option.gradeLabel} · ${wireLabel}`} — core dimensions in millimetres</title>
           <defs><marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M10 5L0 0v10Z" fill="currentColor"/></marker></defs>
           <g fill="none" stroke="currentColor">
             {/* Core steel (outer and inner) */}
-            <circle cx="145" cy="165" r={ro} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
-            <circle cx="145" cy="165" r={ri} fill="#9eb7bf" fillOpacity=".1" strokeWidth="1.5"/>
-            {/* Insulation & winding zones inside bore (front view) */}
-            {windingBuild > 0 && <>
-              {/* Core insulation zone: between core ID and after-winding radius */}
-              <circle cx="145" cy="165" r={afterWindingR} fill="#d4a56a" fillOpacity=".12" stroke="#d4a56a" strokeWidth=".6" strokeDasharray="3 2"/>
-              {/* Winding zone: between after-winding and after-resin */}
-              <circle cx="145" cy="165" r={afterResinR} fill="#e8a040" fillOpacity=".15" stroke="#c08030" strokeWidth=".6" strokeDasharray="3 2"/>
-            </>}
-            {/* Resin cover zone: between after-resin and finished ID */}
-            {resinCoverMm > 0 && afterResinR > fi + 1 &&
-              <circle cx="145" cy="165" r={fi} fill="none" stroke="#5898b8" strokeWidth=".6" strokeDasharray="3 2"/>
-            }
+            <circle cx="145" cy="155" r={ro} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
+            <circle cx="145" cy="155" r={ri} fill="#9eb7bf" fillOpacity=".1" strokeWidth="1.5"/>
             {/* Finished dimensions (dashed) */}
-            <g strokeDasharray="4 4" opacity=".45"><circle cx="145" cy="165" r={fo}/><circle cx="145" cy="165" r={fi}/></g>
-            <path d="M45 165H245 M145 65V265" strokeDasharray="8 4 2 4" opacity=".4"/>
+            <g strokeDasharray="4 4" opacity=".45"><circle cx="145" cy="155" r={fo}/><circle cx="145" cy="155" r={fi}/></g>
+            <path d="M45 155H245 M145 55V255" strokeDasharray="8 4 2 4" opacity=".4"/>
             {/* Side view */}
-            <rect x={365-sideW/2} y={165-sideH/2} width={sideW} height={sideH} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
-            {/* Side view: bore zones */}
-            {windingBuild > 0 && <>
-              <rect x={365-sideW/2} y={165-afterWindingMm*sideScale/2} width={sideW} height={afterWindingMm*sideScale} fill="none" stroke="#d4a56a" strokeWidth=".6" strokeDasharray="3 2"/>
-              <rect x={365-sideW/2} y={165-afterResinMm*sideScale/2} width={sideW} height={afterResinMm*sideScale} fill="#e8a040" fillOpacity=".08" stroke="#c08030" strokeWidth=".6" strokeDasharray="3 2"/>
-            </>}
-            <path d={`M${365-sideW/2} ${165-inner*sideScale/2}h${sideW} M${365-sideW/2} ${165+inner*sideScale/2}h${sideW}`} strokeDasharray="4 4"/>
+            <rect x={365-sideW/2} y={155-sideH/2} width={sideW} height={sideH} fill="#65c7b9" fillOpacity=".18" strokeWidth="1.5"/>
+            <path d={`M${365-sideW/2} ${155-inner*sideScale/2}h${sideW} M${365-sideW/2} ${155+inner*sideScale/2}h${sideW}`} strokeDasharray="4 4"/>
           </g>
           {/* Wire cross-sections in the annulus for wire combinations */}
           {wireCount > 1 && (() => {
@@ -530,25 +514,62 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
                 const topAngle = -Math.PI / 2 + (globalIdx / wireCount) * Math.PI * 0.6 - Math.PI * 0.3;
                 const bottomAngle = Math.PI / 2 + (globalIdx / wireCount) * Math.PI * 0.6 - Math.PI * 0.3;
                 dots.push(
-                  <circle key={`t${globalIdx}`} cx={145 + Math.cos(topAngle) * midR} cy={165 + Math.sin(topAngle) * midR} r={wireRadius} fill={color} fillOpacity=".85" stroke={color} strokeWidth=".5"/>,
-                  <circle key={`b${globalIdx}`} cx={145 + Math.cos(bottomAngle) * midR} cy={165 + Math.sin(bottomAngle) * midR} r={wireRadius} fill={color} fillOpacity=".85" stroke={color} strokeWidth=".5"/>,
+                  <circle key={`t${globalIdx}`} cx={145 + Math.cos(topAngle) * midR} cy={155 + Math.sin(topAngle) * midR} r={wireRadius} fill={color} fillOpacity=".85" stroke={color} strokeWidth=".5"/>,
+                  <circle key={`b${globalIdx}`} cx={145 + Math.cos(bottomAngle) * midR} cy={155 + Math.sin(bottomAngle) * midR} r={wireRadius} fill={color} fillOpacity=".85" stroke={color} strokeWidth=".5"/>,
                 );
                 globalIdx++;
               }
             });
             return dots;
           })()}
-          {dimension(145-ro,145+ro,55,`Core OD ⌀ ${mm(outer)}`)}
-          {dimension(145-ri,145+ri,165,`ID ⌀ ${mm(inner)}`)}
-          {dimension(365-sideW/2,365+sideW/2,55,`Width ${mm(width)}`)}
+          {dimension(145-ro,145+ro,45,`Core OD ⌀ ${mm(outer)}`)}
+          {dimension(145-ri,145+ri,155,`ID ⌀ ${mm(inner)}`)}
+          {dimension(365-sideW/2,365+sideW/2,45,`Width ${mm(width)}`)}
           <g fill="currentColor" fontFamily="system-ui, sans-serif" fontSize="11" textAnchor="middle">
-            <text x="145" y="277">FRONT VIEW</text><text x="365" y="277">SIDE VIEW · CORE</text>
-            <text x="260" y="300" fontSize="10">Finished ID / OD: {mm(option.inputs.finishedIdMm)} / {mm(option.inputs.finishedOdMm)} mm (dashed)</text>
-            {windingBuild > 0 && <text x="260" y="315" fontSize="10" opacity=".7">
-              Resin {mm(resinCoverMm)} + Insulation {mm(coreInsulationMm)} + Winding {mm(windingBuild * 2)} = Allowance {mm(option.geometry.allowanceMm)} mm
-            </text>}
-            <text x="260" y={windingBuild > 0 ? 330 : 320} fontSize="10">All dimensions in mm · Width is the ordered slit width</text>
+            <text x="145" y="268">FRONT VIEW</text><text x="365" y="268">SIDE VIEW · CORE</text>
+            <text x="260" y="288" fontSize="10">Finished ID / OD: {mm(option.inputs.finishedIdMm)} / {mm(option.inputs.finishedOdMm)} mm (dashed)</text>
+            <text x="260" y="302" fontSize="10">All dimensions in mm · Width is the ordered slit width</text>
           </g>
+          {/* ━━━ Bore cross-section detail (exaggerated scale) ━━━ */}
+          {(() => {
+            const totalAllowance = option.geometry.allowanceMm;
+            if (totalAllowance <= 0) return null;
+            const cx = 260, cy = 370;
+            const barH = 20, barW = 420, startX = cx - barW / 2;
+            const resinFrac = resinCoverMm / totalAllowance;
+            const windFrac = (2 * windingBuild) / totalAllowance;
+            const insFrac = coreInsulationMm / totalAllowance;
+            const resinW = resinFrac * barW;
+            const windW = windFrac * barW;
+            const insW = insFrac * barW;
+            const layers = option.geometry.windingLayers;
+            return <g fontFamily="system-ui, sans-serif">
+              <text x={cx} y={cy - barH - 14} textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600">BORE CROSS-SECTION (one side) — Total allowance {mm(totalAllowance)} mm</text>
+              {/* Finished ID label */}
+              <text x={startX - 2} y={cy + barH / 2 + 4} textAnchor="end" fill="currentColor" fontSize="8.5">Finished ID</text>
+              {/* Resin cover band */}
+              <rect x={startX} y={cy - barH / 2} width={resinW} height={barH} fill="#5898b8" fillOpacity=".35" stroke="#5898b8" strokeWidth=".8"/>
+              <text x={startX + resinW / 2} y={cy + 4} textAnchor="middle" fill="#2a6070" fontSize="8" fontWeight="500">Resin {mm(resinCoverMm)}</text>
+              {/* Winding band — subdivided per layer */}
+              {layers > 0 && Array.from({ length: layers }, (_, i) => {
+                const lw = windW / layers;
+                const lx = startX + resinW + i * lw;
+                return <g key={i}>
+                  <rect x={lx} y={cy - barH / 2} width={lw} height={barH} fill="#e8a040" fillOpacity={0.25 + i * 0.12} stroke="#c08030" strokeWidth=".8"/>
+                  {layers <= 4 && <text x={lx + lw / 2} y={cy + 4} textAnchor="middle" fill="#7a4a10" fontSize="7.5">L{i + 1}</text>}
+                </g>;
+              })}
+              <text x={startX + resinW + windW / 2} y={cy - barH / 2 - 4} textAnchor="middle" fill="#7a4a10" fontSize="8" fontWeight="500">Winding {mm(windingBuild)} × 2 sides ({layers} layer{layers > 1 ? 's' : ''})</text>
+              {/* Core insulation band */}
+              <rect x={startX + resinW + windW} y={cy - barH / 2} width={insW} height={barH} fill="#d4a56a" fillOpacity=".3" stroke="#d4a56a" strokeWidth=".8"/>
+              <text x={startX + resinW + windW + insW / 2} y={cy + 4} textAnchor="middle" fill="#8a6530" fontSize="8" fontWeight="500">Ins. {mm(coreInsulationMm)}</text>
+              {/* Core ID label */}
+              <text x={startX + barW + 2} y={cy + barH / 2 + 4} textAnchor="start" fill="currentColor" fontSize="8.5">Core ID</text>
+              {/* Dimension line below */}
+              <path d={`M${startX} ${cy + barH / 2 + 10}H${startX + barW}`} stroke="currentColor" strokeWidth=".6" markerStart={`url(#${id}-arrow)`} markerEnd={`url(#${id}-arrow)`}/>
+              <text x={cx} y={cy + barH / 2 + 22} textAnchor="middle" fill="currentColor" fontSize="9">{mm(totalAllowance)} mm allowance (per side)</text>
+            </g>;
+          })()}
         </svg>
       </div>
       {/* Wire combination legend below diagram */}

@@ -43,7 +43,7 @@ function totalWireCount(entries: { swg: number; count: number }[]) {
   return entries.reduce((sum, e) => sum + e.count, 0);
 }
 
-type ModelActions = { reset: () => void; rotate: (direction: number) => void; zoom: (factor: number) => void };
+type ModelActions = { reset: () => void; rotate: (direction: number) => void; zoom: (factor: number) => void; view: (view: 'front' | 'side' | 'top') => void; snapshot: () => void };
 
 function openPrintSheet(option: RankedOption) {
   const g = option.geometry;
@@ -292,11 +292,18 @@ ${warnings}
   }
 }
 
-export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreInsulationMm = 1 }: { option: RankedOption; resinCoverMm?: number; coreInsulationMm?: number }) {
+export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreInsulationMm = 1, interLayerTapeMm = 0.1 }: { option: RankedOption; resinCoverMm?: number; coreInsulationMm?: number; interLayerTapeMm?: number }) {
   const container = useRef<HTMLDivElement>(null);
   const drawing = useRef<SVGSVGElement>(null);
   const actions = useRef<ModelActions | null>(null);
   const [windings, setWindings] = useState(true);
+  const [covers, setCovers] = useState(true);
+  const [steelVisible, setSteelVisible] = useState(true);
+  const [resinVisible, setResinVisible] = useState(true);
+  const [tapeVisible, setTapeVisible] = useState(true);
+  const [exploded, setExploded] = useState(false);
+  const [section, setSection] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState(0);
   const [unavailable, setUnavailable] = useState(false);
   const id = useId().replace(/:/g, '');
   const { coreIdMm: inner, coreOdMm: outer } = option.geometry;
@@ -307,6 +314,16 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
   const filename = `LT-CT-${option.gradeCode}-${wireLabel}`.replace(/[^a-zA-Z0-9_-]/g, '_');
   const wireEntries = buildWireEntries(option);
   const wireCount = totalWireCount(wireEntries);
+  const engineering = option.inputs.engineering;
+  const coreCover = engineering?.coreInsulation.thicknessMm ?? coreInsulationMm / 2;
+  const windingBuildMm = option.engineering?.windingBuildMm ?? option.geometry.windingBuildMm;
+  // Legacy cover settings are diameter allowances; engineering inputs are per side.
+  const resinCover = engineering?.outerInsulation.thicknessMm
+    ?? Math.max(0, option.geometry.allowanceMm / 2 - coreCover - windingBuildMm);
+  const tapeThickness = engineering?.interlayerThicknessMm ?? interLayerTapeMm;
+  const windingLayers = option.engineering?.layers ?? option.geometry.windingLayers;
+  const turnsPerLayer = option.engineering?.turnsPerLayer ?? option.geometry.turnsPerLayer;
+  const wireSignature = JSON.stringify(wireEntries);
 
   useEffect(() => {
     const host = container.current;
@@ -322,50 +339,88 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.4;
+    renderer.localClippingEnabled = section;
+    const clippingPlanes = section ? [new THREE.Plane(new THREE.Vector3(1, 0, 0), 0)] : [];
     host.appendChild(renderer.domElement);
     renderer.domElement.setAttribute('aria-label', 'Interactive 3D selected core. Drag to orbit, scroll or pinch to zoom. Keyboard controls are below.');
     renderer.domElement.setAttribute('role', 'img');
     const scene = new THREE.Scene();
     const model = new THREE.Group();
     scene.add(model);
-    const steel = new THREE.MeshStandardMaterial({ color: 0x75b7b4, metalness: .55, roughness: .3 });
-    model.add(new THREE.Mesh(coreGeometry(inner, outer, width), steel));
-    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x235253, transparent: true, opacity: .42 });
-    for (let n = 1; n < 12; n++) {
+    // Translucent envelopes reveal the construction inside the finished cover.
+    const explodeStep = exploded ? Math.max(width * .7, outer * .22) : 0;
+    const addCover = (build: number, thickness: number, color: number, opacity: number, level: number) => {
+      if (build <= 0 || inner - 2 * build <= 0) return;
+      const t = Math.min(thickness, build);
+      if (t <= 0) return;
+      const group = new THREE.Group();
+      const material = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: exploded ? .38 : opacity, depthWrite: false, roughness: .65, side: THREE.DoubleSide, clippingPlanes });
+      const di = inner - 2 * build;
+      const od = outer + 2 * build;
+      const height = width + 2 * build;
+      // Four annular pieces form a hollow coating with the specified thickness.
+      for (const sign of [-1, 1]) {
+        const cap = new THREE.Mesh(coreGeometry(di, od, t), material);
+        cap.position.z = sign * (height - t) / 2;
+        group.add(cap);
+      }
+      group.add(new THREE.Mesh(coreGeometry(di, di + 2 * t, height - 2 * t), material));
+      group.add(new THREE.Mesh(coreGeometry(od - 2 * t, od, height - 2 * t), material));
+      group.position.z = level * explodeStep;
+      model.add(group);
+    };
+    if (covers) {
+      if (tapeVisible && coreCover > 0) addCover(coreCover, coreCover, 0xf4e9bb, .22, 1);
+      if (resinVisible && resinCover > 0) addCover(coreCover + windingBuildMm + resinCover, resinCover, 0x72a9f8, .13, Math.max(1, windingLayers) * 2 + 2);
+    }
+    const steel = new THREE.MeshStandardMaterial({ color: 0x75b7b4, metalness: .55, roughness: .3, clippingPlanes, side: THREE.DoubleSide });
+    const steelMesh = new THREE.Mesh(coreGeometry(inner, outer, width), steel);
+    steelMesh.visible = steelVisible;
+    model.add(steelMesh);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x235253, transparent: true, opacity: .42, clippingPlanes });
+    for (let n = 1; steelVisible && n < 12; n++) {
       const points = Array.from({ length: 129 }, (_, i) => new THREE.Vector3(outer / 2 * Math.cos(i / 128 * Math.PI * 2), outer / 2 * Math.sin(i / 128 * Math.PI * 2), -width / 2 + width * n / 12));
       model.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMaterial));
     }
     if (windings) {
-      const numLayers = Math.max(1, option.geometry.windingLayers || 1);
-      const tpl = option.geometry.turnsPerLayer || turns;
-      const baseRadius = Math.min((outer - inner) / 18, outer / 180);
+      const numLayers = Math.max(1, windingLayers || 1);
+      const tpl = turnsPerLayer || turns;
+      const layerGap = windingBuildMm > 0 ? windingBuildMm / numLayers : outer / 72;
+      const baseRadius = Math.min(layerGap * .4, (outer - inner) / 18);
       const clearance = baseRadius * 2;
-      const layerGap = baseRadius * 2.5;
-      const roBase = outer / 2 + clearance;
-      const half = width / 2 + clearance;
+      const roBase = outer / 2 + coreCover + layerGap / 2;
 
       let turnsLeft = Math.round(turns);
       for (let layer = 0; layer < numLayers; layer++) {
         const layerTurns = Math.min(tpl, turnsLeft);
+        if (layerTurns <= 0) break;
         turnsLeft -= layerTurns;
+        if (selectedLayer > 0 && selectedLayer <= numLayers && selectedLayer !== layer + 1) continue;
+        const layerGroup = new THREE.Group();
+        layerGroup.position.z = (layer * 2 + 2) * explodeStep;
+        model.add(layerGroup);
         const count = Math.min(48, Math.max(1, layerTurns));
         const layerOffset = layer * layerGap;
-        const riLayer = Math.max(inner / 2 - clearance - layerOffset, baseRadius);
+        const riLayer = Math.max(inner / 2 - coreCover - layerGap / 2 - layerOffset, baseRadius);
         const roLayer = roBase + layerOffset;
-        const layerAlpha = numLayers > 1 ? 1 - layer * 0.2 : 1;
+        const half = width / 2 + coreCover + layerGap / 2 + layerOffset;
+        const layerAlpha = 1;
+        if (covers && tapeVisible && tapeThickness > 0 && layer < numLayers - 1) {
+          addCover(coreCover + (layer + 1) * layerGap, tapeThickness, 0xf4e9bb, .1, layer * 2 + 3);
+        }
 
         if (wireCount > 1) {
           let wireIdx = 0;
           for (let ei = 0; ei < wireEntries.length; ei++) {
             const entry = wireEntries[ei];
             const baseColor = new THREE.Color(WIRE_COLORS_3D[ei % WIRE_COLORS_3D.length]);
-            if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), 0.15 * layer);
-            const mat = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha });
+            if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), Math.min(.5, 0.08 * layer));
+            const mat = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha, clippingPlanes });
             const strandRadius = baseRadius * 0.7;
             for (let w = 0; w < entry.count; w++) {
               const radialOffset = (wireIdx / wireCount - 0.5) * baseRadius * 2.2;
               for (let n = 0; n < count; n++) {
-                const angle = n / count * Math.PI * 2;
+                const angle = (n + (layer % 2) * .5 + wireIdx / wireCount * .6) / count * Math.PI * 2;
                 const ri = riLayer + radialOffset;
                 const ro = roLayer + radialOffset;
                 const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
@@ -373,23 +428,23 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
                   point(ri, -half + clearance), point(ri + clearance, -half), point(ro - clearance, -half), point(ro, -half + clearance),
                   point(ro, half - clearance), point(ro - clearance, half), point(ri + clearance, half), point(ri, half - clearance),
                 ], true, 'centripetal');
-                model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, strandRadius, 6, true), mat));
+                layerGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, strandRadius, 6, true), mat));
               }
               wireIdx++;
             }
           }
         } else {
           const baseColor = new THREE.Color(0xf0a45e);
-          if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), 0.15 * layer);
-          const copper = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha });
+          if (layer > 0) baseColor.lerp(new THREE.Color(0xffffff), Math.min(.5, 0.08 * layer));
+          const copper = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha, clippingPlanes });
           for (let n = 0; n < count; n++) {
-            const angle = n / count * Math.PI * 2;
+            const angle = (n + (layer % 2) * .5) / count * Math.PI * 2;
             const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
             const curve = new THREE.CatmullRomCurve3([
               point(riLayer, -half + clearance), point(riLayer + clearance, -half), point(roLayer - clearance, -half), point(roLayer, -half + clearance),
               point(roLayer, half - clearance), point(roLayer - clearance, half), point(riLayer + clearance, half), point(riLayer, half - clearance),
             ], true, 'centripetal');
-            model.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, baseRadius, 6, true), copper));
+            layerGroup.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 48, baseRadius, 6, true), copper));
           }
         }
       }
@@ -401,12 +456,15 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     const rim = new THREE.DirectionalLight(0x58dacb, 3);
     rim.position.set(-outer, 0, -outer);
     scene.add(rim);
-    const size = Math.max(outer, width);
+    const bounds = new THREE.Box3().setFromObject(model);
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = Math.max(...bounds.getSize(new THREE.Vector3()).toArray());
     const camera = new THREE.PerspectiveCamera(36, 1, size / 1000, size * 30);
     const initial = new THREE.Vector3(size * 1.25, size * .85, size * 1.65);
-    camera.position.copy(initial);
+    camera.position.copy(initial).add(center);
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enablePan = false;
+    controls.target.copy(center);
+    controls.enablePan = true;
     controls.minDistance = size * .85;
     controls.maxDistance = size * 5;
     const render = () => renderer.render(scene, camera);
@@ -428,9 +486,25 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     resize();
     host.dataset.modelReady = 'true';
     actions.current = {
-      reset: () => { camera.position.copy(initial); controls.target.set(0, 0, 0); controls.update(); render(); },
-      rotate: direction => { camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), direction * Math.PI / 12); controls.update(); render(); },
-      zoom: factor => { camera.position.multiplyScalar(factor).clampLength(controls.minDistance, controls.maxDistance); controls.update(); render(); },
+      reset: () => { camera.position.copy(initial).add(center); controls.target.copy(center); controls.update(); render(); },
+      rotate: direction => { camera.position.sub(controls.target).applyAxisAngle(new THREE.Vector3(0, 1, 0), direction * Math.PI / 12).add(controls.target); controls.update(); render(); },
+      zoom: factor => { camera.position.sub(controls.target).multiplyScalar(factor).clampLength(controls.minDistance, controls.maxDistance).add(controls.target); controls.update(); render(); },
+      view: view => {
+        controls.target.copy(center);
+        camera.up.set(0, 1, 0);
+        camera.position.copy(center).add(view === 'front' ? new THREE.Vector3(0, 0, size * 2.5) : view === 'side' ? new THREE.Vector3(size * 2.5, 0, 0) : new THREE.Vector3(0, size * 2.5, .001));
+        controls.update(); render();
+      },
+      snapshot: () => {
+        render();
+        renderer.domElement.toBlob(blob => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url; link.download = `${filename}-inspection.png`; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        });
+      },
     };
     return () => {
       actions.current = null;
@@ -446,11 +520,12 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
         }
       });
       materials.forEach(material => material.dispose());
+      lineMaterial.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [inner, outer, width, turns, windings, valid, wireCount, option.geometry.windingLayers, option.geometry.turnsPerLayer]);
+  }, [inner, outer, width, turns, windings, covers, steelVisible, resinVisible, tapeVisible, exploded, section, selectedLayer, valid, wireCount, wireSignature, coreCover, windingBuildMm, resinCover, tapeThickness, windingLayers, turnsPerLayer, filename]);
 
   if (!valid) return null;
   const scale = 152 / Math.max(option.inputs.finishedOdMm, outer);
@@ -600,13 +675,41 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
         <div className="pointer-events-none absolute bottom-4 left-4 text-xs text-[#b6d8df]">Drag to orbit · Scroll / pinch to zoom</div>
       </div>
       <div className="model-toolbar">
+        <Button size="xs" onClick={() => actions.current?.view('front')} disabled={unavailable}>Front</Button>
+        <Button size="xs" onClick={() => actions.current?.view('side')} disabled={unavailable}>Side</Button>
+        <Button size="xs" onClick={() => actions.current?.view('top')} disabled={unavailable}>Top</Button>
+        <Button size="xs" onClick={() => actions.current?.snapshot()} disabled={unavailable}>Save image</Button>
         <Button size="xs" onClick={() => actions.current?.rotate(-1)} disabled={unavailable}>Rotate left</Button>
         <Button size="xs" onClick={() => actions.current?.rotate(1)} disabled={unavailable}>Rotate right</Button>
         <Button size="xs" onClick={() => actions.current?.zoom(.85)} disabled={unavailable}>Zoom in</Button>
         <Button size="xs" onClick={() => actions.current?.zoom(1.18)} disabled={unavailable}>Zoom out</Button>
         <Button size="xs" onClick={() => actions.current?.reset()} disabled={unavailable}>Reset view</Button>
         <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={windings} onChange={e => setWindings(e.target.checked)}/>Show illustrative winding</label>
+        <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={covers} onChange={e => setCovers(e.target.checked)}/>Show resin and insulation</label>
       </div>
+      <div className="grid gap-4 border-t border-[var(--line)] p-4 sm:grid-cols-2">
+        <div className="flex flex-wrap items-center gap-4 text-xs">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={steelVisible} onChange={e => setSteelVisible(e.target.checked)}/>Steel core</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={resinVisible} disabled={!covers} onChange={e => setResinVisible(e.target.checked)}/>Resin / outer cover</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={tapeVisible} disabled={!covers} onChange={e => setTapeVisible(e.target.checked)}/>Insulation and tape</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={exploded} onChange={e => setExploded(e.target.checked)}/>Exploded assembly</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={section} onChange={e => setSection(e.target.checked)}/>Half-section</label>
+        </div>
+        <label className="flex items-center gap-3 text-xs">Inspect winding
+          <select className="rounded border border-[var(--line)] bg-[var(--surface-1)] p-2 text-[var(--text)]" value={selectedLayer <= windingLayers ? selectedLayer : 0} onChange={e => setSelectedLayer(Number(e.target.value))} disabled={!windings}>
+            <option value={0}>All {Math.max(1, windingLayers)} layers</option>
+            {Array.from({ length: Math.max(1, windingLayers) }, (_, i) => <option key={i} value={i + 1}>Layer {i + 1} · {Math.max(0, Math.min(turnsPerLayer || turns, Math.round(turns) - i * (turnsPerLayer || turns)))} turns</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4 text-xs sm:grid-cols-4">
+        <div><span className="block text-[var(--text-2)]">Core insulation / side</span><strong>{mm(coreCover)} mm</strong></div>
+        <div><span className="block text-[var(--text-2)]">Winding build / side</span><strong>{mm(windingBuildMm)} mm · {windingLayers} layers</strong></div>
+        <div><span className="block text-[var(--text-2)]">Inter-layer tape</span><strong>{mm(tapeThickness)} mm</strong></div>
+        <div><span className="block text-[var(--text-2)]">Resin / outer cover per side</span><strong>{mm(resinCover)} mm</strong></div>
+      </div>
+      {(exploded || section) && <p className="px-4 pb-3 text-xs text-[var(--text-2)]">{exploded ? 'Exploded spacing is illustrative; use assembled view for the finished envelope. ' : ''}{section ? 'Half-section clips the surfaces to expose the interior; cut faces are open. ' : ''}Right-drag to pan; reset restores the fitted view.</p>}
+      <p className="px-4 pb-2 text-xs text-[var(--text-2)]">Blue: resin / outer cover ({mm(resinCover)} mm per side). Cream: core insulation ({mm(coreCover)} mm per side) and inter-layer tape envelopes. Covers are translucent to reveal the winding; hide covers to inspect the wires.</p>
       {/* Wire color legend for 3D model */}
       {wireCount > 1 && windings && (
         <div className="flex items-center gap-3 px-4 pb-2 text-xs">

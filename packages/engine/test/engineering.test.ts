@@ -27,6 +27,13 @@ describe('construction and electrical engineering',()=>{
   expect(r.geometry.coreOdMm).toBeCloseTo(120-2*build);
   expect(r.engineering!.finishedWidthMm).toBeCloseTo(r.orderedWidthMm+2*build);
  });
+ it('passes calculated winding construction to the model geometry',()=>{
+  const r=run(change({parallelStrands:2}));
+  expect(r.geometry.windingLayers).toBe(r.engineering!.layers);
+  expect(r.geometry.turnsPerLayer).toBe(r.engineering!.turnsPerLayer);
+  expect(r.geometry.windingBuildMm).toBe(r.engineering!.windingBuildMm);
+  expect(r.geometry.windingLayers).toBeGreaterThan(1);
+ });
  it('uses effective steel area including stacking in the EMF equation',()=>{
   const r=run();const area=r.finalAreaCm2*DEFAULT_SETTINGS.stackingFactor;
   expect(r.engineering!.effectiveAreaCm2).toBeCloseTo(area);

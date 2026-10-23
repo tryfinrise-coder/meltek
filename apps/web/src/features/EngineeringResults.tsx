@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { SolveResult } from '@meltek/engine';
 import { Callout } from '../components/primitives';
 import { exportCalcChain } from '../lib/exportCalcChain';
-const n = (v: number | null, unit='') => v == null ? 'Not available' : `${v.toFixed(4)} ${unit}`;
+const n = (v: number | null, unit='') => v == null ? 'Not available' : `${v.toFixed(3)} ${unit}`;
 export function EngineeringResults({result, gradeLabel}:{result:SolveResult; gradeLabel: string}) {
   const r=result.engineering!;
   const handleExport = useCallback(() => exportCalcChain(result, gradeLabel), [result, gradeLabel]);

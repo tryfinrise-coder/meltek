@@ -8,7 +8,7 @@ import { exportCalcChain } from '../lib/exportCalcChain';
 
 const BhChart = lazy(() => import('./BhChart'));
 
-const n = (v: number | string, dp = 4) => (typeof v === 'number' ? (Number.isFinite(v) ? v.toFixed(dp) : '—') : v);
+const n = (v: number | string, dp = 3) => (typeof v === 'number' ? (Number.isFinite(v) ? v.toFixed(dp) : '—') : v);
 
 const TABS = ['chain', 'convergence', 'curve'] as const;
 type Tab = (typeof TABS)[number];

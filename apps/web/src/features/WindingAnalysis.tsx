@@ -74,7 +74,6 @@ interface CalcResult {
   possibleID: number;
   numLayers: number;
   boreFillPct: number;
-  extraWireMm: number;
   windingFits: boolean;
 }
 
@@ -136,7 +135,6 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const lastLayerTurns = layers.length > 0 ? layers[layers.length - 1].turns : 0;
   const lastLayerOccupied = lastLayerTurns * turnPitch;
   const boreFillPct = boreCirc > 0 ? (lastLayerOccupied / boreCirc) * 100 : 0;
-  const extraWireMm = totalWithLead - flatWireLength;
   const windingFits = possibleID < OD;
 
   let totalCuPractical = 0;
@@ -155,7 +153,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
     totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers,
-    boreFillPct, extraWireMm, windingFits,
+    boreFillPct, windingFits,
   };
 }
 
@@ -273,10 +271,9 @@ export function WindingAnalysis({
               )}
               {result.windingFits && (
                 <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+                  <ResultPill label="Total Wire Required" value={fmt(result.practicalWireLength, 1) + ' mm'} />
                   <ResultPill label="Bore Fill (last layer)" value={fmt(result.boreFillPct, 1) + ' %'}
                     warn={result.boreFillPct > 95} accent={result.boreFillPct <= 85} />
-                  <ResultPill label="Extra Wire (layering)" value={fmt(result.extraWireMm, 1) + ' mm'}
-                    warn={false} />
                 </div>
               )}
               <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 border-t border-[var(--line)] pt-2 text-[13px]">

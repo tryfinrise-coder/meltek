@@ -466,13 +466,8 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     <text x={(x1+x2)/2} y={y-9} textAnchor="middle" stroke="none" fontSize="11">{text}</text>
   </g>;
 
-  // Concentric zone radii (inside the bore, between finished ID and core ID)
+  // Winding build for cross-section bar
   const windingBuild = option.geometry.windingBuildMm;
-  const finID = option.inputs.finishedIdMm;
-  const afterResinMm = finID + resinCoverMm;
-  const afterWindingMm = afterResinMm + 2 * windingBuild;
-  const afterResinR = afterResinMm * scale / 2;
-  const afterWindingR = afterWindingMm * scale / 2;
 
   // Wire cross-section dots in the front view annulus
   const wireRadius = Math.min((ro - ri) * 0.12, 4);

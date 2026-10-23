@@ -73,8 +73,8 @@ interface CalcResult {
   afterInsulation: number;
   possibleID: number;
   numLayers: number;
-  reqWireLength: number;
-  shortLength: number;
+  boreFillPct: number;
+  extraWireMm: number;
   windingFits: boolean;
 }
 
@@ -133,8 +133,10 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   // Possible ID = required core ID = finishedID + resinCover + coreInsulation + 2 × windingBuild
   const afterInsulation = s.finishedID + s.resinCover + s.coreInsulation;
   const possibleID = afterInsulation + 2 * windingBuildMm;
-  const reqWireLength = turns * cuSurfacePerTurn * 1.05;
-  const shortLength = reqWireLength - boreCirc;
+  const lastLayerTurns = layers.length > 0 ? layers[layers.length - 1].turns : 0;
+  const lastLayerOccupied = lastLayerTurns * turnPitch;
+  const boreFillPct = boreCirc > 0 ? (lastLayerOccupied / boreCirc) * 100 : 0;
+  const extraWireMm = totalWithLead - flatWireLength;
   const windingFits = possibleID < OD;
 
   let totalCuPractical = 0;
@@ -153,7 +155,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
     totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers,
-    reqWireLength, shortLength, windingFits,
+    boreFillPct, extraWireMm, windingFits,
   };
 }
 
@@ -271,10 +273,10 @@ export function WindingAnalysis({
               )}
               {result.windingFits && (
                 <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-                  <ResultPill label="Req. Wire Length" value={fmt(result.reqWireLength, 1) + ' mm'} />
-                  <ResultPill label={result.shortLength > 0 ? 'Short by' : 'Spare'}
-                    value={fmt(Math.abs(result.shortLength), 1) + ' mm'}
-                    warn={result.shortLength > 0} accent={result.shortLength <= 0} />
+                  <ResultPill label="Bore Fill (last layer)" value={fmt(result.boreFillPct, 1) + ' %'}
+                    warn={result.boreFillPct > 95} accent={result.boreFillPct <= 85} />
+                  <ResultPill label="Extra Wire (layering)" value={fmt(result.extraWireMm, 1) + ' mm'}
+                    warn={false} />
                 </div>
               )}
               <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 border-t border-[var(--line)] pt-2 text-[13px]">

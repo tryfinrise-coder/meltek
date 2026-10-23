@@ -6,6 +6,8 @@ export interface WindingInputs {
   swg?: number;
   /** Insulated diameter, not bare conductor diameter. */
   wireDiaMm: number;
+  /** Bare conductor diameter for pitch calculation. */
+  bareDiaMm: number;
   parallelStrands: number;
   /** Minimum diameter at the winding's inner surface. */
   boreIdMm: number;
@@ -33,7 +35,7 @@ export function computeWindingAllowance(inputs: WindingInputs, ref: WindingRefer
   positive(ref.minEpoxyThicknessMm, 'Outer cover thickness', true);
   if (factor > 1 || !Number.isInteger(inputs.turns) || !Number.isInteger(inputs.parallelStrands)) throw new EngineError('INVALID_INPUT', 'Packing must be at most 1; turns and strands must be integers.');
   const radial = inputs.arrangement === 'radial-stack';
-  const pitch = inputs.wireDiaMm * (radial ? 1 : inputs.parallelStrands) / factor;
+  const pitch = inputs.bareDiaMm * (radial ? 1 : inputs.parallelStrands) / factor;
   const turnsPerLayer = Math.floor(Math.PI * inputs.boreIdMm / pitch);
   if (turnsPerLayer < 1) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
   const layers = Math.ceil(inputs.turns / turnsPerLayer);

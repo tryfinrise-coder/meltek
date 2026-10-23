@@ -48,7 +48,7 @@ export function solveEngineering(inputs: DesignInputs, ref: ReferenceData, setti
   const coreCover = required(e.coreInsulation.thicknessMm, 'Installed core insulation per side', true);
   const outerCover = required(e.outerInsulation.thicknessMm, 'Installed outer insulation per side', true);
   const N = inputs.primaryCurrent / inputs.secondaryCurrent;
-  const winding = computeWindingAllowance({ turns: N, swg, wireDiaMm: wire.insulatedDiameterMm, parallelStrands: e.parallelStrands, boreIdMm: inputs.finishedIdMm + 2 * outerCover, arrangement: e.strandArrangement }, { layerStackingFactorBySwg: { [swg]: wire.packingFactor }, interlayerThicknessMm: e.interlayerThicknessMm, minEpoxyThicknessMm: outerCover });
+  const winding = computeWindingAllowance({ turns: N, swg, wireDiaMm: wire.insulatedDiameterMm, bareDiaMm: gauge.diaMm, parallelStrands: e.parallelStrands, boreIdMm: inputs.finishedIdMm + 2 * outerCover, arrangement: e.strandArrangement }, { layerStackingFactorBySwg: { [swg]: wire.packingFactor }, interlayerThicknessMm: e.interlayerThicknessMm, minEpoxyThicknessMm: outerCover });
   const perSide = coreCover + winding.windingBuildMm + outerCover;
   const coreId = inputs.finishedIdMm + 2 * perSide;
   const coreOd = inputs.finishedOdMm - 2 * perSide;

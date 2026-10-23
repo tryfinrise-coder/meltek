@@ -104,7 +104,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   // Bore = finished ID + resin cover (winding wraps around the resin)
   const boreMm = s.finishedID + s.resinCover;
   const boreCirc = boreMm * PI;
-  const turnPitch = totalWireWidth * s.spacingFactor;
+  const turnPitch = cuSurfacePerTurn * s.spacingFactor;
   const turnsPerLayer = turnPitch > 0 ? Math.max(1, Math.floor(boreCirc / turnPitch)) : turns;
   const numLayers = Math.ceil(turns / turnsPerLayer);
   const layerThickness = maxWireDia + s.layerTape;

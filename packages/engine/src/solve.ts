@@ -113,15 +113,15 @@ export function computeWindingBuild(
   const roundedTurns = Math.round(turns);
   const active = combo?.entries.filter(e => e.count > 0);
   if (active && active.length > 0) {
-    let bundleWidthMm = 0;
+    let bareBundleWidthMm = 0;
     let maxInsulatedDiaMm = 0;
     for (const e of active) {
       const g = findGauge(combo!.ref, e.swg);
       const insulatedDia = g.diaMm + 2 * settings.wireInsulationMm;
-      bundleWidthMm += e.count * insulatedDia;
+      bareBundleWidthMm += e.count * g.diaMm;
       maxInsulatedDiaMm = Math.max(maxInsulatedDiaMm, insulatedDia);
     }
-    const pitch = bundleWidthMm / settings.windingPackingFactor;
+    const pitch = bareBundleWidthMm / settings.windingPackingFactor;
     const turnsPerLayer = Math.floor(Math.PI * boreIdMm / pitch);
     if (turnsPerLayer < 1) return null;
     const layers = Math.ceil(roundedTurns / turnsPerLayer);
@@ -131,7 +131,7 @@ export function computeWindingBuild(
   const insulatedDiaMm = gauge.diaMm + 2 * settings.wireInsulationMm;
   try {
     return computeWindingAllowance(
-      { turns: roundedTurns, swg: gauge.swg, wireDiaMm: insulatedDiaMm, parallelStrands: 1, boreIdMm },
+      { turns: roundedTurns, swg: gauge.swg, wireDiaMm: insulatedDiaMm, bareDiaMm: gauge.diaMm, parallelStrands: 1, boreIdMm },
       { layerStackingFactorBySwg: { [gauge.swg]: settings.windingPackingFactor }, interlayerThicknessMm: settings.interLayerTapeMm, minEpoxyThicknessMm: 0 },
     );
   } catch {

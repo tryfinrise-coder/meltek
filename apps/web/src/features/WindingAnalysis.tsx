@@ -260,7 +260,7 @@ export function WindingAnalysis({
               </div>
               <div className="mt-2 flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
                 <ResultPill label="After Resin + Insulation ID" value={fmt(result.afterInsulation, 1) + ' mm'} />
-                <ResultPill label={`Winding Build (${result.numLayers} layer${result.numLayers > 1 ? 's' : ''})`} value={fmt(result.windingBuildMm, 2) + ' mm'} />
+                <ResultPill label={`Winding Build (${result.numLayers} layer${result.numLayers > 1 ? 's' : ''}, per side)`} value={fmt(result.windingBuildMm, 2) + ' mm'} />
                 <ResultPill label="Possible ID (Req. Core ID)" value={fmt(result.possibleID, 1) + ' mm'}
                   accent={result.windingFits} warn={!result.windingFits} />
               </div>

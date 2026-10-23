@@ -297,8 +297,13 @@ export function NewDesign() {
                           type="number"
                           min={0}
                           max={10}
-                          value={wireMap[g.swg] ?? 0}
-                          onChange={e => setWireCount(g.swg, parseInt(e.target.value) || 0)}
+                          value={wireMap[g.swg] === undefined ? '' : wireMap[g.swg]}
+                          onChange={e => {
+                            const raw = e.target.value;
+                            if (raw === '') { setWireMap(prev => { const next = { ...prev }; delete next[g.swg]; return next; }); return; }
+                            setWireCount(g.swg, parseInt(raw) || 0);
+                          }}
+                          onBlur={() => { if (wireMap[g.swg] === undefined) setWireCount(g.swg, 0); }}
                           className="w-14 rounded border border-[var(--line)] bg-[var(--surface-1)] px-2 py-1 text-center text-[13px]"
                         />
                       </div>

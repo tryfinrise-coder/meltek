@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { motion } from 'motion/react';
 import { Card } from '../components/primitives';
@@ -159,6 +160,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
 function fmt(n: number, d = 2) { return n.toFixed(d); }
 
 interface WindingAnalysisProps {
+  inputHost?: HTMLElement | null;
   reduce: boolean;
   gauges: WireGauge[];
   finishedIdMm: number;
@@ -172,7 +174,7 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  inputHost, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
 
@@ -206,48 +208,31 @@ export function WindingAnalysis({
 
   if (!result) return null;
 
-  return (
-    <>
-      {/* ━━━ Pre-filled core info ━━━ */}
-      <motion.div variants={fadeUp(reduce)}>
-        <Card eyebrow="From selected design" title="Core & Turns"
-          subtitle="Pre-filled from your selected grade × gauge combination">
-          <div className="flex flex-wrap gap-x-8 gap-y-1 px-5 py-3 text-[13px]">
-            <ResultPill label="Finished ID" value={fmt(s.finishedID, 1) + ' mm'} />
-            <ResultPill label="Core ID" value={fmt(s.coreID, 1) + ' mm'} />
-            <ResultPill label="Core OD" value={fmt(s.coreOD, 1) + ' mm'} />
-            <ResultPill label="Core Width" value={fmt(s.coreWidth, 1) + ' mm'} />
-            <ResultPill label="Turns" value={String(s.turns) + ' T'} accent />
-            <ResultPill label="Core Weight" value={fmt(coreWeightKg, 4) + ' kg'} />
-          </div>
-        </Card>
-      </motion.div>
-
-      {/* ━━━ Wire selection ━━━ */}
-      <motion.div variants={fadeUp(reduce)}>
-        <Card eyebrow="Wire combination" title="Wire Selection"
-          subtitle="Choose wire gauges and how many wires are wound in parallel for each">
-          <div className="px-5 py-3">
-            <div className="mb-2 grid grid-cols-[80px_1fr_72px] gap-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
-              <span>Gauge</span>
-              <span>Diameter</span>
-              <span className="text-center">Wires</span>
-            </div>
-            {gauges.filter(g => g.isAvailable).map(g => (
-              <div key={g.swg}
-                className="grid grid-cols-[80px_1fr_72px] items-center gap-2 border-t border-[var(--line)] py-2"
-              >
-                <span className="text-[13px] font-medium">{g.swg} SWG</span>
-                <span className="text-[12px] text-[var(--text-3)] mono">⌀ {g.diaMm.toFixed(3)} mm</span>
-                <input
-                  type="number" min={0} step={1}
-                  value={s.wireMap[g.swg] ?? 0}
-                  onChange={e => dispatch({ type: 'wire', swg: g.swg, count: parseInt(e.target.value) || 0 })}
-                  className="w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-center text-[13px] font-medium num focus:border-[var(--brand)] focus:outline-none"
-                />
+  const comparisonInput = (
+          <div className="px-5 pt-4 pb-2">
+            <FieldShell label={`Flat Allowance — ${s.flatAllowance}%`}
+              help="The Excel method uses a single flat percentage. Drag to see the effect.">
+              <input type="range" min={0} max={40} step={0.5}
+                value={s.flatAllowance}
+                onChange={e => setField('flatAllowance', e.target.value)}
+                className="w-full accent-[var(--brand)] cursor-pointer"
+              />
+              <div className="mt-0.5 flex justify-between text-[11px] text-[var(--text-3)]">
+                <span>0%</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span>
               </div>
-            ))}
+            </FieldShell>
           </div>
+  );
+  const rateInputs = (
+          <div className="grid grid-cols-2 gap-4 px-5 py-4">
+            <TextField label="Core Rate" unit="₹/kg" type="number" value={s.coreRate}
+              onChange={e => setField('coreRate', e.target.value)} />
+            <TextField label="Copper Rate" unit="₹/kg" type="number" value={s.cuRate}
+              onChange={e => setField('cuRate', e.target.value)} />
+          </div>
+
+  );
+  const wireResults = <>
           {result.copperByGauge.length > 0 && (
             <div className="border-t border-[var(--line)] bg-[var(--surface-2)] px-5 py-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
@@ -283,6 +268,44 @@ export function WindingAnalysis({
               </div>
             </div>
           )}
+  </>;
+  const windingResults = (
+          <div className="border-t border-[var(--line)] bg-[var(--surface-2)] px-5 py-3">
+            <div className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
+              <ResultPill label="Layers" value={String(result.layers.length)} />
+              <ResultPill label="Turns/Layer" value={String(result.layers[0]?.turns ?? '—')} />
+              <ResultPill label="Theoretical MLT" value={fmt(result.mltBase, 1) + ' mm'} />
+              <ResultPill label="Practical MLT (avg)" value={fmt(result.mltPractical, 1) + ' mm'} accent />
+            </div>
+          </div>
+  );
+  const windingInputs = <>
+      {/* ━━━ Wire selection ━━━ */}
+      <motion.div variants={fadeUp(reduce)}>
+        <Card eyebrow="Wire combination" title="Wire Selection"
+          subtitle="Choose wire gauges and how many wires are wound in parallel for each">
+          <div className="px-5 py-3">
+            <div className="mb-2 grid grid-cols-[80px_1fr_72px] gap-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
+              <span>Gauge</span>
+              <span>Diameter</span>
+              <span className="text-center">Wires</span>
+            </div>
+            {gauges.filter(g => g.isAvailable).map(g => (
+              <div key={g.swg}
+                className="grid grid-cols-[80px_1fr_72px] items-center gap-2 border-t border-[var(--line)] py-2"
+              >
+                <span className="text-[13px] font-medium">{g.swg} SWG</span>
+                <span className="text-[12px] text-[var(--text-3)] mono">⌀ {g.diaMm.toFixed(3)} mm</span>
+                <input
+                  type="number" min={0} step={1}
+                  value={s.wireMap[g.swg] ?? 0}
+                  onChange={e => dispatch({ type: 'wire', swg: g.swg, count: parseInt(e.target.value) || 0 })}
+                  className="w-full rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-2)] px-2 py-1 text-center text-[13px] font-medium num focus:border-[var(--brand)] focus:outline-none"
+                />
+              </div>
+            ))}
+          </div>
+          {!inputHost && wireResults}
         </Card>
       </motion.div>
 
@@ -314,16 +337,32 @@ export function WindingAnalysis({
               hint="Extra wire at both ends"
               onChange={e => setField('leadLength', e.target.value)} />
           </div>
-          <div className="border-t border-[var(--line)] bg-[var(--surface-2)] px-5 py-3">
-            <div className="flex flex-wrap gap-x-8 gap-y-1 text-[13px]">
-              <ResultPill label="Layers" value={String(result.layers.length)} />
-              <ResultPill label="Turns/Layer" value={String(result.layers[0]?.turns ?? '—')} />
-              <ResultPill label="Theoretical MLT" value={fmt(result.mltBase, 1) + ' mm'} />
-              <ResultPill label="Practical MLT (avg)" value={fmt(result.mltPractical, 1) + ' mm'} accent />
-            </div>
+          {!inputHost && windingResults}
+        </Card>
+      </motion.div>
+
+    {inputHost && <Card title="Comparison & material rates">{comparisonInput}{rateInputs}</Card>}
+  </>;
+
+  return (
+    <>
+      {/* ━━━ Pre-filled core info ━━━ */}
+      <motion.div variants={fadeUp(reduce)}>
+        <Card eyebrow="From selected design" title="Core & Turns"
+          subtitle="Pre-filled from your selected grade × gauge combination">
+          <div className="flex flex-wrap gap-x-8 gap-y-1 px-5 py-3 text-[13px]">
+            <ResultPill label="Finished ID" value={fmt(s.finishedID, 1) + ' mm'} />
+            <ResultPill label="Core ID" value={fmt(s.coreID, 1) + ' mm'} />
+            <ResultPill label="Core OD" value={fmt(s.coreOD, 1) + ' mm'} />
+            <ResultPill label="Core Width" value={fmt(s.coreWidth, 1) + ' mm'} />
+            <ResultPill label="Turns" value={String(s.turns) + ' T'} accent />
+            <ResultPill label="Core Weight" value={fmt(coreWeightKg, 4) + ' kg'} />
           </div>
         </Card>
       </motion.div>
+
+      {inputHost ? createPortal(windingInputs, inputHost) : windingInputs}
+      {inputHost && <Card title="Winding construction results">{wireResults}{windingResults}</Card>}
 
       {/* ━━━ Layer breakdown ━━━ */}
       {result.layers.length > 0 && (
@@ -365,20 +404,8 @@ export function WindingAnalysis({
       {/* ━━━ Flat vs practical comparison ━━━ */}
       <motion.div variants={fadeUp(reduce)}>
         <Card eyebrow="Comparison" title="Flat vs Practical Allowance"
-          subtitle="Drag the slider to compare any flat allowance against the practical calculation">
-          <div className="px-5 pt-4 pb-2">
-            <FieldShell label={`Flat Allowance — ${s.flatAllowance}%`}
-              help="The Excel method uses a single flat percentage. Drag to see the effect.">
-              <input type="range" min={0} max={40} step={0.5}
-                value={s.flatAllowance}
-                onChange={e => setField('flatAllowance', e.target.value)}
-                className="w-full accent-[var(--brand)] cursor-pointer"
-              />
-              <div className="mt-0.5 flex justify-between text-[11px] text-[var(--text-3)]">
-                <span>0%</span><span>10%</span><span>20%</span><span>30%</span><span>40%</span>
-              </div>
-            </FieldShell>
-          </div>
+          subtitle="Compare the selected flat allowance against the practical calculation">
+          {!inputHost && comparisonInput}
 
           <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
             <Row label="Theoretical MLT (no allowance)" value={fmt(result.mltBase, 1) + ' mm'} />
@@ -425,13 +452,8 @@ export function WindingAnalysis({
       {/* ━━━ Cost ━━━ */}
       <motion.div variants={fadeUp(reduce)}>
         <Card eyebrow="Material cost" title="Practical Cost Estimate"
-          subtitle="Enter current rates to estimate total material cost">
-          <div className="grid grid-cols-2 gap-4 px-5 py-4">
-            <TextField label="Core Rate" unit="₹/kg" type="number" value={s.coreRate}
-              onChange={e => setField('coreRate', e.target.value)} />
-            <TextField label="Copper Rate" unit="₹/kg" type="number" value={s.cuRate}
-              onChange={e => setField('cuRate', e.target.value)} />
-          </div>
+          subtitle="Material cost using the entered steel and copper rates">
+          {!inputHost && rateInputs}
           <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
             <Row label="Core Cost" value={'₹ ' + fmt(coreWeightKg * s.coreRate)} />
             <Row label="Copper Cost (Practical)" value={'₹ ' + fmt(result.totalCuPractical * s.cuRate)} />

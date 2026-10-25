@@ -6,9 +6,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import { ltCtFamily, type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
+import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
 import { EngineeringEditor } from '../features/EngineeringEditor';
-import { DesignStudio } from '../features/DesignStudio';
 import { WindingAnalysis } from '../features/WindingAnalysis';
 import { designInputsSchema } from '@meltek/schema';
 import { api, ApiError } from '../lib/api';
@@ -17,8 +16,8 @@ import { usePermission } from '../lib/session';
 import { OptionsTable, type OptionRow } from '../features/OptionsTable';
 import { DetailPanel, WarningStrip } from '../features/DetailPanel';
 import {
-  AnimatedNumber, Badge, Button, Callout, Card, EmptyState, PageHeader, ProvisionalMark,
-  Skeleton, StatTile,
+  AnimatedNumber, Badge, Button, Callout, Card, EmptyState,
+  Skeleton,
 } from '../components/primitives';
 import { SelectField, TextField } from '../components/fields';
 import { duration, ease, fadeUp } from '../lib/motion';
@@ -60,6 +59,7 @@ export function NewDesign() {
   const canSelect = usePermission('designs.select');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
   const [wireComboEnabled, setWireComboEnabled] = useState(false);
   const [wireMap, setWireMap] = useState<Record<number, number>>({});
@@ -154,21 +154,51 @@ export function NewDesign() {
   const unconfirmed = (reference.data?.settingRows ?? []).filter((s) => !s.isConfirmed);
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader eyebrow="Engineering workspace / LT CT" title="Design less. Discover more.">
-        Every grade and gauge is computed as you type, ranked by material cost. Nothing is
-        saved until you say so.
-      </PageHeader>
+    <div className="calculator-page flex flex-col gap-6">
+      <header className="instrument-hero">
+        <div className="instrument-hero-copy">
+          <div className="instrument-kicker"><span className="instrument-dot" /> MELTEK / ENGINEERING STUDIO <span>LT · CT</span></div>
+          <h1>From specification<br />to <em>precision.</em></h1>
+          <p>Your current transformer, calculated in real time. Configure the construction, compare materials and inspect every layer.</p>
+          <div className="instrument-hero-tags"><span>Ring core design</span><span>{engineering ? 'Engineering mode' : 'Metering calculator'}</span><span>Dimensions in mm</span></div>
+        </div>
+        <div className="instrument-blueprint" aria-hidden="true">
+          <svg viewBox="0 0 320 260" fill="none">
+            <path d="M25 130H295M160 15V245" stroke="currentColor" opacity=".18" strokeDasharray="4 6" />
+            <ellipse cx="160" cy="145" rx="100" ry="66" stroke="currentColor" opacity=".25" />
+            <ellipse cx="160" cy="123" rx="100" ry="66" stroke="currentColor" strokeWidth="2" />
+            <ellipse cx="160" cy="123" rx="49" ry="32" stroke="currentColor" strokeWidth="2" />
+            <path d="M60 123V145M260 123V145M111 123V145M209 123V145" stroke="currentColor" />
+            {Array.from({length: 20}, (_, i) => { const a=i/20*Math.PI*2; return <path key={i} d={`M${160+52*Math.cos(a)} ${123+35*Math.sin(a)}L${160+97*Math.cos(a)} ${123+63*Math.sin(a)}`} stroke="currentColor" opacity=".65" />; })}
+            <path d="M60 209H260M60 202V216M260 202V216M282 60V185M275 60H289M275 185H289" stroke="currentColor" opacity=".5" />
+            <text x="160" y="231" fill="currentColor" stroke="none" textAnchor="middle" fontSize="10" letterSpacing="3">CONSTRUCTION / RING CORE</text>
+          </svg>
+          <span>01 / DESIGN EXPLORER</span>
+        </div>
+        <div className="instrument-telemetry">
+          <div><span>Current ratio</span><strong>{values.primaryCurrent || '—'}<small> / {values.secondaryCurrent || '—'} A</small></strong></div>
+          <div><span>Feasible combinations</span><strong>{options.filter(o => o.isFeasible).length}<small> / {options.length} evaluated</small></strong></div>
+          <div><span>Selected estimate / unit</span><strong>{selected?.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits: 2})}` : '—'}</strong></div>
+        </div>
+      </header>
+      <nav className="instrument-nav" aria-label="Calculator sections">
+        <a href="#calculator-inputs"><span>01</span> Configure</a>
+        <a href="#calculator-results"><span>02</span> Calculate</a>
+        <a href="#calculator-model"><span>03</span> Explore in 3D</a>
+        <div role="status"><span className="instrument-dot" />{reference.isLoading ? 'Loading reference data' : reference.isError ? 'Reference data unavailable' : error ? 'Review specification' : result ? 'Live calculation ready' : 'Awaiting parameters'}</div>
+      </nav>
 
 
 
-      <div className="flex flex-col gap-8">
+      <div className="calculator-columns">
         {/* ── the form ── */}
         <form
-          className="flex min-w-0 flex-col gap-4"
+          id="calculator-inputs"
+          className="calculator-inputs flex min-w-0 flex-col gap-4"
+          aria-label="Design input parameters"
           onSubmit={form.handleSubmit((v) => save.mutate(v))}
         >
-          <div className="workflow-heading"><span>01</span><div><h2>Define your design</h2><p>Enter the electrical requirements, dimensions and order details.</p></div></div>
+          <div className="workflow-heading"><span>01</span><div><h2>Input parameters</h2><p>Enter the electrical requirements, dimensions and order details.</p></div></div>
           <div className="parameter-grid">
           <Card title="Customer & order">
             <div className="grid grid-cols-2 gap-3 p-4">
@@ -332,6 +362,8 @@ export function NewDesign() {
             setEngineering(next);
           }}/>
 
+          <div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" />
+
           {/* Similar designs, before the calculate/save action (§11.1). */}
           <AnimatePresence>
             {(similar.data?.similar.length ?? 0) > 0 && (
@@ -396,7 +428,8 @@ export function NewDesign() {
         </form>
 
         {/* ── results ── */}
-        <div className="flex min-w-0 flex-col gap-4">
+        <div id="calculator-results" className="calculator-results flex min-w-0 flex-col gap-4" aria-label="Calculated results">
+          <div className="instrument-results-banner"><div className="instrument-kicker">CALCULATION WORKSPACE</div><h2>Every value. In view.</h2><p>Select a combination to update the results and model together.</p></div>
           {reference.isLoading && (
             <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-6 w-48" /><Skeleton className="h-40 w-full" /></div></Card>
           )}
@@ -421,7 +454,7 @@ export function NewDesign() {
 
           {result && selected && (
             <>
-              <div className="workflow-heading" id="design-guidance"><span>02</span><div><h2>Review the guidance</h2><p>Check these assumptions and reference-data requirements before choosing an option.</p></div></div>
+              <div className="workflow-heading" id="design-guidance"><span>02</span><div><h2>Calculated results</h2><p>Live values for the selected steel grade and wire combination.</p></div></div>
               <WarningStrip warnings={[
                 ...result.warnings,
                 ...(detail?.warnings ?? []),
@@ -434,8 +467,7 @@ export function NewDesign() {
                   : []),
               ]} />
 
-              <div className="workflow-heading"><span>03</span><div><h2>Compare design combinations</h2><p>Select a row to inspect its dimensions, diagram and 3D model.</p></div></div>
-      <DesignStudio inputs={inputs} best={best} options={options} quantity={Number(values.quantity) || 1} family={ltCtFamily.label} />
+              <div className="workflow-heading"><span>•</span><div><h2>Compare design combinations</h2><p>Select a row to inspect its dimensions, diagram and 3D model.</p></div></div>
               <Card
                 title="Ranked options"
                 subtitle="Every grade × gauge combination, cheapest configured cost first. Infeasible rows stay visible with their reason."
@@ -449,30 +481,19 @@ export function NewDesign() {
                 />
               </Card>
 
-              <div className="workflow-heading"><span>04</span><div><h2>Explore the selected design</h2><p>{selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
-              <motion.div
-                className="grid grid-cols-2 gap-3 md:grid-cols-4"
-                variants={fadeUp(Boolean(reduce))} initial="hidden" animate="show"
-              >
-                <StatTile label="Core width" note={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}>
-                  <AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" />
-                </StatTile>
-                <StatTile label="Ordered width" tone="provisional" note={<ProvisionalMark />}>
-                  <AnimatedNumber value={selected.orderedWidthMm} dp={0} suffix=" mm" />
-                </StatTile>
-                <StatTile
-                  label="Flux density"
-                  note={selected.wasCapped ? <Badge tone="warn">ceiling applied</Badge> : `from the ${selected.gradeLabel} curve`}
-                >
-                  <AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" />
-                </StatTile>
-                <StatTile label={engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'} tone="provisional" note={<ProvisionalMark />}>
-                  <AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" />
-                </StatTile>
-              </motion.div>
+              <div className="workflow-heading"><span>•</span><div><h2>Explore the selected design</h2><p>{selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
+              <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}><dl className="calculator-value-list">
+                <div><dt>Core width</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt>Ordered width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt>Flux density</dt><dd><AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" /></dd></div>
+                <div><dt>Core inner diameter</dt><dd><AnimatedNumber value={selected.geometry.coreIdMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt>Core outer diameter</dt><dd><AnimatedNumber value={selected.geometry.coreOdMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt>Secondary turns</dt><dd><AnimatedNumber value={selected.geometry.turns} dp={0} suffix=" turns" /></dd></div>
+                <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
+                <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
+                <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd><AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" /></dd></div>
+              </dl></Card>
 
-
-              {selected.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} resinCoverMm={reference.data?.settings.resinCoverMm ?? 4} coreInsulationMm={reference.data?.settings.coreInsulationMm ?? 1} interLayerTapeMm={reference.data?.settings.interLayerTapeMm ?? 0.1} /></Suspense>}
               <AnimatePresence mode="wait">
                 {detail && (
                   <motion.div
@@ -492,8 +513,9 @@ export function NewDesign() {
                 )}
               </AnimatePresence>
 
-              <div className="workflow-heading"><span>05</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
+              <div className="workflow-heading"><span>•</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <WindingAnalysis
+                inputHost={windingInputHost}
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}
                 finishedIdMm={selected.inputs.finishedIdMm}
@@ -509,6 +531,11 @@ export function NewDesign() {
           )}
         </div>
       </div>
+      <section id="calculator-model" className="calculator-visuals" aria-label="Selected design 3D model and drawing">
+        <div className="workflow-heading"><span>03</span><div><h2>3D model & dimensioned drawing</h2><p>Inspect the assembly, winding layers, insulation and resin cover.</p></div></div>
+        {selected?.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} resinCoverMm={reference.data?.settings.resinCoverMm ?? 4} coreInsulationMm={reference.data?.settings.coreInsulationMm ?? 1} interLayerTapeMm={reference.data?.settings.interLayerTapeMm ?? 0.1} /></Suspense>}
+        {!selected?.converged && <Card><EmptyState title="Your 3D model will appear here">Enter a valid specification to generate the selected design.</EmptyState></Card>}
+      </section>
     </div>
   );
 }

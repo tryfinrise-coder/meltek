@@ -131,7 +131,7 @@ function Chain({ result, reduce }: { result: SolveResult; reduce: boolean }) {
                     ? { opacity: 1, transition: { duration: duration.instant } }
                     : { opacity: 1, y: 0, transition: { duration: duration.base, ease: ease.out } },
                 }}
-                className="grid grid-cols-[32px_1fr] gap-x-3 px-4 py-3 md:grid-cols-[32px_200px_1fr_auto]"
+                className="calculation-step grid grid-cols-[32px_1fr] gap-x-3 px-4 py-3 md:grid-cols-[32px_200px_1fr_auto]"
                 style={{
                   background: s.provisional ? 'color-mix(in srgb, var(--provisional) 5%, transparent)' : undefined,
                   borderLeft: `3px solid ${sec.color}`,
@@ -224,7 +224,7 @@ function Convergence({ result }: { result: SolveResult }) {
 }
 
 /** The warning strip above the options table (§11.2). */
-export function WarningStrip({ warnings }: { warnings: { code: string; message: string; ref?: string }[] }) {
+export function WarningStrip({ warnings, collapsible = false }: { warnings: { code: string; message: string; ref?: string }[]; collapsible?: boolean }) {
   const seen = new Set<string>();
   const unique = warnings.filter((w) => {
     const k = `${w.code}:${w.message}`;
@@ -234,7 +234,7 @@ export function WarningStrip({ warnings }: { warnings: { code: string; message: 
   });
   if (unique.length === 0) return null;
 
-  return (
+  const messages = (
     <div className="flex flex-col gap-2">
       {unique.map((w) => (
         <Callout
@@ -251,6 +251,16 @@ export function WarningStrip({ warnings }: { warnings: { code: string; message: 
         </Callout>
       ))}
     </div>
+  );
+  if (!collapsible) return messages;
+  return (
+    <details className="calculation-guidance">
+      <summary>
+        <span className="guidance-summary-copy"><strong>Calculation guidance <span className="guidance-count">{unique.length}</span></strong><span>Assumptions, setup requirements and estimate notes</span></span>
+        <span className="guidance-summary-action"><span className="guidance-expand">Show details</span><span className="guidance-collapse">Hide details</span><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg></span>
+      </summary>
+      <div className="guidance-messages">{messages}</div>
+    </details>
   );
 }
 

@@ -366,8 +366,14 @@ body {
 .calculator-results dl.grid { display: flex; flex-direction: column; gap: 0; }
 .calculator-results dl.grid > div { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
 .calculator-results dl.grid dd { text-align: right; }
-.calculator-results .grid[class*="32px"] { grid-template-columns: 28px minmax(0, 1fr); }
-.calculator-results .grid[class*="32px"] > :nth-child(n+3) { grid-column: 2; }
+.calculator-results .calculation-step { grid-template-columns: 28px minmax(0, 1fr); row-gap: 8px; }
+.calculator-results .calculation-step > * { min-width: 0; overflow-wrap: anywhere; }
+.calculator-results .calculation-step > :nth-child(n+3) { grid-column: 2; text-align: left; }
+.calculator-results .calculation-step .break-all { word-break: normal; overflow-wrap: anywhere; }
+.calculator-save-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); }
+.calculator-save-button { width: 100%; min-height: 46px; height: auto; padding: 12px 16px; line-height: 1.6; text-align: center; }
+.calculator-save-button > span { justify-content: center; flex-wrap: wrap; }
+.calculator-save-actions > span { text-align: center; line-height: 1.6; overflow-wrap: anywhere; }
 .calculator-visuals { display: flex; flex-direction: column; gap: 16px; padding-top: 24px; border-top: 1px solid var(--line); }
 .calculator-visuals .design-views { grid-template-columns: minmax(0, 1fr); }
 .calculator-visuals .model-stage { height: clamp(360px, 58vh, 680px); }
@@ -502,3 +508,37 @@ body {
 .calculator-page .instrument-telemetry strong,
 .calculator-page td.text-right { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; }
 .calculator-page .instrument-telemetry strong small { font-family: var(--font-body); }
+.calculation-guidance { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); overflow: hidden; }
+.calculation-guidance > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; cursor: pointer; list-style: none; }
+.calculation-guidance > summary::-webkit-details-marker { display: none; }
+.calculation-guidance > summary:hover { background: var(--surface-2); }
+.calculation-guidance > summary:focus-visible { outline: 2px solid var(--brand); outline-offset: -3px; border-radius: 10px; }
+.guidance-summary-copy { display: flex; flex-direction: column; gap: 5px; }
+.guidance-summary-copy strong { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+.guidance-summary-copy > span { font-size: 14px; line-height: 1.6; color: var(--text-2); }
+.guidance-count { display: inline-grid; place-items: center; min-width: 25px; height: 25px; padding-inline: 6px; border-radius: 20px; background: var(--studio-accent-wash, var(--brand-wash)); color: var(--text); font: 12px 'Inter', sans-serif; }
+.guidance-summary-action { display: flex; align-items: center; gap: 8px; flex-shrink: 0; font-size: 13px; color: var(--text-2); }
+.guidance-collapse { display: none; }
+.calculation-guidance[open] .guidance-expand { display: none; }
+.calculation-guidance[open] .guidance-collapse { display: inline; }
+.calculation-guidance[open] .guidance-summary-action svg { transform: rotate(180deg); }
+.guidance-messages { padding: 16px; border-top: 1px solid var(--line); }
+@media (max-width: 600px) { .calculation-guidance > summary { padding: 16px; align-items: start; } .guidance-summary-action > span { display: none !important; } }
+/* Lighter type weights retain hierarchy without heavy-looking text. */
+.calculator-page { font-weight: 400; }
+.calculator-page :is(h1, h2, h3, h4),
+.calculator-page .card > header h2,
+.calculator-page .workflow-heading h2,
+.calculator-page .instrument-hero h1,
+.calculator-page .instrument-results-banner h2 { font-weight: 500; }
+.calculator-page :is(strong, b),
+.calculator-page .instrument-nav a strong,
+.calculator-page .guidance-summary-copy strong,
+.calculator-page .calculation-tab,
+.calculator-page .instrument-kicker { font-weight: 500; }
+.calculator-page :is(.font-semibold, .font-bold, .font-medium) { font-weight: 400; }
+.calculator-page .calculator-value-list dd,
+.calculator-page .calculator-value-list > div:last-child dd,
+.calculator-page .instrument-telemetry strong { font-weight: 400; }
+.calculator-page .data-table th,
+.calculator-page .calculator-inputs label { font-weight: 500; }

@@ -414,9 +414,9 @@ export function NewDesign() {
             </Callout>
           )}
 
-          <div className="flex items-center gap-3">
+          <div className="calculator-save-actions">
             {canCreate && (
-              <Button type="submit" variant="primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending}>
+              <Button className="calculator-save-button" type="submit" variant="primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending}>
                 {save.isPending ? 'Saving…' : !best && engineering ? 'Save draft with missing data' : 'Save design & options'}
               </Button>
             )}
@@ -458,7 +458,7 @@ export function NewDesign() {
           {result && selected && (
             <>
               <div className="workflow-heading" id="design-guidance"><span>02</span><div><h2>Calculated results</h2><p>Live values for the selected steel grade and wire combination.</p></div></div>
-              <WarningStrip warnings={[
+              <WarningStrip collapsible warnings={[
                 ...result.warnings,
                 ...(detail?.warnings ?? []),
                 ...(unconfirmed.length

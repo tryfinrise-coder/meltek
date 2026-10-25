@@ -45,7 +45,7 @@ export function OptionsTable({
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
-              {['#', 'Grade', 'Wire', 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best', 'Stock'].map((h, i) => (
+              {['#', 'Grade', 'Wire', 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best'].map((h, i) => (
                 <th
                   key={h}
                   className={`label whitespace-nowrap px-3 py-2 font-semibold ${i >= 2 && i <= 9 ? 'text-right' : ''}`}
@@ -82,6 +82,7 @@ export function OptionsTable({
                   <td className="whitespace-nowrap px-3 py-2.5">
                     <span className="font-medium">{o.gradeLabel}</span>
                     {o.isSelected && <span className="ml-2"><Badge tone="ok">selected</Badge></span>}
+                    {!o.isFeasible && <span className="mt-1 block max-w-64 whitespace-normal text-[12px] text-[var(--text-3)]">{o.infeasibleReasons[0]}</span>}
                   </td>
                   <td className="px-3 py-2.5 text-right num">{o.wireCombinationLabel || o.swg}</td>
                   <td className="whitespace-nowrap px-3 py-2.5 text-right num">
@@ -130,11 +131,6 @@ export function OptionsTable({
                     ) : (
                       <span className="text-[11px] text-[var(--text-3)]">—</span>
                     )}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    {o.isFeasible
-                      ? <Badge tone="ok">in stock</Badge>
-                      : <span className="text-[11px] text-[var(--text-3)]">{o.infeasibleReasons[0]}</span>}
                   </td>
                 </motion.tr>
               );

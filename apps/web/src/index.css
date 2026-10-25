@@ -542,3 +542,33 @@ body {
 .calculator-page .instrument-telemetry strong { font-weight: 400; }
 .calculator-page .data-table th,
 .calculator-page .calculator-inputs label { font-weight: 500; }
+/* Winding construction report. */
+.winding-construction > header { flex-wrap: wrap; }
+.winding-fit-status { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 20px; font-size: 12px; line-height: 1.5; border: 1px solid currentColor; }
+.winding-fit-status.is-fit { color: var(--ok); background: color-mix(in srgb, var(--ok) 7%, transparent); }
+.winding-fit-status.needs-review { color: var(--warn); }
+.winding-highlights { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 22px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.winding-highlights > div { min-width: 0; }
+.winding-highlights > div > span { display: block; color: var(--text-2); font-size: 13px; line-height: 1.6; }
+.calculator-page .winding-highlights strong { display: block; margin-top: 8px; font-size: 25px; line-height: 1.3; font-weight: 400; overflow-wrap: anywhere; }
+.winding-highlights small { color: var(--text-2); font-size: 14px; }
+.winding-result-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.winding-result-groups > section { padding: 22px; min-width: 0; }
+.winding-result-groups > section + section { border-left: 1px solid var(--line); }
+.calculator-page .winding-construction h3 { font-size: 14px; font-weight: 500; line-height: 1.6; margin-bottom: 14px; }
+.winding-metric { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.winding-metric dt { font-size: 14px; color: var(--text-2); line-height: 1.65; }
+.winding-metric dd { flex-shrink: 0; font-size: 15px; text-align: right; }
+.winding-metric dd span { font-size: 13px; color: var(--text-2); }
+.winding-fill-track { height: 7px; overflow: hidden; background: var(--surface-3); border-radius: 6px; margin-top: 20px; }
+.winding-fill-track > span { display: block; height: 100%; border-radius: inherit; }
+.winding-fill-note { color: var(--text-2); font-size: 13px; line-height: 1.7; margin-top: 10px; }
+.winding-fit-warning { padding: 16px 22px; color: var(--warn); border-bottom: 1px solid var(--line); font-size: 14px; }
+.winding-wire-breakdown { padding: 20px 22px; border-top: 1px solid var(--line); }
+.winding-wire-breakdown table { width: 100%; font-size: 14px; }
+.winding-wire-breakdown :is(th, td) { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.winding-wire-breakdown :is(th, td):first-child { text-align: left; padding-left: 0; }
+.winding-wire-breakdown th { font-weight: 400; }
+.winding-wire-breakdown thead th { color: var(--text-2); font-size: 12px; background: var(--surface-2); }
+@media (max-width: 1200px) { .winding-result-groups { grid-template-columns: minmax(0, 1fr); } .winding-result-groups > section + section { border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 600px) { .winding-highlights { grid-template-columns: minmax(0, 1fr); gap: 18px; } .winding-highlights > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; } .calculator-page .winding-highlights strong { margin-top: 0; font-size: 22px; } .winding-metric { flex-wrap: wrap; gap: 4px 12px; } }

@@ -362,7 +362,32 @@ export function WindingAnalysis({
       </motion.div>
 
       {inputHost ? createPortal(windingInputs, inputHost) : windingInputs}
-      {inputHost && <Card title="Winding construction results">{wireResults}{windingResults}</Card>}
+      {inputHost && <Card className="winding-construction" title="Winding construction results" subtitle="Wire requirements, radial build and layer geometry" actions={<span className={`winding-fit-status ${result.windingFits ? 'is-fit' : 'needs-review'}`}>{result.windingFits ? 'Radial build fits' : 'Review radial build'}</span>}>
+        <div className="winding-highlights">
+          <div><span>Winding layers</span><strong className="num">{result.layers.length}</strong></div>
+          <div><span>Total wire required</span><strong className="num">{fmt(result.practicalWireLength / 1000, 3)} <small>m</small></strong></div>
+          <div><span>Build per side</span><strong className="num">{fmt(result.windingBuildMm, 2)} <small>mm</small></strong></div>
+        </div>
+        {!result.windingFits && <p className="winding-fit-warning">Required core ID exceeds core OD. Reduce wire count or use a thinner gauge.</p>}
+        <div className="winding-result-groups">
+          <section><h3>Conductor & turn length</h3><dl>
+            <WindingMetric label="Total copper area" value={fmt(result.totalCuArea, 3)} unit="mm²" />
+            <WindingMetric label="Copper surface per turn" value={fmt(result.cuSurfacePerTurn, 3)} unit="mm" />
+            <WindingMetric label="Turns in first layer" value={String(result.layers[0]?.turns ?? '—')} />
+            <WindingMetric label="Theoretical MLT" value={fmt(result.mltBase, 1)} unit="mm" />
+            <WindingMetric label="Average practical MLT" value={fmt(result.mltPractical, 1)} unit="mm" />
+          </dl></section>
+          <section><h3>Bore & winding geometry</h3><dl>
+            <WindingMetric label="ID after resin + insulation" value={fmt(result.afterInsulation, 1)} unit="mm" />
+            <WindingMetric label="Required core ID" value={fmt(result.possibleID, 1)} unit="mm" />
+            <WindingMetric label="Last-layer bore fill" value={fmt(result.boreFillPct, 1)} unit="%" />
+          </dl>
+            <div className="winding-fill-track" role="meter" aria-label="Last-layer bore fill" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, result.boreFillPct))} aria-valuetext={`${fmt(result.boreFillPct, 1)} percent`}><span style={{width: `${Math.min(100, Math.max(0, result.boreFillPct))}%`, background: result.boreFillPct > 95 ? 'var(--warn)' : 'var(--brand)'}} /></div>
+            <p className="winding-fill-note">Circumference occupied by the final winding layer.</p>
+          </section>
+        </div>
+        <div className="winding-wire-breakdown"><h3>Wire combination breakdown</h3><div className="overflow-x-auto"><table><thead><tr><th scope="col">Gauge</th><th scope="col">Parallel wires</th><th scope="col">Copper area</th><th scope="col">Practical weight</th></tr></thead><tbody>{result.copperByGauge.map(c => <tr key={c.swg}><th scope="row"><span className="num">{c.swg}</span> SWG</th><td className="num">{c.count}</td><td className="num">{fmt(c.area * c.count, 3)} mm²</td><td className="num">{fmt(c.weightPractical, 4)} kg</td></tr>)}</tbody></table></div></div>
+      </Card>}
 
       {/* ━━━ Layer breakdown ━━━ */}
       {result.layers.length > 0 && (
@@ -528,4 +553,7 @@ function DiffTag({ diff, suffix }: { diff: number; suffix: string }) {
       {over ? '+' : ''}{suffix}
     </span>
   );
+}
+function WindingMetric({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  return <div className="winding-metric"><dt>{label}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
 }

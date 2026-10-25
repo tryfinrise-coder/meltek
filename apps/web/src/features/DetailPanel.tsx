@@ -1,6 +1,6 @@
 import { EngineeringResults } from './EngineeringResults';
 import { motion, useReducedMotion } from 'motion/react';
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useId, useState } from 'react';
 import type { SolveResult, SteelGrade } from '@meltek/engine';
 import { Badge, Callout, ProvisionalMark, Skeleton, StatTile } from '../components/primitives';
 import { duration, ease, stagger } from '../lib/motion';
@@ -29,6 +29,7 @@ const TAB_LABEL: Record<Tab, string> = {
 export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string }) {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('chain');
+  const tabId = useId();
   const handleExport = useCallback(() => {
     exportCalcChain(result, gradeLabel ?? result.gradeCode);
   }, [result, gradeLabel]);
@@ -37,27 +38,31 @@ export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult
 
   return (
     <div>
-      <div className="flex items-center gap-1 border-b border-[var(--line)] px-3">
-        {TABS.map((t) => (
+      <div className="calculation-tab-toolbar">
+        <div className="calculation-tabs" role="tablist" aria-label="Calculation views">
+        {TABS.map((t, index) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className="relative px-3 py-2.5 text-[13px] transition-colors"
-            style={{ color: tab === t ? 'var(--text)' : 'var(--text-2)' }}
-            aria-current={tab === t}
+            className="calculation-tab"
+            role="tab"
+            id={`${tabId}-${t}`}
+            aria-selected={tab === t}
+            aria-controls={`${tabId}-panel`}
+            tabIndex={tab === t ? 0 : -1}
+            onKeyDown={event => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === 'Home' ? 0 : event.key === 'End' ? TABS.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length;
+              setTab(TABS[next]!);
+              event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+            }}
           >
-            {TAB_LABEL[t]}
-            {tab === t && (
-              <motion.span
-                layoutId="tab-underline"
-                className="absolute inset-x-2 -bottom-px h-[2px] rounded-full"
-                style={{ background: 'var(--brand)' }}
-                transition={reduce ? { duration: 0 } : ease.spring}
-              />
-            )}
+            <span className="calculation-tab-index" aria-hidden="true">0{index + 1}</span>{TAB_LABEL[t]}
           </button>
         ))}
+        </div>
         <button
           type="button"
           onClick={handleExport}
@@ -68,6 +73,7 @@ export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult
         </button>
       </div>
 
+      <div role="tabpanel" id={`${tabId}-panel`} aria-labelledby={`${tabId}-${tab}`} tabIndex={0}>
       {tab === 'chain' && <Chain result={result} reduce={Boolean(reduce)} />}
       {tab === 'convergence' && <Convergence result={result} />}
       {tab === 'curve' && (
@@ -79,6 +85,7 @@ export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult
           </Suspense>
         </div>
       )}
+      </div>
     </div>
   );
 }

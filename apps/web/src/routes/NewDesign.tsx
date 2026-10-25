@@ -59,6 +59,7 @@ export function NewDesign() {
   const canSelect = usePermission('designs.select');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [activeSection, setActiveSection] = useState('calculator-inputs');
   const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
   const [wireComboEnabled, setWireComboEnabled] = useState(false);
@@ -182,9 +183,11 @@ export function NewDesign() {
         </div>
       </header>
       <nav className="instrument-nav" aria-label="Calculator sections">
-        <a href="#calculator-inputs"><span>01</span> Configure</a>
-        <a href="#calculator-results"><span>02</span> Calculate</a>
-        <a href="#calculator-model"><span>03</span> Explore in 3D</a>
+        {[
+          ['calculator-inputs', '01', 'Configure', 'Input parameters'],
+          ['calculator-results', '02', 'Calculate', 'Results & comparisons'],
+          ['calculator-model', '03', 'Explore in 3D', 'Assembly & layers'],
+        ].map(([target, number, label, description]) => <a key={target} href={`#${target}`} aria-current={activeSection === target ? 'location' : undefined} onClick={() => setActiveSection(target!)}><span>{number}</span><div><strong>{label}</strong><small>{description}</small></div></a>)}
         <div role="status"><span className="instrument-dot" />{reference.isLoading ? 'Loading reference data' : reference.isError ? 'Reference data unavailable' : error ? 'Review specification' : result ? 'Live calculation ready' : 'Awaiting parameters'}</div>
       </nav>
 

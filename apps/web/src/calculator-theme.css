@@ -1,0 +1,251 @@
+/* Responsive calculator workspace. Text: Poppins. Numeric data: Inter. */
+.calculator-page.workspace-redesign {
+  --brand: #c62838; --brand-hover: #a71c2b; --brand-press: #891522; --brand-ink: #fff;
+  --brand-wash: #c628380a; --brand-glow: #c6283825;
+  --studio-accent: var(--brand); --studio-accent-wash: var(--brand-wash);
+  --surface-1: #fff; --surface-2: #f7f8fb; --surface-3: #edf0f5;
+  --line: #e3e7ee; --line-strong: #cbd2de;
+  --text: #202735; --text-2: #5c6678; --text-3: #687387;
+  --option-selected-background: #c6283808;
+  --chain-electrical: var(--brand); --chain-electrical-bg: var(--brand-wash);
+  --font-body: 'Poppins', sans-serif; --font-display: var(--font-body); --font-mono: 'Inter', sans-serif;
+  gap: 24px; padding-bottom: 24px; min-width: 0;
+}
+:root[data-theme='dark'] .calculator-page.workspace-redesign {
+  --brand: #f0808d; --brand-hover: #ffadba; --brand-press: #d85f70; --brand-ink: #26080e;
+  --brand-wash: #f0808d10; --brand-glow: #f0808d30;
+  --surface-1: #171b24; --surface-2: #1d2230; --surface-3: #2a3141;
+  --line: #30384a; --line-strong: #485368;
+  --text: #f0f3fa; --text-2: #b1bdd1; --text-3: #a3afc5;
+  --option-selected-background: #f0808d13;
+}
+.workspace-topbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; padding: 4px 0 0; }
+.workspace-brand { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 500; letter-spacing: .1em; }
+.workspace-brand > span { display: grid; place-items: center; height: 27px; width: 27px; background: var(--brand); color: var(--brand-ink); border-radius: 7px; font-family: 'Inter',sans-serif; letter-spacing: 0; }
+.workspace-brand small { color: var(--text-3); font-size: 10px; letter-spacing: .06em; }
+.workspace-redesign .workspace-topbar h1 { font-size: clamp(26px, 2.4vw, 36px); line-height: 1.3; letter-spacing: -.04em; font-weight: 500; margin-top: 18px; }
+.workspace-topbar p { color: var(--text-2); font-size: 14px; margin-top: 5px; }
+.workspace-status { display: grid; grid-template-columns: 7px auto; align-items: center; column-gap: 9px; font-size: 12px; color: var(--text-2); border: 1px solid var(--line); background: var(--surface-1); padding: 12px 16px; border-radius: 10px; }
+.workspace-status > span { width: 6px; height: 6px; border-radius: 50%; background: var(--brand); }
+.workspace-status > small { grid-column: 2; font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.workspace-overview { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border: 1px solid var(--line); border-radius: 14px; background: var(--surface-1); overflow: hidden; }
+.workspace-overview > div { padding: 20px 24px; min-width: 0; border-right: 1px solid var(--line); }
+.workspace-overview > div:last-child { border-right: 0; background: var(--brand-wash); }
+.workspace-overview > div > span { font-size: 12px; color: var(--text-2); }
+.workspace-redesign .workspace-overview strong { display: block; margin-top: 9px; font-size: clamp(22px,2vw,28px); font-weight: 400; line-height: 1.3; overflow-wrap: anywhere; }
+.workspace-overview small { color: var(--text-2); font-size: 14px; }
+.workspace-overview p { margin-top: 7px; font-size: 11px; line-height: 1.5; color: var(--text-3); }
+.workspace-overview .workspace-estimate strong { color: var(--brand); }
+.workspace-view-switch { display: flex; gap: 6px; padding: 5px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); position: sticky; top: 64px; z-index: 10; box-shadow: 0 6px 16px -14px #16203060; }
+.workspace-view-switch button { display: flex; align-items: center; flex: 1; min-width: 0; text-align: left; gap: 12px; padding: 12px 16px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; color: var(--text-2); }
+.workspace-view-switch button > span:first-child { font-size: 12px; color: var(--text-3); }
+.workspace-view-switch button strong { display: block; font-size: 14px; font-weight: 500; }
+.workspace-view-switch button small { display: block; font-size: 11px; margin-top: 2px; color: var(--text-3); }
+.workspace-view-switch button svg { margin-left: auto; }
+.workspace-view-switch button:hover { color: var(--brand); background: var(--brand-wash); }
+.workspace-view-switch button[aria-pressed='true'] { border-color: var(--line); background: var(--surface-1); color: var(--brand); box-shadow: 0 1px 3px #17223a0a; }
+.workspace-view-switch button[aria-pressed='true'] > span:first-child { color: var(--brand); }
+.workspace-redesign .calculator-columns { grid-template-columns: 330px minmax(0,1fr); gap: 24px; align-items: start; }
+.workspace-redesign .calculator-inputs, .workspace-redesign .calculator-results { gap: 18px; }
+.workspace-redesign .card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); box-shadow: 0 2px 8px -5px #17223a25; }
+.workspace-redesign .card > header { padding: 20px; background: var(--surface-1); }
+.workspace-redesign .card > header h2 { font-size: 17px; font-weight: 500; line-height: 1.5; letter-spacing: -.025em; }
+.workspace-redesign .card > header p { font-size: 13px; line-height: 1.7; }
+.workspace-redesign .workflow-heading { margin: 0; padding: 0 0 4px; }
+.workspace-redesign .workflow-heading > span { width: 27px; height: 27px; border-radius: 8px; background: var(--brand-wash); color: var(--brand); border-color: var(--line); font-family: 'Inter',sans-serif; }
+.workspace-redesign .workflow-heading h2 { font-size: 19px; font-weight: 500; }
+.workspace-redesign .workflow-heading p { font-size: 13px; }
+.workspace-results-intro { padding-bottom: 4px; }
+.workspace-results-intro > span { font-size: 10px; letter-spacing: .1em; color: var(--brand); }
+.workspace-redesign .workspace-results-intro h2 { font-size: 24px; font-weight: 400; letter-spacing: -.035em; margin-top: 3px; }
+.workspace-results-intro p { margin-top: 4px; color: var(--text-2); font-size: 13px; }
+.workspace-redesign .calculator-inputs details.workspace-input-group,
+.workspace-redesign details.workspace-report-group { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); padding: 0; overflow: hidden; }
+.workspace-input-group > summary, .workspace-report-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; cursor: pointer; padding: 18px; color: var(--text); font-size: 15px; line-height: 1.5; }
+.workspace-input-group > summary::-webkit-details-marker, .workspace-report-group > summary::-webkit-details-marker { display: none; }
+.workspace-input-group > summary small, .workspace-report-group > summary small { display: block; margin-top: 3px; color: var(--text-3); font-size: 12px; line-height: 1.6; }
+.workspace-chevron { font-family: 'Inter',sans-serif; font-size: 19px; color: var(--text-3); }
+.workspace-input-group[open] > summary, .workspace-report-group[open] > summary { border-bottom: 1px solid var(--line); }
+.workspace-input-group[open] > summary .workspace-chevron, .workspace-report-group[open] > summary .workspace-chevron { transform: rotate(180deg); }
+.workspace-input-group > summary:hover, .workspace-report-group > summary:hover { background: var(--surface-2); }
+.workspace-redesign .workspace-input-group > .card, .workspace-redesign .workspace-report-group .card { border: 0; border-radius: 0; box-shadow: none; }
+.workspace-input-group > .card > header { display: none; }
+.workspace-redesign .workspace-input-group .card input:not([type='checkbox']):not([type='range']), .workspace-redesign .workspace-input-group .card select { min-height: 46px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; box-shadow: none; }
+.workspace-redesign .calculator-inputs .card input[type='number'] { font-family: 'Inter',sans-serif; }
+.workspace-redesign .calculator-inputs label { font-weight: 400; font-size: 13px; letter-spacing: 0; }
+.workspace-redesign .calculator-inputs .parameter-grid .card > div { padding: 18px; gap: 18px; }
+.workspace-redesign .calculator-winding-inputs { padding: 12px; }
+.workspace-redesign .calculator-winding-inputs .card > header { padding: 14px; }
+.workspace-redesign .calculator-inputs :is(.winding-wire-head,.winding-wire-row) { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 54px; }
+.workspace-redesign .winding-wire-row > * { min-width: 0; font-size: 12px; }
+.workspace-redesign .calculator-save-actions { padding: 14px; border: 1px solid var(--line); background: var(--surface-1); box-shadow: none; }
+.workspace-redesign .calculator-save-button { border-radius: 8px; padding: 13px 12px; font-size: 14px; }
+.workspace-redesign .calculator-save-actions > span { font-size: 12px; }
+.workspace-mobile-review { display: none; }
+.workspace-redesign .calculation-guidance { box-shadow: none; background: var(--surface-1); }
+.workspace-redesign .calculation-guidance > summary { padding: 15px 18px; }
+.workspace-redesign .guidance-summary-copy > span { font-size: 12px; }
+.workspace-redesign .guidance-count { color: var(--brand); }
+.workspace-redesign .calculator-value-list > div { padding: 14px 20px; }
+.workspace-redesign .calculator-value-list dt { font-size: 14px; }
+.workspace-redesign .calculator-value-list dd { font-size: 16px; font-weight: 400; }
+.workspace-redesign .calculator-value-list > div:last-child { border-left: 3px solid var(--brand); background: var(--brand-wash); }
+.workspace-redesign .calculator-value-list > div:last-child dd { font-size: 24px; color: var(--brand); }
+.workspace-redesign .data-table th { font-size: 11px; background: var(--surface-2); letter-spacing: .02em; }
+.workspace-redesign .data-table td { font-size: 13px; }
+.workspace-redesign .data-table tr[aria-pressed='true'] > td:first-child { box-shadow: inset 3px 0 var(--brand); }
+.workspace-redesign .calculation-tab[aria-selected='true'] { color: var(--brand); border-color: var(--line); }
+.workspace-redesign .calculator-visuals { border-radius: 14px; border-top: 3px solid var(--brand); background: var(--surface-1); padding: 22px; }
+.workspace-redesign .calculator-visuals .model-stage { background: radial-gradient(ellipse at 50% 40%,#3c303c,#151820 78%); }
+.workspace-redesign .model-toolbar { background: var(--surface-1); gap: 8px; }
+.workspace-redesign .model-toolbar button { min-height: 42px; border-radius: 8px; }
+.workspace-redesign :is(.num,.mono,.winding-metric dd,.calculator-value-list dd,input[type='number']) { font-family: 'Inter',sans-serif; font-variant-numeric: tabular-nums; }
+.workspace-redesign :is(input[type='checkbox'],input[type='range']) { accent-color: var(--brand); }
+.workspace-redesign :is(button,a,summary):focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+#calculator-inputs,#calculator-results,#calculator-model { scroll-margin-top: 160px; }
+.options-mobile-cards { display: none; }
+@media(min-width:1500px) { .workspace-redesign .calculator-columns { grid-template-columns: 350px minmax(0,1fr); } }
+@media(max-width:1000px) {
+  .calculator-page.workspace-redesign { gap: 18px; }
+  .workspace-topbar { align-items: start; gap: 16px; }
+  .workspace-status { padding: 8px 12px; }
+  .workspace-overview { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .workspace-overview > div { padding: 16px 18px; }
+  .workspace-overview > div:nth-child(2) { border-right: 0; }
+  .workspace-overview > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .workspace-view-switch { top: 62px; }
+  .workspace-view-switch button { padding: 12px; justify-content: center; gap: 8px; min-height: 48px; }
+  .workspace-view-switch button small,.workspace-view-switch button svg { display: none; }
+  .workspace-redesign .calculator-columns { display: contents; }
+  .workspace-redesign[data-view='calculator-inputs'] :is(.calculator-results,.calculator-visuals),
+  .workspace-redesign[data-view='calculator-results'] :is(.calculator-inputs,.calculator-visuals),
+  .workspace-redesign[data-view='calculator-model'] :is(.calculator-inputs,.calculator-results) { display: none; }
+  .workspace-mobile-review { display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 14px 18px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); font-size: 14px; }
+  .workspace-redesign .calculator-visuals { padding: 12px; }
+}
+@media(max-width:640px) {
+  .workspace-brand small { font-size: 9px; }
+  .workspace-redesign .workspace-topbar h1 { font-size: 27px; margin-top: 16px; }
+  .workspace-topbar > div:first-child > p { font-size: 12px; }
+  .workspace-status { width: 100%; grid-template-columns: 6px 1fr auto; font-size: 11px; padding: 9px 12px; }
+  .workspace-status > small { grid-column: 3; grid-row: 1; margin: 0; }
+  .workspace-overview > div { padding: 15px; }
+  .workspace-overview > div > span { font-size: 11px; }
+  .workspace-redesign .workspace-overview strong { font-size: 23px; }
+  .workspace-overview small { font-size: 12px; }
+  .workspace-overview p { font-size: 10px; }
+  .workspace-view-switch button { padding: 10px 6px; gap: 6px; }
+  .workspace-view-switch button strong { font-size: 13px; }
+  .workspace-view-switch button > span:first-child { font-size: 10px; }
+  .workspace-redesign .card > header { padding: 17px; flex-wrap: wrap; }
+  .workspace-redesign .card > header h2 { font-size: 16px; }
+  .workspace-redesign .calculator-value-list > div { padding: 14px 16px; gap: 12px; }
+  .workspace-redesign .calculator-value-list dt { font-size: 13px; }
+  .workspace-redesign .calculator-value-list dd { font-size: 15px; white-space: nowrap; }
+  .workspace-redesign .calculator-inputs :is(.winding-wire-head,.winding-wire-row) { grid-template-columns: minmax(0,1fr) minmax(0,1fr) 60px; }
+  .workspace-redesign .options-desktop-table { display: none; }
+  .workspace-redesign .options-mobile-cards { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+  .option-mobile-card { display: block; width: 100%; text-align: left; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-1); }
+  .option-mobile-card[aria-pressed='true'] { border-color: var(--brand); background: var(--brand-wash); }
+  .option-mobile-heading { display: flex; justify-content: space-between; gap: 12px; align-items: start; font-size: 13px; }
+  .option-mobile-heading > span:first-child { display: flex; align-items: center; gap: 8px; }
+  .option-mobile-rank { display: inline-grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; width: 22px; height: 22px; font-size: 11px; flex-shrink: 0; }
+  .option-mobile-heading > span:last-child { color: var(--brand); font-size: 15px; white-space: nowrap; }
+  .option-mobile-wire { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--text-2); margin-top: 10px; }
+  .option-mobile-wire > span { color: var(--brand); }
+  .option-mobile-metrics { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .option-mobile-metrics > span { color: var(--text-3); font-size: 10px; }
+  .workspace-redesign .option-mobile-metrics strong { display: block; color: var(--text); font-size: 12px; font-weight: 400; margin-top: 4px; }
+  .option-mobile-reason { display: block; margin-top: 12px; color: var(--warn); font-size: 12px; }
+  .workspace-redesign .options-mobile-cards ~ div:last-child { flex-direction: column; align-items: start; gap: 10px; }
+  .workspace-redesign .model-toolbar { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); padding: 12px; }
+  .workspace-redesign .model-toolbar label { grid-column: 1/-1; }
+  .workspace-redesign .model-toolbar button { font-size: 13px; }
+  .workspace-redesign .calculator-visuals .model-stage { height: 360px; }
+  .workspace-redesign .calculator-visuals .drawing-stage { height: 300px; }
+  .workspace-redesign .winding-construction .winding-metric { flex-wrap: wrap; }
+  .workspace-redesign .winding-result-groups > section { padding: 18px; }
+}
+@media(prefers-reduced-motion:reduce) { .workspace-redesign * { scroll-behavior: auto; transition: none; } }
+/* Compact density: spend space on controls and values, not repeated introductions. */
+.calculator-page.workspace-redesign { gap: 12px; }
+.workspace-topbar { gap: 12px; align-items: center; padding: 0; }
+.workspace-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.workspace-title-mark { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 7px; background: var(--brand); color: var(--brand-ink); font: 500 15px 'Inter',sans-serif; }
+.workspace-redesign .workspace-topbar h1 { font-size: 24px; margin: 0; line-height: 1.35; }
+.workspace-status { padding: 7px 10px; font-size: 11px; }
+.workspace-status > small { font-size: 10px; margin-top: 1px; }
+.workspace-overview { border-radius: 10px; }
+.workspace-overview > div { padding: 10px 16px; }
+.workspace-overview > div > span { font-size: 11px; }
+.workspace-redesign .workspace-overview strong { font-size: 23px; margin-top: 3px; }
+.workspace-overview small { font-size: 13px; }
+.workspace-view-switch { padding: 3px; gap: 3px; border-radius: 9px; }
+.workspace-view-switch button { padding: 8px 14px; min-height: 38px; flex: 0 1 180px; gap: 8px; border-radius: 6px; }
+.workspace-view-switch button strong { font-size: 13px; font-weight: 400; }
+.workspace-redesign .calculator-columns { gap: 18px; }
+.workspace-redesign .calculator-inputs, .workspace-redesign .calculator-results { gap: 12px; }
+.workspace-redesign .calculator-inputs .parameter-grid { gap: 10px; }
+.workspace-redesign .workflow-heading { padding: 0; gap: 8px; }
+.workspace-redesign .workflow-heading h2 { font-size: 17px; }
+.workspace-redesign .workspace-results-intro { padding: 0; }
+.workspace-redesign .workspace-results-intro h2 { font-size: 19px; margin: 0; line-height: 1.5; }
+.workspace-input-group > summary, .workspace-report-group > summary { padding: 12px 14px; font-size: 14px; }
+.workspace-input-group > summary small { display: none; }
+.workspace-report-group > summary small { margin-top: 1px; }
+.workspace-redesign .calculator-inputs .parameter-grid .card > div { padding: 12px 14px; gap: 10px; }
+.workspace-redesign .workspace-input-group .field-shell { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,155px); align-items: center; gap: 5px 10px; }
+.workspace-redesign .workspace-input-group .field-shell > * { min-width: 0; }
+.workspace-redesign .workspace-input-group .field-shell > :nth-child(n+3) { grid-column: 1/-1; }
+.workspace-redesign .workspace-input-group .field-shell:has(select) { grid-template-columns: minmax(0,1fr); }
+.workspace-redesign .workspace-input-group .field-shell label { font-size: 12px; line-height: 1.6; }
+.workspace-redesign .workspace-input-group .field-shell .flex-1 { min-width: 0; }
+.workspace-redesign .workspace-input-group .card input:not([type='checkbox']):not([type='range']), .workspace-redesign .workspace-input-group .card select { min-height: 36px; font-size: 14px; padding-block: 6px; }
+.workspace-redesign .card > header { padding: 12px 16px; }
+.workspace-redesign .card > header h2 { font-size: 15px; }
+.workspace-redesign .card > header p { font-size: 12px; margin-top: 2px; }
+.workspace-redesign .calculation-guidance > summary { padding: 11px 14px; }
+.workspace-redesign .guidance-summary-copy { gap: 0; }
+.workspace-redesign .guidance-summary-copy > span { display: none; }
+.workspace-redesign .guidance-summary-copy strong { font-size: 13px; }
+.workspace-redesign .calculator-value-list > div { padding: 8px 16px; min-height: 38px; }
+.workspace-redesign .calculator-value-list dt { font-size: 13px; }
+.workspace-redesign .calculator-value-list dd { font-size: 15px; }
+.workspace-redesign .calculator-value-list > div:last-child { padding-block: 10px; }
+.workspace-redesign .calculator-value-list > div:last-child dd { font-size: 22px; }
+.workspace-redesign .data-table :is(th,td) { padding: 9px 10px; }
+.workspace-redesign .winding-highlights { padding: 14px 18px; gap: 12px; }
+.workspace-redesign .winding-highlights strong { font-size: 22px; margin-top: 4px; }
+.workspace-redesign .winding-result-groups > section { padding: 14px 18px; }
+.workspace-redesign .winding-metric { padding: 8px 0; }
+.workspace-redesign .winding-wire-breakdown { padding: 14px 18px; }
+.workspace-redesign .calculator-visuals { padding: 16px; gap: 12px; }
+@media(max-width:1000px) {
+  .calculator-page.workspace-redesign { gap: 12px; }
+  .workspace-view-switch button { flex: 1; min-height: 44px; justify-content: center; padding: 8px; }
+  .workspace-status { width: auto; }
+  .workspace-overview > div { padding: 10px 14px; }
+  .workspace-redesign .workspace-input-group .card input:not([type='checkbox']):not([type='range']), .workspace-redesign .workspace-input-group .card select { min-height: 44px; font-size: 16px; padding-block: 9px; }
+  .workspace-input-group > summary { min-height: 48px; }
+}
+@media(max-width:640px) {
+  .workspace-redesign .workspace-topbar h1 { font-size: 21px; }
+  .workspace-status { width: 100%; padding: 5px 8px; border: 0; background: none; }
+  .workspace-overview > div { padding: 8px 12px; }
+  .workspace-redesign .workspace-overview strong { font-size: 21px; }
+  .workspace-redesign .calculator-value-list > div { padding: 9px 14px; min-height: 40px; }
+  .workspace-redesign .card > header { padding: 12px 14px; }
+  .workspace-redesign .options-mobile-cards { gap: 8px; padding: 10px; }
+  .workspace-redesign .option-mobile-card { padding: 12px; }
+  .workspace-redesign .option-mobile-metrics { padding-top: 8px; margin-top: 8px; }
+  .workspace-redesign .workspace-input-group .field-shell { grid-template-columns: minmax(0,1fr) minmax(0,160px); }
+}
+.workspace-redesign .workspace-input-group .field-shell label { font-size: 13px; text-transform: none; letter-spacing: 0; }
+@media(max-width:640px) { .workspace-redesign .workspace-input-group .field-shell { grid-template-columns: minmax(0,1fr) minmax(0,140px); } }
+@media(max-width:400px) { .workspace-view-switch button > span:first-child { display: none; } }
+@media(min-width:1200px) {
+  .workspace-redesign .calculator-value-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .workspace-redesign .calculator-value-list > div { min-width: 0; gap: 12px; background: none; }
+  .workspace-redesign .calculator-value-list > div:nth-child(even) { border-left: 1px solid var(--line); }
+  .workspace-redesign .calculator-value-list > div:last-child { grid-column: 1/-1; border-left: 3px solid var(--brand); background: var(--brand-wash); }
+}

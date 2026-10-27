@@ -41,7 +41,15 @@ export function OptionsTable({
 
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div className="options-mobile-cards">
+        {shown.map(o => <button type="button" key={keyOf(o)} className="option-mobile-card" aria-pressed={selectedKey === keyOf(o)} onClick={() => onSelect(o)}>
+          <span className="option-mobile-heading"><span><span className="option-mobile-rank num">{o.rank ?? '—'}</span>{o.gradeLabel}</span><span className="num">{money(o.totalCost)}</span></span>
+          <span className="option-mobile-wire">{o.wireCombinationLabel || `SWG ${o.swg}`}<span>{selectedKey === keyOf(o) ? 'Selected' : 'View design'}</span></span>
+          <span className="option-mobile-metrics"><span>Core width<strong className="num">{n(o.coreWidthMm)} mm</strong></span><span>Ordered<strong className="num">{n(o.orderedWidthMm, 0)} mm</strong></span><span>Flux<strong className="num">{n(o.bUsedT, 4)} T</strong></span></span>
+          {!o.isFeasible && <span className="option-mobile-reason">{o.infeasibleReasons[0]}</span>}
+        </button>)}
+      </div>
+      <div className="options-desktop-table overflow-x-auto">
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
@@ -71,7 +79,7 @@ export function OptionsTable({
                   aria-pressed={active}
                   className="cursor-pointer border-b border-[var(--line)] transition-colors"
                   style={{
-                    background: active ? 'var(--surface-3)' : undefined,
+                    background: active ? 'var(--option-selected-background, var(--surface-3))' : undefined,
                     opacity: o.isFeasible ? 1 : 0.45,
                   }}
                   whileHover={reduce ? {} : { y: -2, backgroundColor: 'var(--surface-2)' }}

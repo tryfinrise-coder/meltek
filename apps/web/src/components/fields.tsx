@@ -23,7 +23,7 @@ interface BaseFieldProps {
 
 export function FieldShell({ label, error, help, hint, span, children }: BaseFieldProps) {
   return (
-    <div className={`flex flex-col gap-1.5 ${span ? 'col-span-2' : ''}`}>
+    <div className={`field-shell flex flex-col gap-1.5 ${span ? 'col-span-2' : ''}`}>
       <div className="flex items-center gap-1.5">
         <Label>{label}</Label>
         {hint && (

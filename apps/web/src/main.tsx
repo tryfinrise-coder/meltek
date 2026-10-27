@@ -14,6 +14,7 @@ import { Admin } from './routes/Admin';
 import { Card, EmptyState } from './components/primitives';
 import { AuthGate } from './components/AuthGate';
 import './index.css';
+import './calculator-theme.css';
 import { validateAdminSearch } from './lib/adminTabs';
 
 const rootRoute = createRootRoute({

@@ -285,14 +285,14 @@ export function WindingAnalysis({
         <Card eyebrow="Wire combination" title="Wire Selection"
           subtitle="Choose wire gauges and how many wires are wound in parallel for each">
           <div className="px-5 py-3">
-            <div className="mb-2 grid grid-cols-[80px_1fr_72px] gap-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
+            <div className="winding-wire-head mb-2 grid grid-cols-[80px_1fr_72px] gap-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-3)]">
               <span>Gauge</span>
               <span>Diameter</span>
               <span className="text-center">Wires</span>
             </div>
             {gauges.filter(g => g.isAvailable).map(g => (
               <div key={g.swg}
-                className="grid grid-cols-[80px_1fr_72px] items-center gap-2 border-t border-[var(--line)] py-2"
+                className="winding-wire-row grid grid-cols-[80px_1fr_72px] items-center gap-2 border-t border-[var(--line)] py-2"
               >
                 <span className="text-[13px] font-medium">{g.swg} SWG</span>
                 <span className="text-[12px] text-[var(--text-3)] mono">⌀ {g.diaMm.toFixed(3)} mm</span>

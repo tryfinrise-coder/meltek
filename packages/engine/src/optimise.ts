@@ -95,11 +95,20 @@ export function optimise(
       solveOne(grade, comboSwg, true);
     }
   } else {
+    // Solve every grade × gauge, then keep only the cheapest gauge per grade.
+    const allOptions: RankedOption[] = [];
     for (const grade of ref.grades) {
+      const gradeOptions: RankedOption[] = [];
+      const savedLen = options.length;
       for (const gauge of ref.gauges) {
         solveOne(grade, gauge.swg, gauge.isAvailable);
       }
+      gradeOptions.push(...options.splice(savedLen));
+      const feasible = gradeOptions.filter(o => o.totalCost !== null && o.converged);
+      const best = feasible.sort((a, b) => (a.totalCost as number) - (b.totalCost as number))[0];
+      allOptions.push(best ?? gradeOptions[0]!);
     }
+    options.push(...allOptions);
   }
 
   // Rank by total material cost ascending. Infeasible options and uncostable ones are

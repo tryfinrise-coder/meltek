@@ -149,7 +149,7 @@ export function OptionsTable({
 
       <div className="flex items-center justify-between gap-4 border-t border-[var(--line)] px-3 py-3 text-[12px] text-[var(--text-3)]">
         <span>
-          {feasible.length} workable of {options.length} combinations · costs are an{' '}
+          {feasible.length} workable of {options.length} grades · costs are an{' '}
           <ProvisionalMark />
         </span>
         <button type="button" onClick={onToggleShowAll} className="text-[var(--text-2)] underline underline-offset-4">

@@ -289,8 +289,8 @@ describe('interpolation', () => {
 describe('§5.10 optimise', () => {
   const result = optimise(INPUTS, ref, settings);
 
-  it('covers every grade x gauge combination', () => {
-    expect(result.options.length).toBe(ref.grades.length * ref.gauges.length);
+  it('returns one option per grade (best gauge auto-picked)', () => {
+    expect(result.options.length).toBe(ref.grades.length);
   });
 
   it('completes in single-digit milliseconds', () => {
@@ -314,7 +314,7 @@ describe('§5.10 optimise', () => {
 
   it('greys an uncharacterised grade rather than hiding it', () => {
     const nano = result.options.filter((o) => o.gradeCode === 'NANO');
-    expect(nano.length).toBe(ref.gauges.length);
+    expect(nano.length).toBe(1);
     expect(nano.every((o) => !o.isFeasible)).toBe(true);
   });
 
@@ -492,8 +492,8 @@ describe('wire combination', () => {
     expect(solved.every((o) => o.wireCombinationLabel === '1×21 + 2×22 + 1×23')).toBe(true);
   });
 
-  it('optimise() without wireCombination still iterates grade x gauge', () => {
+  it('optimise() without wireCombination picks best gauge per grade', () => {
     const result = optimise(INPUTS, ref, settings);
-    expect(result.options.length).toBe(ref.grades.length * ref.gauges.length);
+    expect(result.options.length).toBe(ref.grades.length);
   });
 });

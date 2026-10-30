@@ -62,7 +62,7 @@ export function NewDesign() {
   const [activeSection, setActiveSection] = useState('calculator-inputs');
   const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
-  const [wireComboEnabled, setWireComboEnabled] = useState(false);
+  const [wireComboEnabled, setWireComboEnabled] = useState(true);
   const [wireMap, setWireMap] = useState<Record<number, number>>({});
 
   const form = useForm<FormValues>({
@@ -526,7 +526,7 @@ export function NewDesign() {
                 resinCoverMm={reference.data?.settings.resinCoverMm ?? 4}
                 coreIdMm={selected.geometry.coreIdMm}
                 coreOdMm={selected.geometry.coreOdMm}
-                coreWidthMm={selected.coreWidthMm}
+                coreWidthMm={selected.orderedWidthMm}
                 turns={selected.geometry.turns}
                 selectedSwg={selected.swg}
                 coreWeightKg={selected.coreWeightKg}

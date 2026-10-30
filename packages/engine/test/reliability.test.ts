@@ -14,10 +14,10 @@ describe('cost and recommendation reliability', () => {
     expect(result.copperCost).toBeCloseTo(result.copperWeightKg * ref.copperRatePerKg, 10);
     expect(actualLength).toBeGreaterThan(result.wireLengthM);
   });
-  it('never ranks a width absent from a populated stock register', () => {
+  it('marks infeasible when nearest stocked slit is too far from converged width', () => {
     const result = optimise(inputs, { ...ref, slitWidthsMm: [1] }, DEFAULT_SETTINGS);
     expect(result.options.every(o => o.rank === null)).toBe(true);
-    expect(result.options.some(o => o.infeasibleReasons.includes('No stocked slit width is wide enough for this core'))).toBe(true);
+    expect(result.options.some(o => o.infeasibleReasons.includes('Nearest stocked slit differs from converged width by more than 50%'))).toBe(true);
   });
   it.each([NaN, Infinity, -1, 0])('rejects invalid burden %s', burdenVA => {
     expect(() => solve({ ...inputs, burdenVA }, ref, DEFAULT_SETTINGS, 'M-4', 17)).toThrow();

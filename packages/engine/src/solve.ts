@@ -118,7 +118,7 @@ export function computeWindingBuild(
     let maxInsulatedDiaMm = 0;
     for (const e of active) {
       const g = findGauge(combo!.ref, e.swg);
-      const insulatedDia = g.diaMm + 2 * settings.wireInsulationMm;
+      const insulatedDia = g.diaMm + settings.wireInsulationMm;
       bareBundleWidthMm += e.count * g.diaMm;
       maxInsulatedDiaMm = Math.max(maxInsulatedDiaMm, insulatedDia);
     }
@@ -129,7 +129,7 @@ export function computeWindingBuild(
     const windingBuildMm = layers * maxInsulatedDiaMm + (layers - 1) * settings.interLayerTapeMm;
     return { turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm };
   }
-  const insulatedDiaMm = gauge.diaMm + 2 * settings.wireInsulationMm;
+  const insulatedDiaMm = gauge.diaMm + settings.wireInsulationMm;
   try {
     return computeWindingAllowance(
       { turns: roundedTurns, swg: gauge.swg, wireDiaMm: insulatedDiaMm, bareDiaMm: gauge.diaMm, parallelStrands: 1, boreIdMm },
@@ -201,15 +201,22 @@ export function transformerConstant(frequencyHz: number): number {
   return 4.44 * frequencyHz * 1e-4;
 }
 
-/** §5.9 - smallest stocked slit width at or above the converged width. */
+/** §5.9 - nearest stocked slit width (round to nearest multiple of step). */
 export function roundToSlitWidth(widthMm: number, ref: ReferenceData, settings: ProcessSettings): number {
   const stocked = [...ref.slitWidthsMm].filter((w) => Number.isFinite(w) && w > 0).sort((a, b) => a - b);
-  const fit = stocked.find((w) => w >= widthMm);
-  if (fit !== undefined) return fit;
-  // Fallback (§12.7): ceiling to the nearest step, IN MILLIMETRES. The spreadsheet's
-  // CEILING(width,5) operates on centimetres and rounds 2.87 cm up to 5 cm.
+  if (stocked.length > 0) {
+    // Find the stocked width closest to the converged width.
+    let best = stocked[0]!;
+    let bestDist = Math.abs(widthMm - best);
+    for (const w of stocked) {
+      const d = Math.abs(widthMm - w);
+      if (d < bestDist) { best = w; bestDist = d; }
+    }
+    return best;
+  }
+  // Fallback: round to nearest step.
   const step = settings.slitStepMm > 0 ? settings.slitStepMm : 5;
-  return Math.ceil(widthMm / step) * step;
+  return Math.round(widthMm / step) * step;
 }
 
 export interface SolveOptions {
@@ -351,10 +358,22 @@ export function solve(
 
   /* Steps 13-14 - rounding, weight and cost. PROVISIONAL (§5.9). */
   const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings);
+  const convergedOdMm = geometry.coreOdMm;
+
+  // Adjust OD to maintain the converged cross-sectional area after width rounding.
+  // ID stays fixed; radial build changes so area = radialBuild × width is preserved.
+  const orderedWidthCm = orderedWidthMm / 10;
+  const newRadialBuildCm = areaCm2 / orderedWidthCm;
+  const newRadialBuildMm = newRadialBuildCm * 10;
+  geometry.coreOdMm = geometry.coreIdMm + 2 * newRadialBuildMm;
+  geometry.radialBuildMm = newRadialBuildMm;
+  geometry.radialBuildCm = newRadialBuildCm;
+  geometry.mmlCm = (Math.PI * ((geometry.coreIdMm + geometry.coreOdMm) / 2)) / 10;
+
   // Cost the winding actually ordered, while retaining converged intermediates.
   const orderedWireLengthM = (((geometry.coreOdMm - geometry.coreIdMm + 2 * orderedWidthMm) * settings.lengthFactor * N) + settings.leadWireMm) / 1000;
   if (![coreWidthMm, orderedWidthMm, orderedWireLengthM].every(Number.isFinite)) throw new EngineError('INVALID_INPUT', 'The winding calculation overflowed. Check the specification and wire resistance.');
-  const finalAreaCm2 = geometry.radialBuildCm * (orderedWidthMm / 10);
+  const finalAreaCm2 = areaCm2;
   // Volume is area x magnetic path length and nothing else. The spreadsheet multiplies
   // by width a second time; area already contains the width.
   const coreVolumeCm3 = finalAreaCm2 * geometry.mmlCm;
@@ -456,7 +475,7 @@ function buildSteps(
       substituted: `${i.primaryCurrent} / ${i.secondaryCurrent}`, value: g.turns, unit: 'turns' },
     { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + core insulation + 2 × winding build',
       substituted: windingDesc, value: g.allowanceMm, unit: 'mm',
-      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover, 1)} mm (circumference ${f(Math.PI * (i.finishedIdMm + resinCover), 1)} mm). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(gauge.diaMm + 2 * s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
+      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover, 1)} mm (circumference ${f(Math.PI * (i.finishedIdMm + resinCover), 1)} mm). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(gauge.diaMm + s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${f(g.allowanceMm, 3)}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',
@@ -491,11 +510,12 @@ function buildSteps(
       note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
       substituted: `${f(r.coreAreaCm2, 4)} / ${f(g.radialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
-    { step: 14, key: 'orderedWidth', label: 'Ordered width', formula: 'smallest stocked slit width >= core width',
+    { step: 14, key: 'orderedWidth', label: 'Ordered width', formula: 'nearest stocked slit width to core width',
       substituted: ref.slitWidthsMm.length
         ? `stocked widths: ${ref.slitWidthsMm.join(', ')} mm`
-        : `no slit widths on record - rounded up to the nearest ${s.slitStepMm} mm`,
-      value: r.orderedWidthMm, unit: 'mm', provisional: true },
+        : `no slit widths on record - rounded to nearest ${s.slitStepMm} mm`,
+      value: r.orderedWidthMm, unit: 'mm', provisional: true,
+      note: `OD adjusted from ${f(g.coreIdMm + 2 * (r.coreAreaCm2 / (r.coreWidthMm / 10)) * 10, 2)} to ${f(g.coreOdMm, 2)} mm to maintain cross-sectional area of ${f(r.coreAreaCm2, 4)} cm².` },
     { step: 15, key: 'coreWeight', label: 'Core weight', formula: 'area x MML x density x stacking / 1000',
       substituted: `${f(r.finalAreaCm2, 4)} x ${f(g.mmlCm, 4)} x ${grade.densityGCm3 ?? s.steelDensity} x ${grade.stackingFactor ?? s.stackingFactor} / 1000`,
       value: r.coreWeightKg, unit: 'kg', provisional: true },

@@ -39,22 +39,22 @@ describe('§5.8 derived intermediates', () => {
   const r = solve(INPUTS, ref, settings, 'M-4', 17);
 
   it('N = 60', () => expect(r.geometry.turns).toBe(60));
-  it('core ID = 47.84 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(47.84, 10));
-  it('core OD = 67.16 mm', () => expect(r.geometry.coreOdMm).toBeCloseTo(67.16, 10));
-  it('radial build = 9.66 mm', () => expect(r.geometry.radialBuildMm).toBeCloseTo(9.66, 2));
+  it('core ID = 48.14 mm', () => expect(r.geometry.coreIdMm).toBeCloseTo(48.14, 2));
+  it('core OD = 68.63 mm (adjusted for ordered width)', () => expect(r.geometry.coreOdMm).toBeCloseTo(68.63, 2));
+  it('radial build = 10.24 mm (adjusted)', () => expect(r.geometry.radialBuildMm).toBeCloseTo(10.24, 2));
   it('burden voltage = 1.0 V', () => expect(r.burdenVoltage).toBeCloseTo(1.0, 10));
   it('AT loss = 1.98 AT', () => expect(r.atLoss).toBeCloseTo(1.98, 9));
-  it('MML = 18.0642 cm', () => expect(r.geometry.mmlCm).toBeCloseTo(18.0642, 4));
+  it('MML = 18.3415 cm (adjusted)', () => expect(r.geometry.mmlCm).toBeCloseTo(18.3415, 4));
   it('H = 0.10961 AT/cm', () => expect(r.h).toBeCloseTo(0.10961, 5));
 });
 
 /** §5.8 - per grade, after convergence. Tolerance +/-0.5% on area and width. */
 const VECTORS = [
-  // Vectors updated for dynamic winding build (no fixed 9 mm allowance).
-  { grade: 'M-4',           bRaw: 0.5884, bUsed: 0.5884, capped: false, area: 1.5341, width: 15.88, wire: 3.7178, passes: 6 },
-  { grade: '23-MOH',        bRaw: 0.7734, bUsed: 0.7734, capped: false, area: 1.1357, width: 11.76, wire: 3.1240, passes: 5 },
-  { grade: 'LASER-SCRIBED', bRaw: 1.1561, bUsed: 0.6500, capped: true,  area: 1.3737, width: 14.22, wire: 3.4787, passes: 5 },
-  { grade: '30-MOH',        bRaw: 0.8623, bUsed: 0.8623, capped: false, area: 1.0097, width: 10.45, wire: 2.9362, passes: 5 },
+  // Vectors with wireInsulationMm=0.15 (total) and interLayerTapeMm=0.10.
+  { grade: 'M-4',           bRaw: 0.5884, bUsed: 0.5884, capped: false, area: 1.5364, width: 16.41, wire: 3.7515, passes: 6 },
+  { grade: '23-MOH',        bRaw: 0.7734, bUsed: 0.7734, capped: false, area: 1.1363, width: 12.14, wire: 3.1360, passes: 5 },
+  { grade: 'LASER-SCRIBED', bRaw: 1.1561, bUsed: 0.6500, capped: true,  area: 1.3752, width: 14.69, wire: 3.5036, passes: 5 },
+  { grade: '30-MOH',        bRaw: 0.8623, bUsed: 0.8623, capped: false, area: 1.0100, width: 10.79, wire: 2.9417, passes: 5 },
 ] as const;
 
 describe.each(VECTORS)('§5.8 vector - $grade', (v) => {
@@ -91,15 +91,15 @@ describe('§5.8 discrepancy - 30 MOH wire length', () => {
   it('reproduces B, area and width for 30 MOH exactly', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
     expect(r.bRawT).toBeCloseTo(0.8623, 3);
-    expect(within(r.coreAreaCm2, 1.0097, 0.5)).toBe(true);
-    expect(within(r.coreWidthMm, 10.45, 0.5)).toBe(true);
+    expect(within(r.coreAreaCm2, 1.0100, 0.5)).toBe(true);
+    expect(within(r.coreWidthMm, 10.79, 0.5)).toBe(true);
   });
 
   it('derives wire length from that row\'s own width, not the printed 4.373 m', () => {
     const r = solve(INPUTS, ref, settings, '30-MOH', 17);
-    const perTurn = ((r.geometry.coreOdMm - r.geometry.coreIdMm) + 2 * r.coreWidthMm) * settings.lengthFactor;
-    const derived = (perTurn * r.geometry.turns + settings.leadWireMm) / 1000;
-    expect(r.wireLengthM).toBeCloseTo(derived, 9);
+    // Wire length is computed from the converged iteration, not the OD-adjusted geometry.
+    const last = r.iterations[r.iterations.length - 1]!;
+    expect(r.wireLengthM).toBeCloseTo(last.lengthM, 9);
     expect(Math.abs(r.wireLengthM - BRIEF_FIGURE) / BRIEF_FIGURE).toBeGreaterThan(0.005);
   });
 
@@ -174,21 +174,25 @@ describe('§5.7 transformer constant', () => {
 });
 
 describe('§5.9 rounding, weight and cost', () => {
-  it('rounds in millimetres, not centimetres', () => {
+  it('rounds to nearest multiple of step', () => {
     expect(roundToSlitWidth(28.7, ref, settings)).toBe(30);
     expect(roundToSlitWidth(30, ref, settings)).toBe(30);
-    expect(roundToSlitWidth(30.1, ref, settings)).toBe(35);
+    expect(roundToSlitWidth(30.1, ref, settings)).toBe(30);
+    expect(roundToSlitWidth(32.5, ref, settings)).toBe(35);
+    expect(roundToSlitWidth(14.9, ref, settings)).toBe(15);
+    expect(roundToSlitWidth(10.2, ref, settings)).toBe(10);
   });
 
-  it('prefers the stocked slit register when one exists', () => {
+  it('prefers the nearest stocked slit when one exists', () => {
     const withSlits: ReferenceData = { ...ref, slitWidthsMm: [10, 15, 20, 25, 40] };
-    expect(roundToSlitWidth(26.28, withSlits, settings)).toBe(40);
+    expect(roundToSlitWidth(26.28, withSlits, settings)).toBe(25);
     expect(roundToSlitWidth(19, withSlits, settings)).toBe(20);
+    expect(roundToSlitWidth(33, withSlits, settings)).toBe(40);
   });
 
-  it('falls back to the step when no stocked width is wide enough', () => {
+  it('picks the nearest stocked slit even when all are smaller', () => {
     const withSlits: ReferenceData = { ...ref, slitWidthsMm: [10, 15] };
-    expect(roundToSlitWidth(26.28, withSlits, settings)).toBe(30);
+    expect(roundToSlitWidth(26.28, withSlits, settings)).toBe(15);
   });
 
   it('volume is area x MML, with no second multiplication by width', () => {

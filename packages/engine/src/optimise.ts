@@ -56,7 +56,8 @@ export function optimise(
     }
     if (grade.ratePerKg === null) reasons.push(`No rate on record for ${grade.label}`);
     if (!result.converged) reasons.push('Core size did not settle within the iteration limit');
-    if (ref.slitWidthsMm.length && !ref.slitWidthsMm.includes(result.orderedWidthMm)) reasons.push('No stocked slit width is wide enough for this core');
+    if (ref.slitWidthsMm.length && !ref.slitWidthsMm.includes(result.orderedWidthMm)) reasons.push('Ordered width does not match any stocked slit');
+    if (ref.slitWidthsMm.length && Math.abs(result.orderedWidthMm - result.coreWidthMm) / result.coreWidthMm > 0.5) reasons.push('Nearest stocked slit differs from converged width by more than 50%');
     if (result.totalCost !== null && !Number.isFinite(result.totalCost)) reasons.push('Material cost is not finite');
 
     const die = pickDie(ref.dies, result.geometry.coreOdMm, result.orderedWidthMm);
@@ -125,7 +126,7 @@ export function optimise(
   if (ref.slitWidthsMm.length === 0) {
     warnings.push({
       code: 'UNCONFIRMED_SETTINGS',
-      message: `Your stocked slit widths are not on record, so core widths are rounded up to the nearest ${settings.slitStepMm} mm rather than to a width you actually buy.`,
+      message: `Your stocked slit widths are not on record, so core widths are rounded to the nearest ${settings.slitStepMm} mm rather than to a width you actually buy.`,
       ref: 'Stock',
     });
   }

@@ -1,9 +1,9 @@
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { api, ApiError } from '../lib/api';
-import { TextField } from './fields';
-import { Button, Callout } from './primitives';
+import { api, ApiError } from '../shared/api';
+import { TextField } from '../shared/fields';
+import { Button, Callout } from '../shared/primitives';
 
 /** Change your own password. Every other session is signed out on success. */
 export function ChangePasswordDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

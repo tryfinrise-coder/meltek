@@ -5,13 +5,13 @@ import { motion, useReducedMotion } from 'motion/react';
 import {
   HiArchive, HiDocumentDuplicate, HiExternalLink, HiTrash, HiUpload,
 } from 'react-icons/hi';
-import { api, ApiError, type Design } from '../lib/api';
-import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../components/primitives';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { usePermission } from '../lib/session';
-import { SelectField, TextField } from '../components/fields';
-import { useReference } from '../features/useCalculator';
-import { duration, ease, stagger } from '../lib/motion';
+import { api, ApiError, type Design } from '../shared/api';
+import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../shared/primitives';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { usePermission } from './session';
+import { SelectField, TextField } from '../shared/fields';
+import { useReference } from '../design/useCalculator';
+import { duration, ease, stagger } from '../shared/motion';
 
 const STATUS_TONE: Record<Design['status'], 'ok' | 'neutral' | 'info' | 'warn'> = {
   draft: 'neutral',

@@ -1,22 +1,22 @@
 import { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { ADMIN_TABS as TABS, ADMIN_LABELS as LABEL, parseAdminTab } from '../lib/adminTabs';
+import { ADMIN_TABS as TABS, ADMIN_LABELS as LABEL, parseAdminTab } from './adminTabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Die, SteelGrade, WireGauge } from '@meltek/engine';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi';
-import { api, ApiError, type Customer, type SettingRow } from '../lib/api';
-import { useReference } from '../features/useCalculator';
+import { api, ApiError, type Customer, type SettingRow } from '../shared/api';
+import { useReference } from '../design/useCalculator';
 import { Checkbox, Label, TextInput } from 'flowbite-react';
 import {
   Badge, Button, Callout, Card, PageHeader, ProvisionalMark, Skeleton, UnconfirmedMark,
-} from '../components/primitives';
-import { TextField } from '../components/fields';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { CustomerDialog, GaugeDialog, GradeDialog } from '../features/admin/dialogs';
-import { UsersPanel } from '../features/admin/UsersPanel';
-import { usePermission } from '../lib/session';
-import { ease, fadeUp } from '../lib/motion';
+} from '../shared/primitives';
+import { TextField } from '../shared/fields';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { CustomerDialog, GaugeDialog, GradeDialog } from './dialogs';
+import { UsersPanel } from './UsersPanel';
+import { usePermission } from '../auth/session';
+import { ease, fadeUp } from '../shared/motion';
 
 /** Admin — reference data (§11.5). */
 export function Admin() {

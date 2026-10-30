@@ -3,11 +3,11 @@ import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { HiPencil, HiPlus, HiTrash } from 'react-icons/hi';
 import { ROLES, ROLE_DESCRIPTION, ROLE_LABEL, type Role } from '@meltek/schema';
-import { api, ApiError, type AccountUser } from '../../lib/api';
-import { useCurrentUser } from '../../lib/session';
-import { SelectField, TextField } from '../../components/fields';
-import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { Badge, Button, Callout, Card, Skeleton } from '../../components/primitives';
+import { api, ApiError, type AccountUser } from '../shared/api';
+import { useCurrentUser } from '../auth/session';
+import { SelectField, TextField } from '../shared/fields';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { Badge, Button, Callout, Card, Skeleton } from '../shared/primitives';
 
 const ROLE_TONE: Record<Role, 'neutral' | 'info' | 'ok' | 'brand'> = {
   viewer: 'neutral',

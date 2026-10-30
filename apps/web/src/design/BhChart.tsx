@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import { useReducedMotion } from 'motion/react';
 import type { SteelGrade } from '@meltek/engine';
-import { Badge } from '../components/primitives';
+import { Badge } from '../shared/primitives';
 
 /**
  * The B–H curve with the interpolation point marked (§11.2).

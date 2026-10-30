@@ -11,12 +11,12 @@ import {
   HiOutlineCube, HiPencilAlt, HiRefresh, HiSun, HiViewGrid, HiX,
 } from 'react-icons/hi';
 import { ROLE_LABEL } from '@meltek/schema';
-import { ADMIN_TABS, ADMIN_LABELS, parseAdminTab } from '../lib/adminTabs';
-import { duration, ease } from '../lib/motion';
-import { useCurrentUser, useSignOut } from '../lib/session';
-import { useReference } from '../features/useCalculator';
-import { useNotifications } from '../features/useNotifications';
-import { ChangePasswordDialog } from './ChangePasswordDialog';
+import { ADMIN_TABS, ADMIN_LABELS, parseAdminTab } from '../admin/adminTabs';
+import { duration, ease } from './motion';
+import { useCurrentUser, useSignOut } from '../auth/session';
+import { useReference } from '../design/useCalculator';
+import { useNotifications } from './useNotifications';
+import { ChangePasswordDialog } from '../auth/ChangePasswordDialog';
 
 /** Initials for the avatar. "J. Saha" → "JS", "Design office" → "DO". */
 function initialsOf(name: string): string {

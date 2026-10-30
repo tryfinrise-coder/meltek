@@ -4,7 +4,7 @@ import {
   ltCtFamily, EngineError,
   type DesignInputs, type OptimiseResult, type SolveResult,
 } from '@meltek/engine';
-import { api, type ReferenceResponse } from '../lib/api';
+import { api, type ReferenceResponse } from '../shared/api';
 
 /**
  * Reference data and process settings, loaded once and cached.

@@ -7,19 +7,19 @@ import {
 } from 'react-icons/hi';
 import { motion, useReducedMotion } from 'motion/react';
 import type { DesignInputs } from '@meltek/engine';
-import { api, ApiError, type StoredOptionDto } from '../lib/api';
-import { useDetail, useReference } from '../features/useCalculator';
-import { useCurrentUser, usePermission } from '../lib/session';
-import { OptionsTable, type OptionRow } from '../features/OptionsTable';
-import { DetailPanel, WarningStrip } from '../features/DetailPanel';
+import { api, ApiError, type StoredOptionDto } from '../shared/api';
+import { useDetail, useReference } from './useCalculator';
+import { useCurrentUser, usePermission } from '../auth/session';
+import { OptionsTable, type OptionRow } from './OptionsTable';
+import { DetailPanel, WarningStrip } from './DetailPanel';
 import {
   Badge, Button, Callout, Card, EmptyState, ProvisionalMark, Skeleton, StatTile,
-} from '../components/primitives';
-import { ConfirmDialog } from '../components/ConfirmDialog';
-import { EditDesignDialog } from '../components/EditDesignDialog';
-import { fadeUp } from '../lib/motion';
+} from '../shared/primitives';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { EditDesignDialog } from '../shared/EditDesignDialog';
+import { fadeUp } from '../shared/motion';
 
-const SelectedDesignPreview = lazy(() => import('../features/SelectedDesignPreview'));
+const SelectedDesignPreview = lazy(() => import('./SelectedDesignPreview'));
 
 /** The saved design screen (§11.3). */
 export function DesignDetail() {

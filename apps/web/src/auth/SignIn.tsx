@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, useReducedMotion } from 'motion/react';
-import { api, ApiError } from '../lib/api';
-import { TextField } from '../components/fields';
-import { Button, Callout } from '../components/primitives';
-import { Wordmark } from '../components/Shell';
-import { fadeUp } from '../lib/motion';
+import { api, ApiError } from '../shared/api';
+import { TextField } from '../shared/fields';
+import { Button, Callout } from '../shared/primitives';
+import { Wordmark } from '../shared/Shell';
+import { fadeUp } from '../shared/motion';
 
 /**
  * Sign in, and first-run setup.

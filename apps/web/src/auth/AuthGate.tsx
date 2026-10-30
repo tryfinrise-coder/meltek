@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import { useSession } from '../lib/session';
-import { SignIn } from '../routes/SignIn';
-import { Skeleton } from './primitives';
+import { useSession } from './session';
+import { SignIn } from './SignIn';
+import { Skeleton } from '../shared/primitives';
 
 /**
  * Nothing renders until we know who is asking.

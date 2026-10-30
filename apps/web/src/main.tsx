@@ -2,20 +2,20 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'flowbite-react';
-import { meltekTheme } from './lib/flowbite-theme';
+import { meltekTheme } from './shared/flowbite-theme';
 import {
   createRootRoute, createRoute, createRouter, Outlet, RouterProvider,
 } from '@tanstack/react-router';
-import { Shell } from './components/Shell';
-import { NewDesign } from './routes/NewDesign';
-import { Register } from './routes/Register';
-import { DesignDetail } from './routes/DesignDetail';
-import { Admin } from './routes/Admin';
-import { Card, EmptyState } from './components/primitives';
-import { AuthGate } from './components/AuthGate';
+import { Shell } from './shared/Shell';
+import { NewDesign } from './design/NewDesign';
+import { Register } from './auth/Register';
+import { DesignDetail } from './design/DesignDetail';
+import { Admin } from './admin/Admin';
+import { Card, EmptyState } from './shared/primitives';
+import { AuthGate } from './auth/AuthGate';
 import './index.css';
 import './calculator-theme.css';
-import { validateAdminSearch } from './lib/adminTabs';
+import { validateAdminSearch } from './admin/adminTabs';
 
 const rootRoute = createRootRoute({
   component: () => <Shell><Outlet /></Shell>,

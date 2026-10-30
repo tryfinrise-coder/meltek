@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import type { EngineeringSpec } from '@meltek/engine';
 import { engineeringSpecSchema } from '@meltek/schema';
-import { EngineeringEditor } from '../features/EngineeringEditor';
-import { accuracyClassLabel } from '../lib/accuracyClasses';
+import { EngineeringEditor } from '../design/EngineeringEditor';
+import { accuracyClassLabel } from '../design/accuracyClasses';
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
-import { api, ApiError, type Design } from '../lib/api';
-import { useReference } from '../features/useCalculator';
+import { api, ApiError, type Design } from './api';
+import { useReference } from '../design/useCalculator';
 import { SelectField, TextField } from './fields';
 import { Button, Callout } from './primitives';
 

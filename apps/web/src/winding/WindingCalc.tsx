@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useReducer } from 'react';
 import { useReducedMotion, motion } from 'motion/react';
-import { Card, PageHeader } from '../components/primitives';
-import { TextField, SelectField, FieldShell } from '../components/fields';
-import { useReference } from '../features/useCalculator';
-import { pageVariants, stagger, fadeUp } from '../lib/motion';
+import { Card, PageHeader } from '../shared/primitives';
+import { TextField, SelectField, FieldShell } from '../shared/fields';
+import { useReference } from '../design/useCalculator';
+import { pageVariants, stagger, fadeUp } from '../shared/motion';
 import type { WireGauge } from '@meltek/engine';
 
 const PI = Math.PI;

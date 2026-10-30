@@ -1,7 +1,7 @@
 import { Button as FbButton, Tooltip } from 'flowbite-react';
 import { useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { duration } from '../lib/motion';
+import { duration } from './motion';
 
 /* ─────────────────────────── buttons ─────────────────────────── */
 

@@ -1,9 +1,9 @@
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useState } from 'react';
 import { TESLA, type SteelGrade, type WireGauge } from '@meltek/engine';
-import { api, ApiError, type Customer } from '../../lib/api';
-import { TextField } from '../../components/fields';
-import { Button, Callout } from '../../components/primitives';
+import { api, ApiError, type Customer } from '../shared/api';
+import { TextField } from '../shared/fields';
+import { Button, Callout } from '../shared/primitives';
 
 /**
  * Dialogs for adding and editing reference data.

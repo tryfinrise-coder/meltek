@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { DesignInputs, RankedOption } from '@meltek/engine';
-import { AnimatedNumber, Badge } from '../components/primitives';
+import { AnimatedNumber, Badge } from '../shared/primitives';
 
 export function DesignStudio({ inputs, best, options, quantity, family }: {
   inputs: DesignInputs | null; best: RankedOption | null; options: RankedOption[]; quantity: number; family: string;

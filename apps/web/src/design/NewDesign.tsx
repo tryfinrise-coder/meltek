@@ -1,4 +1,4 @@
-import { accuracyClassLabel } from '../lib/accuracyClasses';
+import { accuracyClassLabel } from './accuracyClasses';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,20 +7,20 @@ import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
 import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
-import { EngineeringEditor } from '../features/EngineeringEditor';
-import { WindingAnalysis } from '../features/WindingAnalysis';
+import { EngineeringEditor } from './EngineeringEditor';
+import { WindingAnalysis } from './WindingAnalysis';
 import { designInputsSchema } from '@meltek/schema';
-import { api, ApiError } from '../lib/api';
-import { useCalculator, useDetail, useReference } from '../features/useCalculator';
-import { usePermission } from '../lib/session';
-import { OptionsTable, type OptionRow } from '../features/OptionsTable';
-import { DetailPanel, WarningStrip } from '../features/DetailPanel';
+import { api, ApiError } from '../shared/api';
+import { useCalculator, useDetail, useReference } from './useCalculator';
+import { usePermission } from '../auth/session';
+import { OptionsTable, type OptionRow } from './OptionsTable';
+import { DetailPanel, WarningStrip } from './DetailPanel';
 import {
   AnimatedNumber, Badge, Button, Callout, Card, EmptyState,
   Skeleton,
-} from '../components/primitives';
-import { SelectField, TextField } from '../components/fields';
-import { duration, ease, fadeUp } from '../lib/motion';
+} from '../shared/primitives';
+import { SelectField, TextField } from '../shared/fields';
+import { duration, ease, fadeUp } from '../shared/motion';
 
 /** The form carries the order fields alongside the electrical spec (§11.1). */
 const formSchema = z.object({
@@ -43,7 +43,7 @@ const formSchema = z.object({
 
 type FormValues = z.input<typeof formSchema>;
 
-const SelectedDesignPreview = lazy(() => import('../features/SelectedDesignPreview'));
+const SelectedDesignPreview = lazy(() => import('./SelectedDesignPreview'));
 
 const DEFAULTS: FormValues = {
   customerName: '', enquiryNo: '', poNo: '', prdNo: '', quantity: '', requiredBy: '',

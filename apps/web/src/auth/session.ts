@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { can, type Permission, type Role } from '@meltek/schema';
-import { api } from './api';
+import { api } from '../shared/api';
 
 export interface SessionUser {
   id: string;

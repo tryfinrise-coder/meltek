@@ -1,9 +1,9 @@
 import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useReducer } from 'react';
 import { motion } from 'motion/react';
-import { Card } from '../components/primitives';
-import { TextField, SelectField, FieldShell } from '../components/fields';
-import { fadeUp } from '../lib/motion';
+import { Card } from '../shared/primitives';
+import { TextField, SelectField, FieldShell } from '../shared/fields';
+import { fadeUp } from '../shared/motion';
 import type { WireGauge } from '@meltek/engine';
 
 const PI = Math.PI;

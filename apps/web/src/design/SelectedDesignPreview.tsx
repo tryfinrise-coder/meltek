@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import type { RankedOption } from '@meltek/engine';
-import { Button, Card } from '../components/primitives';
+import { Button, Card } from '../shared/primitives';
 
 const mm = (n: number) => Number(n.toFixed(2)).toString();
 

@@ -1,8 +1,8 @@
 import type { EngineeringSpec, ReferenceData } from '@meltek/engine';
 import { engineeringSpecSchema } from '@meltek/schema';
 import { useState } from 'react';
-import { Card, Button, Callout } from '../components/primitives';
-import { TextField, SelectField } from '../components/fields';
+import { Card, Button, Callout } from '../shared/primitives';
+import { TextField, SelectField } from '../shared/fields';
 
 export function newEngineeringSpec(): EngineeringSpec {
   return { purpose: 'metering', standard: '', confirmed: false, frequencyHz: 50, roomTemperatureC: 20, operatingTemperatureC: 75, copperTemperatureConstant: 234.5, burdenPowerFactor: 1, leadResistanceOhm: 0, parallelStrands: 1, strandArrangement: 'side-by-side', selectedSwg: null,

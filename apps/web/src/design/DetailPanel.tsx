@@ -2,9 +2,9 @@ import { EngineeringResults } from './EngineeringResults';
 import { motion, useReducedMotion } from 'motion/react';
 import { lazy, Suspense, useCallback, useId, useState } from 'react';
 import type { SolveResult, SteelGrade } from '@meltek/engine';
-import { Badge, Callout, ProvisionalMark, Skeleton, StatTile } from '../components/primitives';
-import { duration, ease, stagger } from '../lib/motion';
-import { exportCalcChain } from '../lib/exportCalcChain';
+import { Badge, Callout, ProvisionalMark, Skeleton, StatTile } from '../shared/primitives';
+import { duration, ease, stagger } from '../shared/motion';
+import { exportCalcChain } from './exportCalcChain';
 
 const BhChart = lazy(() => import('./BhChart'));
 

@@ -1,6 +1,6 @@
-import type { AdminTab } from '../lib/adminTabs';
+import type { AdminTab } from '../admin/adminTabs';
 import { useMemo } from 'react';
-import type { ReferenceResponse } from '../lib/api';
+import type { ReferenceResponse } from './api';
 
 export interface Notification {
   id: string;

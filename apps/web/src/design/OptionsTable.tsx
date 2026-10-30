@@ -1,9 +1,9 @@
 import { Progress, Tooltip } from 'flowbite-react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { RankedOption } from '@meltek/engine';
-import { Badge, ProvisionalMark } from '../components/primitives';
-import { costTone } from '../lib/flowbite-theme';
-import { duration, ease } from '../lib/motion';
+import { Badge, ProvisionalMark } from '../shared/primitives';
+import { costTone } from '../shared/flowbite-theme';
+import { duration, ease } from '../shared/motion';
 
 const n = (v: number, dp = 2) => (Number.isFinite(v) ? v.toFixed(dp) : '—');
 const money = (v: number | null) => (v === null ? '—' : `₹${v.toFixed(2)}`);

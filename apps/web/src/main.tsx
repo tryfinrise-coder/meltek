@@ -7,6 +7,7 @@ import {
   createRootRoute, createRoute, createRouter, Outlet, RouterProvider,
 } from '@tanstack/react-router';
 import { Shell } from './shared/Shell';
+import { Dashboard } from './design/Dashboard';
 import { NewDesign } from './design/NewDesign';
 import { Register } from './auth/Register';
 import { DesignDetail } from './design/DesignDetail';
@@ -21,13 +22,15 @@ const rootRoute = createRootRoute({
   component: () => <Shell><Outlet /></Shell>,
   notFoundComponent: () => (
     <Card><EmptyState title="That page does not exist">
-      Use the rail on the left: a new design, the register, or the reference data.
+      Use the rail on the left: dashboard, new design, register, or calculator.
     </EmptyState></Card>
   ),
 });
 
 const routes = [
-  createRoute({ getParentRoute: () => rootRoute, path: '/', component: NewDesign }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/', component: Dashboard }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/calculator', component: NewDesign }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/design/new', component: NewDesign }),
   createRoute({ getParentRoute: () => rootRoute, path: '/register', component: Register }),
   createRoute({ getParentRoute: () => rootRoute, path: '/designs/$id', component: DesignDetail }),
   createRoute({ getParentRoute: () => rootRoute, path: '/admin', validateSearch: validateAdminSearch, component: Admin }),

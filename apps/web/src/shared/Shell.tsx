@@ -8,7 +8,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   HiBell, HiChevronDoubleLeft, HiCog, HiDocumentText, HiKey, HiLogout, HiMenu, HiMoon,
-  HiOutlineCube, HiPencilAlt, HiRefresh, HiSun, HiViewGrid, HiX,
+  HiOutlineCalculator, HiOutlineCube, HiOutlineDocumentAdd, HiOutlineHome, HiRefresh, HiSun, HiViewGrid, HiX,
 } from 'react-icons/hi';
 import { ROLE_LABEL } from '@meltek/schema';
 import { ADMIN_TABS, ADMIN_LABELS, parseAdminTab } from '../admin/adminTabs';
@@ -155,8 +155,10 @@ export function Shell({ children }: { children: ReactNode }) {
           <Sidebar aria-label="Main" collapsed={!expanded} className="w-full [&>div]:bg-transparent">
             <SidebarItems>
               <SidebarItemGroup>
-                <RailItem to="/" icon={HiPencilAlt} label="New design" active={path === '/'} expanded={expanded} />
-                <RailItem to="/register" icon={HiViewGrid} label="Design register" active={path.startsWith('/register') || path.startsWith('/designs')} expanded={expanded} />
+                <RailItem to="/" icon={HiOutlineHome} label="Dashboard" active={path === '/'} expanded={expanded} />
+                <RailItem to="/design/new" icon={HiOutlineDocumentAdd} label="New Design" active={path === '/design/new'} expanded={expanded} />
+                <RailItem to="/register" icon={HiViewGrid} label="Design Register" active={path.startsWith('/register') || path.startsWith('/designs')} expanded={expanded} />
+                <RailItem to="/calculator" icon={HiOutlineCalculator} label="Calculator" active={path === '/calculator'} expanded={expanded} />
               </SidebarItemGroup>
 
               <SidebarItemGroup>

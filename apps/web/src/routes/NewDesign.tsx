@@ -502,7 +502,7 @@ export function NewDesign() {
 
               <Card
                 title="Ranked options"
-                subtitle={wireComboEnabled ? 'Each grade ranked by cost for your wire combination.' : 'Each grade ranked by cheapest gauge. Infeasible rows stay visible with their reason.'}
+                subtitle={wireCombination ? 'Each grade ranked by cost for your wire combination.' : 'Each grade ranked by cheapest gauge. Infeasible rows stay visible with their reason.'}
               >
                 <OptionsTable
                   options={options}
@@ -510,7 +510,7 @@ export function NewDesign() {
                   onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
                   showAll={showAll || !best}
                   onToggleShowAll={() => setShowAll((v) => !v)}
-                  hideWire={wireComboEnabled}
+                  hideWire={!!wireCombination}
                 />
               </Card>
 

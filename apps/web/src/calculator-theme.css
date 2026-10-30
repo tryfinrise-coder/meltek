@@ -47,7 +47,7 @@
 .workspace-view-switch button:hover { color: var(--brand); background: var(--brand-wash); }
 .workspace-view-switch button[aria-pressed='true'] { border-color: var(--line); background: var(--surface-1); color: var(--brand); box-shadow: 0 1px 3px #17223a0a; }
 .workspace-view-switch button[aria-pressed='true'] > span:first-child { color: var(--brand); }
-.workspace-redesign .calculator-columns { grid-template-columns: 330px minmax(0,1fr); gap: 24px; align-items: start; }
+.workspace-redesign .calculator-columns { display: flex; flex-direction: column; gap: 24px; }
 .workspace-redesign .calculator-inputs, .workspace-redesign .calculator-results { gap: 18px; }
 .workspace-redesign .card { border: 1px solid var(--line); border-radius: 12px; background: var(--surface-1); box-shadow: 0 2px 8px -5px #17223a25; }
 .workspace-redesign .card > header { padding: 20px; background: var(--surface-1); }
@@ -105,9 +105,18 @@
 .workspace-redesign :is(.num,.mono,.winding-metric dd,.calculator-value-list dd,input[type='number']) { font-family: 'Inter',sans-serif; font-variant-numeric: tabular-nums; }
 .workspace-redesign :is(input[type='checkbox'],input[type='range']) { accent-color: var(--brand); }
 .workspace-redesign :is(button,a,summary):focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
-#calculator-inputs,#calculator-results,#calculator-model { scroll-margin-top: 160px; }
+#calculator-inputs,#calculator-calculation,#calculator-results,#calculator-model { scroll-margin-top: 160px; }
 .options-mobile-cards { display: none; }
-@media(min-width:1500px) { .workspace-redesign .calculator-columns { grid-template-columns: 350px minmax(0,1fr); } }
+/* Input groups 2-column layout: A,B,C left — D,E,F right */
+.workspace-redesign .calculator-inputs .parameter-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(1) { order: 1; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(2) { order: 3; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(3) { order: 5; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(4) { order: 2; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(5) { order: 4; }
+.workspace-redesign .calculator-inputs .parameter-grid > :nth-child(6) { order: 6; }
+@media(max-width:800px) { .workspace-redesign .calculator-inputs .parameter-grid { grid-template-columns: 1fr; }
+  .workspace-redesign .calculator-inputs .parameter-grid > * { order: unset !important; } }
 @media(max-width:1000px) {
   .calculator-page.workspace-redesign { gap: 18px; }
   .workspace-topbar { align-items: start; gap: 16px; }
@@ -120,10 +129,18 @@
   .workspace-view-switch button { padding: 12px; justify-content: center; gap: 8px; min-height: 48px; }
   .workspace-view-switch button small,.workspace-view-switch button svg { display: none; }
   .workspace-redesign .calculator-columns { display: contents; }
-  .workspace-redesign[data-view='calculator-inputs'] :is(.calculator-results,.calculator-visuals),
-  .workspace-redesign[data-view='calculator-calculation'] :is(.calculator-inputs,.calculator-visuals),
-  .workspace-redesign[data-view='calculator-results'] :is(.calculator-inputs,.calculator-visuals),
-  .workspace-redesign[data-view='calculator-model'] :is(.calculator-inputs,.calculator-results) { display: none; }
+  .workspace-redesign[data-view='calculator-inputs'] #calculator-calculation,
+  .workspace-redesign[data-view='calculator-inputs'] #calculator-results,
+  .workspace-redesign[data-view='calculator-inputs'] .calculator-visuals,
+  .workspace-redesign[data-view='calculator-calculation'] #calculator-inputs,
+  .workspace-redesign[data-view='calculator-calculation'] #calculator-results,
+  .workspace-redesign[data-view='calculator-calculation'] .calculator-visuals,
+  .workspace-redesign[data-view='calculator-results'] #calculator-inputs,
+  .workspace-redesign[data-view='calculator-results'] #calculator-calculation,
+  .workspace-redesign[data-view='calculator-results'] .calculator-visuals,
+  .workspace-redesign[data-view='calculator-model'] #calculator-inputs,
+  .workspace-redesign[data-view='calculator-model'] #calculator-calculation,
+  .workspace-redesign[data-view='calculator-model'] #calculator-results { display: none; }
   .workspace-mobile-review { display: flex; align-items: center; justify-content: space-between; min-height: 50px; padding: 14px 18px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); font-size: 14px; }
   .workspace-redesign .calculator-visuals { padding: 12px; }
 }
@@ -223,7 +240,7 @@
 .workspace-view-switch { padding: 3px; gap: 3px; border-radius: 9px; }
 .workspace-view-switch button { padding: 8px 14px; min-height: 38px; flex: 0 1 180px; gap: 8px; border-radius: 6px; }
 .workspace-view-switch button strong { font-size: 13px; font-weight: 400; }
-.workspace-redesign .calculator-columns { gap: 18px; }
+.workspace-redesign .calculator-columns { gap: 14px; }
 .workspace-redesign .calculator-inputs, .workspace-redesign .calculator-results { gap: 12px; }
 .workspace-redesign .calculator-inputs .parameter-grid { gap: 10px; }
 .workspace-redesign .workflow-heading { padding: 0; gap: 8px; }

@@ -202,14 +202,14 @@ export function NewDesign() {
       </nav>
 
       <div className="calculator-columns">
-        {/* ── the form ── */}
+        {/* ── Section 01: Inputs ── */}
         <form
           id="calculator-inputs"
           className="calculator-inputs flex min-w-0 flex-col gap-4"
           aria-label="Design input parameters"
           onSubmit={form.handleSubmit((v) => save.mutate(v))}
         >
-          <div className="workflow-heading"><span>01</span><div><h2>Input parameters</h2></div></div>
+          <div className="workflow-heading"><span>01</span><div><h2>Input parameters</h2><p>Calculations update as you type</p></div></div>
           <div className="parameter-grid">
           <details className="workspace-input-group" open><summary><span className="workspace-group-badge">A</span><span>Electrical requirements<small>Ratio, burden and accuracy</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Electrical spec">
@@ -286,29 +286,6 @@ export function NewDesign() {
             </div>
           </Card>
           </details>
-          <details className="workspace-input-group" open={form.formState.errors.customerName ? true : undefined}><summary><span className="workspace-group-badge">E</span><span>Customer & order<small>Needed to save the design</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
-          <Card title="Customer & order">
-            <div className="grid grid-cols-2 gap-3 p-4">
-              <TextField
-                label="Customer" span list="customers" placeholder="Company name"
-                error={form.formState.errors.customerName?.message}
-                {...form.register('customerName')}
-              />
-              <datalist id="customers">
-                {(reference.data?.customers ?? []).map((c) => <option key={c.id} value={c.name} />)}
-              </datalist>
-              <TextField label="Enquiry no" {...form.register('enquiryNo')} />
-              <TextField label="PO no" {...form.register('poNo')} />
-              <TextField label="PRD no" {...form.register('prdNo')} />
-              <TextField label="Quantity" type="number" {...form.register('quantity')} />
-              <TextField label="Required by" span type="date" {...form.register('requiredBy')} />
-            </div>
-          </Card>
-
-
-          </details>
-          </div>
-
           <details className="workspace-input-group" ><summary><span className="workspace-group-badge">C</span><span>Wire configuration<small>Automatic search or fixed combination</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           {/* Wire combination picker */}
           <Card title="Wire combination" subtitle={wireComboEnabled && wireCombination
@@ -388,7 +365,28 @@ export function NewDesign() {
 
           </details>
 
+          <details className="workspace-input-group" open={form.formState.errors.customerName ? true : undefined}><summary><span className="workspace-group-badge">E</span><span>Customer & order<small>Needed to save the design</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <Card title="Customer & order">
+            <div className="grid grid-cols-2 gap-3 p-4">
+              <TextField
+                label="Customer" span list="customers" placeholder="Company name"
+                error={form.formState.errors.customerName?.message}
+                {...form.register('customerName')}
+              />
+              <datalist id="customers">
+                {(reference.data?.customers ?? []).map((c) => <option key={c.id} value={c.name} />)}
+              </datalist>
+              <TextField label="Enquiry no" {...form.register('enquiryNo')} />
+              <TextField label="PO no" {...form.register('poNo')} />
+              <TextField label="PRD no" {...form.register('prdNo')} />
+              <TextField label="Quantity" type="number" {...form.register('quantity')} />
+              <TextField label="Required by" span type="date" {...form.register('requiredBy')} />
+            </div>
+          </Card>
+          </details>
+
           <details className="workspace-input-group"><summary><span className="workspace-group-badge">F</span><span>Winding analysis inputs<small>Wire counts, spacing and material rates</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary><div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" /></details>
+          </div>{/* close parameter-grid */}
 
           {/* Similar designs, before the calculate/save action (§11.1). */}
           <AnimatePresence>
@@ -454,9 +452,35 @@ export function NewDesign() {
           </div>
         </form>
 
-        {/* ── results ── */}
+        {/* ── Section 02: Calculation trace ── */}
+        <section id="calculator-calculation" className="calculator-results flex min-w-0 flex-col gap-4" aria-label="Step-by-step calculation">
+          <div className="workflow-heading"><span>02</span><div><h2>Step-by-step calculation</h2>{selected && <p>Tracing {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`} · pick another in Results</p>}</div></div>
+          {!inputs && !error && reference.data && (
+            <Card><EmptyState title="Enter a specification first">The step-by-step trace appears once you have a valid electrical spec.</EmptyState></Card>
+          )}
+          {result && selected && detail && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${selected.gradeCode}:${selected.swg}`}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: duration.micro } }}
+                transition={{ duration: duration.base, ease: ease.out }}
+              >
+                <Card
+                  title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
+                  subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
+                >
+                  <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} />
+                </Card>
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </section>
+
+        {/* ── Section 03: Results ── */}
         <div id="calculator-results" className="calculator-results flex min-w-0 flex-col gap-4" aria-label="Calculated results">
-          <div className="workspace-results-intro"><h2>Calculated results</h2></div>
+          <div className="workflow-heading"><span>03</span><div><h2>Calculated results</h2>{result && <p>{options.length} combinations evaluated</p>}</div></div>
           {reference.isLoading && (
             <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-6 w-48" /><Skeleton className="h-40 w-full" /></div></Card>
           )}
@@ -520,29 +544,7 @@ export function NewDesign() {
                 />
               </Card>
 
-              <details className="workspace-report-group"><summary><span>Calculation working<small>Trace each formula, convergence pass and B–H curve</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
-              <AnimatePresence mode="wait">
-                {detail && (
-                  <motion.div
-                    key={`${selected.gradeCode}:${selected.swg}`}
-                    initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
-                    animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, transition: { duration: duration.micro } }}
-                    transition={{ duration: duration.base, ease: ease.out }}
-                  >
-                    <Card
-                      title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
-                      subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
-                    >
-                      <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} />
-                    </Card>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              </details>
-
-              <div className="workflow-heading"><span>•</span><div><h2>Winding analysis</h2><p>Practical layer-by-layer MLT and copper weight for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
+              <div className="workflow-heading"><span>•</span><div><h2>Winding analysis</h2><p>Layer-by-layer mean turn length for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <WindingAnalysis
                 inputHost={windingInputHost}
                 reduce={Boolean(reduce)}
@@ -573,6 +575,8 @@ export function NewDesign() {
             <span className="workspace-bottom-rank">#{selected.rank ?? '—'}</span>
             <div><span>Selected</span><strong>{selected.gradeLabel}{selected.wireCombinationLabel ? ` · ${selected.wireCombinationLabel}` : ` · SWG ${selected.swg}`}</strong></div>
             <div><span>Flux B</span><strong className="num">{selected.bUsedT.toFixed(3)} T</strong></div>
+            <div><span>Core width</span><strong className="num">{selected.coreWidthMm.toFixed(2)} mm</strong></div>
+            <div><span>Feasible</span><strong className="num">{options.filter(o => o.isFeasible).length} / {options.length}</strong></div>
             <div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
             {canCreate && (
               <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={form.handleSubmit((v) => save.mutate(v))}>

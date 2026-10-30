@@ -472,7 +472,7 @@ export function NewDesign() {
               <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}><dl className="calculator-value-list">
                 <div><dt>Core width (calc)</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Ordered width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
-                <div><dt>Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2} dp={3} suffix=" cm²" /></dd></div>
+                <div><dt>Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2 * 100} dp={1} suffix=" mm²" /></dd></div>
                 <div><dt>Flux density</dt><dd><AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" /></dd></div>
                 <div><dt>Core inner diameter</dt><dd><AnimatedNumber value={selected.geometry.coreIdMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Core outer diameter (adj)</dt><dd><AnimatedNumber value={selected.geometry.coreOdMm} dp={2} suffix=" mm" /></dd></div>

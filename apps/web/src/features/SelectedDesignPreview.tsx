@@ -246,7 +246,7 @@ function openPrintSheet(option: RankedOption) {
     <div><span>B from curve</span>${n(option.bRawT, 4)} T</div>
     <div><span>Core ID / OD</span>${n(g.coreIdMm, 1)} / ${n(g.coreOdMm, 1)} mm</div>
     <div><span>Radial build</span>${n(g.radialBuildMm, 2)} mm</div>
-    <div><span>Core area</span>${n(option.coreAreaCm2, 4)} cm²</div>
+    <div><span>Core area</span>${n(option.coreAreaCm2 * 100, 1)} mm²</div>
     <div><span>Core width</span>${n(option.coreWidthMm, 2)} mm</div>
     <div><span>Ordered width</span>${n(option.orderedWidthMm, 0)} mm <span class="tag">estimate</span></div>
     <div><span>Wire length</span>${n(option.wireLengthM, 3)} m</div>

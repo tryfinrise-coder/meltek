@@ -19,13 +19,14 @@ export interface OptionRow extends RankedOption {
  * feel arbitrary (§5.10). Rows glide on reorder via layout animation (§10.2).
  */
 export function OptionsTable({
-  options, selectedKey, onSelect, showAll, onToggleShowAll,
+  options, selectedKey, onSelect, showAll, onToggleShowAll, hideWire,
 }: {
   options: OptionRow[];
   selectedKey: string | null;
   onSelect: (o: OptionRow) => void;
   showAll: boolean;
   onToggleShowAll: () => void;
+  hideWire?: boolean;
 }) {
   const reduce = useReducedMotion();
   const feasible = options.filter((o) => o.isFeasible);
@@ -44,7 +45,7 @@ export function OptionsTable({
       <div className="options-mobile-cards">
         {shown.map(o => <button type="button" key={keyOf(o)} className="option-mobile-card" aria-pressed={selectedKey === keyOf(o)} onClick={() => onSelect(o)}>
           <span className="option-mobile-heading"><span><span className="option-mobile-rank num">{o.rank ?? '—'}</span>{o.gradeLabel}</span><span className="num">{money(o.totalCost)}</span></span>
-          <span className="option-mobile-wire">{o.wireCombinationLabel || `SWG ${o.swg}`}<span>{selectedKey === keyOf(o) ? 'Selected' : 'View design'}</span></span>
+          {!hideWire && <span className="option-mobile-wire">{o.wireCombinationLabel || `SWG ${o.swg}`}<span>{selectedKey === keyOf(o) ? 'Selected' : 'View design'}</span></span>}
           <span className="option-mobile-metrics"><span>Core width<strong className="num">{n(o.coreWidthMm)} mm</strong></span><span>Ordered<strong className="num">{n(o.orderedWidthMm, 0)} mm</strong></span><span>Flux<strong className="num">{n(o.bUsedT, 4)} T</strong></span></span>
           {!o.isFeasible && <span className="option-mobile-reason">{o.infeasibleReasons[0]}</span>}
         </button>)}
@@ -53,10 +54,10 @@ export function OptionsTable({
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
-              {['#', 'Grade', 'Wire', 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best'].map((h, i) => (
+              {['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best'].map((h) => (
                 <th
                   key={h}
-                  className={`label whitespace-nowrap px-3 py-2 font-semibold ${i >= 2 && i <= 9 ? 'text-right' : ''}`}
+                  className={`label whitespace-nowrap px-3 py-2 font-semibold ${h !== '#' && h !== 'Grade' && h !== 'vs best' ? 'text-right' : ''}`}
                 >
                   {h}
                 </th>
@@ -92,7 +93,7 @@ export function OptionsTable({
                     {o.isSelected && <span className="ml-2"><Badge tone="ok">selected</Badge></span>}
                     {!o.isFeasible && <span className="mt-1 block max-w-64 whitespace-normal text-[12px] text-[var(--text-3)]">{o.infeasibleReasons[0]}</span>}
                   </td>
-                  <td className="px-3 py-2.5 text-right num">{o.wireCombinationLabel || o.swg}</td>
+                  {!hideWire && <td className="px-3 py-2.5 text-right num">{o.wireCombinationLabel || o.swg}</td>}
                   <td className="whitespace-nowrap px-3 py-2.5 text-right num">
                     {n(o.bUsedT, 4)}
                     {o.wasCapped && (

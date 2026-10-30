@@ -358,7 +358,12 @@ export function solve(
 
   /* Steps 13-14 - rounding, weight and cost. PROVISIONAL (§5.9). */
   const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings);
-  const convergedOdMm = geometry.coreOdMm;
+
+  // Snapshot the original geometry before OD adjustment for the calc chain.
+  const origOdMm = geometry.coreOdMm;
+  const origRadialBuildMm = geometry.radialBuildMm;
+  const origRadialBuildCm = geometry.radialBuildCm;
+  const origMmlCm = geometry.mmlCm;
 
   // Adjust OD to maintain the converged cross-sectional area after width rounding.
   // ID stays fixed; radial build changes so area = radialBuild × width is preserved.
@@ -445,7 +450,7 @@ export function solve(
   };
 
   if (options.withSteps !== false) {
-    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild, comboLabel);
+    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild, comboLabel, { origOdMm, origRadialBuildMm, origRadialBuildCm, origMmlCm });
   }
   return result;
 }
@@ -463,6 +468,7 @@ function buildSteps(
   k: number,
   windingBuild: WindingResult | null,
   comboLabel: string,
+  orig: { origOdMm: number; origRadialBuildMm: number; origRadialBuildCm: number; origMmlCm: number },
 ): CalcStep[] {
   const g = r.geometry;
   const i = r.inputs;
@@ -479,9 +485,9 @@ function buildSteps(
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${f(g.allowanceMm, 3)}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',
-      substituted: `${i.finishedOdMm} - ${f(g.allowanceMm, 3)}`, value: g.coreOdMm, unit: 'mm' },
+      substituted: `${i.finishedOdMm} - ${f(g.allowanceMm, 3)}`, value: orig.origOdMm, unit: 'mm' },
     { step: 5, key: 'radialBuild', label: 'Radial build', formula: '(core OD - core ID) / 2',
-      substituted: `(${f(g.coreOdMm, 2)} - ${f(g.coreIdMm, 2)}) / 2`, value: g.radialBuildMm, unit: 'mm' },
+      substituted: `(${f(orig.origOdMm, 2)} - ${f(g.coreIdMm, 2)}) / 2`, value: orig.origRadialBuildMm, unit: 'mm' },
     { step: 6, key: 'burdenVoltage', label: 'Burden voltage', formula: 'VA / Is',
       substituted: `${i.burdenVA} / ${i.secondaryCurrent}`, value: r.burdenVoltage, unit: 'V' },
     { step: 7, key: 'atLoss', label: 'AT loss', formula: '(Ip x class% x 2) / 100',
@@ -489,9 +495,9 @@ function buildSteps(
       value: r.atLoss, unit: 'AT',
       note: 'The x2 covers the full error band, minus through plus.' },
     { step: 8, key: 'mml', label: 'Mean magnetic length', formula: 'pi x ((core ID + core OD) / 2) / 10',
-      substituted: `pi x ((${f(g.coreIdMm, 2)} + ${f(g.coreOdMm, 2)}) / 2) / 10`, value: g.mmlCm, unit: 'cm' },
+      substituted: `pi x ((${f(g.coreIdMm, 2)} + ${f(orig.origOdMm, 2)}) / 2) / 10`, value: orig.origMmlCm, unit: 'cm' },
     { step: 9, key: 'h', label: 'Magnetising force', formula: 'H = AT loss / MML',
-      substituted: `${f(r.atLoss, 4)} / ${f(g.mmlCm, 4)}`, value: r.h, unit: 'AT/cm',
+      substituted: `${f(r.atLoss, 4)} / ${f(orig.origMmlCm, 4)}`, value: r.h, unit: 'AT/cm',
       note: 'Not truncated before the lookup.' },
     { step: 10, key: 'bRaw', label: 'Flux density from the curve', formula: 'linear interpolation of the B-H curve',
       substituted: interp.lower && interp.upper
@@ -509,13 +515,13 @@ function buildSteps(
       value: r.coreAreaCm2, unit: 'cm2',
       note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
-      substituted: `${f(r.coreAreaCm2, 4)} / ${f(g.radialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
+      substituted: `${f(r.coreAreaCm2, 4)} / ${f(orig.origRadialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
     { step: 14, key: 'orderedWidth', label: 'Ordered width', formula: 'nearest stocked slit width to core width',
       substituted: ref.slitWidthsMm.length
         ? `stocked widths: ${ref.slitWidthsMm.join(', ')} mm`
         : `no slit widths on record - rounded to nearest ${s.slitStepMm} mm`,
       value: r.orderedWidthMm, unit: 'mm', provisional: true,
-      note: `OD adjusted from ${f(g.coreIdMm + 2 * (r.coreAreaCm2 / (r.coreWidthMm / 10)) * 10, 2)} to ${f(g.coreOdMm, 2)} mm to maintain cross-sectional area of ${f(r.coreAreaCm2, 4)} cm².` },
+      note: `OD adjusted from ${f(orig.origOdMm, 2)} to ${f(g.coreOdMm, 2)} mm (radial build ${f(orig.origRadialBuildMm, 2)} → ${f(g.radialBuildMm, 2)} mm) to preserve area ${f(r.coreAreaCm2, 4)} cm². Core ID stays ${f(g.coreIdMm, 2)} mm.` },
     { step: 15, key: 'coreWeight', label: 'Core weight', formula: 'area x MML x density x stacking / 1000',
       substituted: `${f(r.finalAreaCm2, 4)} x ${f(g.mmlCm, 4)} x ${grade.densityGCm3 ?? s.steelDensity} x ${grade.stackingFactor ?? s.stackingFactor} / 1000`,
       value: r.coreWeightKg, unit: 'kg', provisional: true },

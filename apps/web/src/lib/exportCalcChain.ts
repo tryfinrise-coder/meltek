@@ -14,7 +14,10 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
   const chainRows: (string | number)[][] = [
     ['MELTEK — CT Core Design Calculation Chain'],
     [],
-    ['Grade', gradeLabel, '', 'Gauge', result.wireCombinationLabel || `SWG ${result.swg}`],
+    ['Grade', gradeLabel, '', 'Wire', result.wireCombinationLabel || `SWG ${result.swg}`],
+    ...(result.wireCombination
+      ? result.wireCombination.map(e => ['', '', '', `  SWG ${e.swg}`, `${e.count} strand${e.count > 1 ? 's' : ''}`])
+      : []),
     [],
   ];
 
@@ -81,7 +84,10 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
     [],
     ['Parameter', 'Value', 'Unit'],
     ['Grade', gradeLabel, ''],
-    ['Gauge', result.wireCombinationLabel || `SWG ${result.swg}`, ''],
+    ['Wire', result.wireCombinationLabel || `SWG ${result.swg}`, ''],
+    ...(result.wireCombination
+      ? result.wireCombination.map(e => [`  SWG ${e.swg}`, `${e.count} strand${e.count > 1 ? 's' : ''}`, ''])
+      : []),
     [],
     ['Finished ID', result.inputs.finishedIdMm, 'mm'],
     ['Finished OD', result.inputs.finishedOdMm, 'mm'],
@@ -95,7 +101,7 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
     ['Secondary Turns', result.geometry.turns, ''],
     [],
     ['Ordered Width', result.orderedWidthMm, 'mm'],
-    ['Core Area', result.finalAreaCm2, 'cm²'],
+    ['Core Area', result.finalAreaCm2 * 100, 'mm²'],
     ['Core Volume', result.coreVolumeCm3, 'cm³'],
     ['Core Weight', result.coreWeightKg, 'kg'],
     ['Copper Weight', result.copperWeightKg, 'kg'],

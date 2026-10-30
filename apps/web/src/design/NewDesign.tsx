@@ -174,9 +174,14 @@ export function NewDesign() {
 
   return (
     <div className="calculator-page workspace-redesign flex flex-col gap-6" data-view={activeSection}>
-      <header className="workspace-topbar">
-        <div className="workspace-title"><span className="workspace-title-mark" aria-hidden="true">M</span><h1>CT design calculator</h1></div>
-        <div className="workspace-status" role="status"><span />{reference.isLoading ? 'Loading references' : reference.isError ? 'References unavailable' : error ? 'Check specification' : result ? 'Calculations up to date' : 'Enter your specification'}<small>{engineering ? 'Engineering mode' : 'Metering mode'}</small></div>
+      <header className="workspace-hero">
+        <div className="workspace-hero-subtitle">LT current transformer · Ring type</div>
+        <h1>New design</h1>
+        <p>Enter the specification, follow each calculation step, then compare the ranked core and winding options before saving.</p>
+        <div className="workspace-hero-actions">
+          <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
+          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={form.handleSubmit((v) => save.mutate(v))}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
+        </div>
       </header>
       <section className="workspace-overview" aria-label="Design at a glance">
         <div><span>Current ratio</span><strong className="num">{values.primaryCurrent || '—'}<small> / {values.secondaryCurrent || '—'} A</small></strong></div>
@@ -187,12 +192,13 @@ export function NewDesign() {
       <nav className="workspace-view-switch" aria-label="Calculator workspace views">
         {[
           ['calculator-inputs', '01', 'Inputs', 'Specification & construction'],
-          ['calculator-results', '02', 'Results', 'Compare & verify'],
-          ['calculator-model', '03', '3D model', 'Explore the assembly'],
-        ].map(([target, number, label]) => <button key={target} type="button" aria-pressed={activeSection===target} aria-controls={target} onClick={()=>{
+          ['calculator-calculation', '02', 'Calculation', 'Step by step working'],
+          ['calculator-results', '03', 'Results', 'Compare & select'],
+          ['calculator-model', '04', '3D model', 'Assembly & drawing'],
+        ].map(([target, number, label, subtitle]) => <button key={target} type="button" aria-pressed={activeSection===target} aria-controls={target} onClick={()=>{
           setActiveSection(target!);
           requestAnimationFrame(()=>document.getElementById(target!)?.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'}));
-        }}><span className="num">{number}</span><strong>{label}</strong></button>)}
+        }}><span className="num">{number}</span><div><strong>{label}</strong><small>{subtitle}</small></div></button>)}
       </nav>
 
       <div className="calculator-columns">
@@ -205,7 +211,7 @@ export function NewDesign() {
         >
           <div className="workflow-heading"><span>01</span><div><h2>Input parameters</h2></div></div>
           <div className="parameter-grid">
-          <details className="workspace-input-group" open><summary><span>Electrical requirements<small>Ratio, burden & accuracy</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">A</span><span>Electrical requirements<small>Ratio, burden and accuracy</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Electrical spec">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -248,7 +254,7 @@ export function NewDesign() {
 
 
           </details>
-          <details className="workspace-input-group" open><summary><span>Core dimensions<small>Finished size & physical limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">B</span><span>Core dimensions<small>Finished size and physical limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Physical limits">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -280,7 +286,7 @@ export function NewDesign() {
             </div>
           </Card>
           </details>
-          <details className="workspace-input-group" open={form.formState.errors.customerName ? true : undefined}><summary><span>Customer & order<small>Order details for saving</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open={form.formState.errors.customerName ? true : undefined}><summary><span className="workspace-group-badge">E</span><span>Customer & order<small>Needed to save the design</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Customer & order">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -303,7 +309,7 @@ export function NewDesign() {
           </details>
           </div>
 
-          <details className="workspace-input-group" ><summary><span>Wire configuration<small>Automatic search or fixed combination</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" ><summary><span className="workspace-group-badge">C</span><span>Wire configuration<small>Automatic search or fixed combination</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           {/* Wire combination picker */}
           <Card title="Wire combination" subtitle={wireComboEnabled && wireCombination
             ? `${wireCombination.map(e => `${e.count}×${e.swg} SWG`).join(' + ')} — optimizer ranks grades only`
@@ -373,7 +379,7 @@ export function NewDesign() {
 
           </details>
 
-          <details className="workspace-input-group" ><summary><span>Engineering settings<small>Insulation, materials & acceptance limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" ><summary><span className="workspace-group-badge">D</span><span>Engineering settings<small>Insulation, materials and acceptance limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <EngineeringEditor value={engineering} reference={reference.data} onChange={next => {
             if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass', next?.purpose === 'protection' ? '5P' : next?.purpose === 'ps' ? 'PS' : '0.5S');
             setEngineering(next);
@@ -382,7 +388,7 @@ export function NewDesign() {
 
           </details>
 
-          <details className="workspace-input-group"><summary><span>Winding analysis inputs<small>Wire counts, spacing & material rates</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary><div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" /></details>
+          <details className="workspace-input-group"><summary><span className="workspace-group-badge">F</span><span>Winding analysis inputs<small>Wire counts, spacing and material rates</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary><div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" /></details>
 
           {/* Similar designs, before the calculate/save action (§11.1). */}
           <AnimatePresence>
@@ -555,10 +561,27 @@ export function NewDesign() {
         </div>
       </div>
       <section id="calculator-model" className="calculator-visuals" aria-label="Selected design 3D model and drawing">
-        <div className="workflow-heading"><span>03</span><div><h2>3D model & dimensioned drawing</h2><p>Inspect the assembly, winding layers, insulation and resin cover.</p></div></div>
+        <div className="workflow-heading"><span>04</span><div><h2>3D model & dimensioned drawing</h2><p>Inspect the assembly, winding layers, insulation and resin cover.</p></div></div>
         {selected?.converged && <Suspense fallback={<Card><div className="p-6">Loading design views...</div></Card>}><SelectedDesignPreview option={selected} resinCoverMm={reference.data?.settings.resinCoverMm ?? 4} coreInsulationMm={reference.data?.settings.coreInsulationMm ?? 1} interLayerTapeMm={reference.data?.settings.interLayerTapeMm ?? 0.1} /></Suspense>}
         {!selected?.converged && <Card><EmptyState title="Your 3D model will appear here">Enter a valid specification to generate the selected design.</EmptyState></Card>}
       </section>
+
+      {/* Bottom sticky bar — selected design summary */}
+      {selected && (
+        <footer className="workspace-bottom-bar" aria-label="Selected design summary">
+          <div className="workspace-bottom-bar-inner">
+            <span className="workspace-bottom-rank">#{selected.rank ?? '—'}</span>
+            <div><span>Selected</span><strong>{selected.gradeLabel}{selected.wireCombinationLabel ? ` · ${selected.wireCombinationLabel}` : ` · SWG ${selected.swg}`}</strong></div>
+            <div><span>Flux B</span><strong className="num">{selected.bUsedT.toFixed(3)} T</strong></div>
+            <div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
+            {canCreate && (
+              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={form.handleSubmit((v) => save.mutate(v))}>
+                {save.isPending ? 'Saving…' : 'Save design & options'}
+              </Button>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

@@ -30,12 +30,12 @@
   --text-2: #98a2af;
   --text-3: #93a1b2;
 
-  --brand:       #55ddc5;
-  --brand-hover: #8cedda;
-  --brand-press: #168b79;
-  --brand-wash:  rgba(85, 221, 197, 0.1);
-  --brand-glow:  rgba(85, 221, 197, 0.28);
-  --brand-ink:   #072b26;
+  --brand:       #f0808d;
+  --brand-hover: #ffadba;
+  --brand-press: #d85f70;
+  --brand-wash:  rgba(240, 128, 141, 0.063);
+  --brand-glow:  rgba(240, 128, 141, 0.19);
+  --brand-ink:   #26080e;
 
   --ok:          #3fb37f;
   --warn:        #d9a441;
@@ -44,14 +44,20 @@
 
   --chain-geometry:      #5b9bd5;
   --chain-geometry-bg:   rgba(91, 155, 213, 0.12);
-  --chain-electrical:    #55ddc5;
-  --chain-electrical-bg: rgba(85, 221, 197, 0.10);
+  --chain-electrical:    var(--brand);
+  --chain-electrical-bg: var(--brand-wash);
   --chain-costing:       #d9a441;
   --chain-costing-bg:    rgba(217, 164, 65, 0.12);
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 8px 24px -8px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 24px 64px -16px rgba(0, 0, 0, 0.7);
+
+  --sidebar-bg: #1a0a0c;
+  --sidebar-text: #f5d0d4;
+  --sidebar-text-2: #c89a9e;
+  --sidebar-line: rgba(255,255,255,0.06);
+  --sidebar-active: rgba(240, 128, 141, 0.2);
 }
 
 :root[data-theme='light'] {
@@ -68,11 +74,11 @@
   --text-2: #55606d;
   --text-3: #626f7e;
 
-  --brand:       #168b79;
-  --brand-hover: #127363;
-  --brand-press: #105e53;
-  --brand-wash:  rgba(22, 139, 121, 0.07);
-  --brand-glow:  rgba(22, 139, 121, 0.2);
+  --brand:       #c62838;
+  --brand-hover: #a71c2b;
+  --brand-press: #891522;
+  --brand-wash:  rgba(198, 40, 56, 0.04);
+  --brand-glow:  rgba(198, 40, 56, 0.145);
   --brand-ink:   #ffffff;
 
   --ok:          #2e8b62;
@@ -82,14 +88,20 @@
 
   --chain-geometry:      #3a72a8;
   --chain-geometry-bg:   rgba(58, 114, 168, 0.08);
-  --chain-electrical:    #168b79;
-  --chain-electrical-bg: rgba(22, 139, 121, 0.07);
+  --chain-electrical:    var(--brand);
+  --chain-electrical-bg: var(--brand-wash);
   --chain-costing:       #a8791f;
   --chain-costing-bg:    rgba(168, 121, 31, 0.08);
 
   --shadow-sm: 0 1px 2px rgba(16, 20, 28, 0.06);
   --shadow-md: 0 8px 24px -8px rgba(16, 20, 28, 0.12);
   --shadow-lg: 0 24px 64px -16px rgba(16, 20, 28, 0.18);
+
+  --sidebar-bg: #2a1215;
+  --sidebar-text: #f5d0d4;
+  --sidebar-text-2: #c89a9e;
+  --sidebar-line: rgba(255,255,255,0.08);
+  --sidebar-active: rgba(198, 40, 56, 0.35);
 }
 
 @theme inline {
@@ -110,9 +122,9 @@
   --color-info: var(--info);
   --color-provisional: var(--provisional);
 
-  --font-display: 'Archivo', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
+  --font-mono: 'Inter', ui-monospace, monospace;
 
   --radius-sm: 3px;
   --radius-md: 5px;
@@ -235,11 +247,9 @@
   }
 
   .glossy-rail {
-    background:
-      radial-gradient(120% 60% at 50% -10%, var(--brand-wash) 0%, transparent 60%),
-      linear-gradient(180deg, var(--surface-2) 0%, var(--surface-1) 30%, var(--bg) 100%);
-    box-shadow: inset -1px 0 0 var(--line), inset 0 1px 0 color-mix(in srgb, var(--text) 6%, transparent);
-    backdrop-filter: blur(12px);
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    box-shadow: inset -1px 0 0 var(--sidebar-line);
   }
 
   .glossy-bar {
@@ -395,7 +405,7 @@ body {
 .reference-tabs button:hover { background: var(--surface-2); }
 .reference-tabs button[aria-current="page"] { background: var(--brand-wash); }
 .reference-rail-item[aria-current="page"] { background: var(--brand-wash); box-shadow: inset 2px 0 var(--brand); }
-.glossy-rail { box-shadow: inset -1px 0 var(--line), 12px 0 40px -25px #0008; }
+.glossy-rail { box-shadow: inset -1px 0 0 var(--sidebar-line); }
 /* Instrument studio — scoped to the live calculator. */
 .calculator-page { --font-body: 'Poppins', 'Inter', sans-serif; --font-display: 'Poppins', 'Inter', sans-serif; --font-mono: 'Poppins', 'Inter', sans-serif; font-family: var(--font-body); --studio-accent: #eead69; --studio-accent-wash: color-mix(in srgb, var(--studio-accent) 10%, transparent); gap: 24px; }
 .instrument-hero { position: relative; display: grid; grid-template-columns: 1.6fr 1fr; overflow: hidden; border: 1px solid #344554; border-radius: 22px; background: radial-gradient(ellipse at 80% 20%, #24494b 0, transparent 48%), #101e29; color: #edf4f5; }

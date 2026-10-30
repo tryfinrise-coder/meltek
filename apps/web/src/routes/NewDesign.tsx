@@ -51,6 +51,19 @@ const DEFAULTS: FormValues = {
   accuracyClass: '0.5S', finishedIdMm: 40, finishedOdMm: 75, maxWidthMm: '', ctType: 'ring',
 };
 
+const STORAGE_KEY = 'meltek-design-draft';
+
+function loadDraft(): { form: Partial<FormValues>; wireMap: Record<number, number> } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveDraft(formValues: FormValues, wireMap: Record<number, number>) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap })); } catch {}
+}
+
 export function NewDesign() {
   const reduce = useReducedMotion();
   const navigate = useNavigate();
@@ -63,14 +76,19 @@ export function NewDesign() {
   const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
   const [wireComboEnabled, setWireComboEnabled] = useState(true);
-  const [wireMap, setWireMap] = useState<Record<number, number>>({});
+
+  const draft = useMemo(() => loadDraft(), []);
+  const [wireMap, setWireMap] = useState<Record<number, number>>(draft?.wireMap ?? {});
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: DEFAULTS,
+    defaultValues: { ...DEFAULTS, ...draft?.form },
     mode: 'onChange',
   });
   const values = form.watch();
+
+  // Auto-save form + wireMap to localStorage on every change.
+  useEffect(() => { saveDraft(values, wireMap); }, [values, wireMap]);
 
   const wireCombination: WireCombinationEntry[] | null = useMemo(() => {
     if (!wireComboEnabled) return null;

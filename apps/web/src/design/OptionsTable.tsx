@@ -55,7 +55,7 @@ export function OptionsTable({
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="text-left">
-              {(referenceFormat ? [{h:'',w:28}, {h:'Rank'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B (T)'}, {h:'Core width'}, {h:'Steel kg'}, {h:'Cu kg'}, {h:'Cost'}, {h:'Status'}] : [{h:'#'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B used'}, {h:'Core width'}, {h:'Ordered'}, {h:'Die'}, {h:'Core kg'}, {h:'Copper kg'}, {h:'Total cost'}, {h:'vs best'}]).map(({h,w}, i) => (
+              {(referenceFormat ? [{h:'',w:28}, {h:'Rank'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B (T)'}, {h:'Calculated width'}, {h:'Rounded width'}, {h:'Steel kg'}, {h:'Cu kg'}, {h:'Cost'}, {h:'Status'}] : [{h:'#'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B used'}, {h:'Core width'}, {h:'Ordered'}, {h:'Die'}, {h:'Core kg'}, {h:'Copper kg'}, {h:'Total cost'}, {h:'vs best'}]).map(({h,w}, i) => (
                 <th
                   key={h || `dot-${i}`}
                   className={`label whitespace-nowrap ${!['', '#', 'Rank', 'Grade', 'vs best', 'Status'].includes(h) ? 'text-right' : ''}`}
@@ -105,10 +105,8 @@ export function OptionsTable({
                       </span>
                     )}
                   </td>
-                  {referenceFormat
-                    ? <td className="text-right num">{n(o.orderedWidthMm, 0)} mm</td>
-                    : <><td className="text-right num">{n(o.coreWidthMm)} mm</td><td className="text-right num" style={{ color: 'var(--provisional)' }}>{n(o.orderedWidthMm, 0)} mm</td></>
-                  }
+                  <td className="text-right num">{n(o.coreWidthMm)} mm</td>
+                  <td className="text-right num" style={referenceFormat ? undefined : { color: 'var(--provisional)' }}>{n(o.orderedWidthMm, 0)} mm</td>
                   {!referenceFormat && <td className="text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>}
                   <td className="text-right num">{n(o.coreWeightKg, 3)}</td>
                   <td className="text-right num">{n(o.copperWeightKg, 3)}</td>

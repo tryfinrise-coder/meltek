@@ -10,3 +10,4 @@ export * from './engineeringTypes.js';
 export * from './engineering.js';
 
 export * from './layerPitch.js';
+export * from './coreTests.js';

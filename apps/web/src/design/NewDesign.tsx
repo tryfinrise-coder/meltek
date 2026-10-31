@@ -7,10 +7,11 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry, interpolateH } from '@meltek/engine';
+import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
 import { EngineeringEditor } from './EngineeringEditor';
 import { LayerPitchField } from './LayerPitchField';
 import { CoreWidthRounding } from './CoreWidthRounding';
+import { CoreTestResults } from './CoreTestResults';
 import { WindingAnalysis } from './WindingAnalysis';
 import { createCalculatorInputs, wireCombinationFromMap, wireModeFromDraft } from './calculationInputs';
 import { api, ApiError } from '../shared/api';
@@ -77,6 +78,7 @@ export function NewDesign() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [roundingPending, setRoundingPending] = useState(false);
+  const [testDataPending, setTestDataPending] = useState(false);
   const [activeSection, setActiveSection] = useState('calculator-inputs');
   useEffect(() => {
     let frame = 0;
@@ -200,7 +202,7 @@ export function NewDesign() {
         </div>
         <div className="workspace-hero-actions">
           <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setWireComboEnabled(false); setLayerPitchOverridesMm({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
-          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
+          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
         </div>
       </header>
       <section className="workspace-overview" aria-label="Design at a glance">
@@ -550,57 +552,10 @@ export function NewDesign() {
                 ); })()}
               </dl></Card>
 
-              {grade && (() => {
-                const b100 = selected.bUsedT;
-                const areaCm2 = selected.finalAreaCm2;
-                const mmlCm = selected.geometry.mmlCm;
-                const is05s = inputs?.accuracyClass === '0.5S';
-                const testPoints = [
-                  { label: '120%', factor: 1.2 },
-                  { label: '100%', factor: 1.0 },
-                  { label: '20%', factor: 0.2 },
-                  { label: '5%', factor: 0.05 },
-                  ...(is05s ? [{ label: '1%', factor: 0.01 }] : []),
-                ];
-                const turnsOptions = [5, 10, 15] as const;
-                return (
-                  <Card title="Test voltages & max current" subtitle={`${selected.gradeLabel} · B₁₀₀ = ${b100.toFixed(4)} T · MML = ${mmlCm.toFixed(2)} cm`}>
-                    <div className="overflow-x-auto">
-                      <table className="data-table w-full text-[13px]">
-                        <thead>
-                          <tr className="text-left">
-                            <th className="label">Point</th>
-                            <th className="label text-right">B (T)</th>
-                            <th className="label text-right">AT/cm</th>
-                            {turnsOptions.map(n => <th key={`v${n}`} className="label text-right">V ({n}T)</th>)}
-                            {turnsOptions.map(n => <th key={`i${n}`} className="label text-right">I<sub>max</sub> ({n}T)</th>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {testPoints.map(({ label, factor }) => {
-                            const b = b100 * factor;
-                            const v100 = 0.0222 * b100 * areaCm2;
-                            const v = v100 * factor;
-                            const hAtCm = interpolateH(grade.curve, b);
-                            return (
-                              <tr key={label} className="border-b border-[var(--line)]">
-                                <td className="whitespace-nowrap font-medium">{label}</td>
-                                <td className="text-right num">{b.toFixed(4)}</td>
-                                <td className="text-right num">{hAtCm !== null ? hAtCm.toFixed(4) : '—'}</td>
-                                {turnsOptions.map(n => <td key={`v${n}`} className="text-right num">{(v * n).toFixed(4)}</td>)}
-                                {turnsOptions.map(n => <td key={`i${n}`} className="text-right num">{hAtCm !== null ? ((hAtCm * mmlCm) / n).toFixed(3) : '—'}</td>)}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                    <p className="px-4 py-3 text-xs text-[var(--text-3)]">
-                      V = 0.0222 × B × N × A&nbsp;(cm²) · I<sub>max</sub> = (AT/cm × MML) / N · Area = {(areaCm2).toFixed(4)} cm²{is05s ? ' · 1% row shown for class 0.5S' : ''}
-                    </p>
-                  </Card>
-                );
-              })()}
+              {grade && selected.converged && <CoreTestResults
+                result={selected} grade={grade} frequencyHz={reference.data?.settings.frequencyHz ?? 50}
+                onPendingChange={setTestDataPending}
+              />}
 
               <Card
                 title="Ranked options"
@@ -655,7 +610,7 @@ export function NewDesign() {
             <div><span>Feasible</span><strong className="num">{options.filter(o => o.isFeasible).length} / {options.length}</strong></div>
             <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
             {canCreate && (
-              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending} onClick={submitDesign}>
+              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>
                 {save.isPending ? 'Saving…' : 'Save design & options'}
               </Button>
             )}

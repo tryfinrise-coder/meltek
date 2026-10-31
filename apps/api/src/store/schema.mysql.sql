@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS steel_grade (
 CREATE TABLE IF NOT EXISTS bh_point (
   id                CHAR(36) PRIMARY KEY,
   grade_id          CHAR(36) NOT NULL,
-  flux_density_t    DECIMAL(12,6) NOT NULL,
-  magnetising_at_cm DECIMAL(12,6),
+  flux_density_t    DECIMAL(30,20) NOT NULL,
+  magnetising_at_cm DECIMAL(30,20),
   UNIQUE KEY uq_bh (grade_id, flux_density_t),
   FOREIGN KEY (grade_id) REFERENCES steel_grade(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -259,3 +259,7 @@ INSERT IGNORE INTO accuracy_class (code, percent, per_is, note) VALUES
 -- Duplicate-column errors are ignored by the idempotent migration runner.
 ALTER TABLE wire_gauge ADD COLUMN layer_pitch_mm DECIMAL(20,6);
 ALTER TABLE design ADD COLUMN winding_configuration JSON;
+
+-- Preserve evaluated low-flux points without rounding them outside curve coverage.
+ALTER TABLE bh_point MODIFY COLUMN flux_density_t DECIMAL(30,20) NOT NULL;
+ALTER TABLE bh_point MODIFY COLUMN magnetising_at_cm DECIMAL(30,20);

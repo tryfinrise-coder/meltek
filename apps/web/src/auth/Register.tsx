@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { motion, useReducedMotion } from 'motion/react';
 import {
   HiArchive, HiDocumentDuplicate, HiExternalLink, HiTrash, HiUpload,
 } from 'react-icons/hi';
 import { api, ApiError, type Design } from '../shared/api';
-import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '../shared/primitives';
+import { Badge, Button, Callout, Card, EmptyState, PageHeader, Skeleton } from '../shared/primitives';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { usePermission } from './session';
 import { SelectField, TextField } from '../shared/fields';
+import { useDebouncedValue } from '../shared/useDebouncedValue';
 import { useReference } from '../design/useCalculator';
 import { duration, ease, stagger } from '../shared/motion';
 
@@ -40,15 +41,17 @@ export function Register() {
   const canCreate = usePermission('designs.create');
   const canArchive = usePermission('designs.archive');
   const canDelete = usePermission('designs.delete');
-  const [view, setView] = useState<'table' | 'cards'>('table');
+  const [view, setView] = useState<'table' | 'cards'>(() => window.matchMedia('(max-width: 700px)').matches ? 'cards' : 'table');
   const [pendingDelete, setPendingDelete] = useState<Design | null>(null);
   const [filters, setFilters] = useState({
     q: '', customer: '', status: '', accuracyClass: '', ratio: '', burdenVA: '', minId: '', maxOd: '',
   });
 
+  const settledFilters = useDebouncedValue(filters);
   const designs = useQuery({
-    queryKey: ['designs', filters],
-    queryFn: () => api.designs(filters),
+    queryKey: ['designs', settledFilters],
+    queryFn: () => api.designs(settledFilters),
+    placeholderData: keepPreviousData,
   });
 
   const set = (k: keyof typeof filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -84,16 +87,16 @@ export function Register() {
         <HiExternalLink className="h-3.5 w-3.5" aria-hidden />
       </Button>
       {canCreate && (
-        <Button size="xs" title="Duplicate as a new design" onClick={() => duplicate.mutate(d)}>
+        <Button size="xs" title="Duplicate as a new design" disabled={duplicate.isPending} onClick={() => duplicate.mutate(d)}>
           <HiDocumentDuplicate className="h-3.5 w-3.5" aria-hidden />
         </Button>
       )}
       {canArchive && (d.status === 'archived' ? (
-        <Button size="xs" title="Restore to the working register" onClick={() => restore.mutate(d)}>
+        <Button size="xs" title="Restore to the working register" disabled={restore.isPending} onClick={() => restore.mutate(d)}>
           <HiUpload className="h-3.5 w-3.5" aria-hidden />
         </Button>
       ) : (
-        <Button size="xs" title="Archive" onClick={() => archive.mutate(d)}>
+        <Button size="xs" title="Archive" disabled={archive.isPending} onClick={() => archive.mutate(d)}>
           <HiArchive className="h-3.5 w-3.5" aria-hidden />
         </Button>
       ))}
@@ -108,33 +111,34 @@ export function Register() {
   const rows = designs.data?.designs ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="design-register flex flex-col gap-6">
       <PageHeader
-        eyebrow="Archive"
+        eyebrow="Design library"
         title="Design register"
         actions={
           <>
-            <Button size="sm" variant={view === 'table' ? 'secondary' : 'ghost'} onClick={() => setView('table')}>Table</Button>
-            <Button size="sm" variant={view === 'cards' ? 'secondary' : 'ghost'} onClick={() => setView('cards')}>Cards</Button>
-            {canCreate && <Link to="/"><Button size="sm" variant="primary">New design</Button></Link>}
+            <Button size="sm" aria-label="Table view" aria-pressed={view === 'table'} variant={view === 'table' ? 'secondary' : 'ghost'} onClick={() => setView('table')}>Table</Button>
+            <Button size="sm" aria-label="Card view" aria-pressed={view === 'cards'} variant={view === 'cards' ? 'secondary' : 'ghost'} onClick={() => setView('cards')}>Cards</Button>
+            {canCreate && <Link to="/design/new" className="action-link action-primary">+ New design</Link>}
           </>
         }
       >
         Every design this office has calculated, with what was chosen and who approved it.
       </PageHeader>
 
-      <Card>
+      <Card className="register-filter-panel">
+        <div className="register-filter-toolbar"><div><strong>Find a design</strong><span role="status" aria-live="polite">{designs.isFetching ? 'Updating results…' : `${rows.length} designs shown`}</span></div><Button size="sm" variant="ghost" disabled={!Object.values(filters).some(Boolean)} onClick={() => setFilters({q: '', customer: '', status: '', accuracyClass: '', ratio: '', burdenVA: '', minId: '', maxOd: ''})}>Clear filters</Button></div>
         <div className="grid grid-cols-2 gap-3 p-4 md:grid-cols-4 xl:grid-cols-8">
           <TextField label="Search" value={filters.q} onChange={set('q')} placeholder="No, PO, PRD" sizing="sm" />
           <TextField label="Customer" value={filters.customer} onChange={set('customer')} sizing="sm" />
           <TextField label="Ratio" value={filters.ratio} onChange={set('ratio')} placeholder="300/5" sizing="sm" />
-          <TextField label="Burden VA" value={filters.burdenVA} onChange={set('burdenVA')} sizing="sm" />
+          <TextField label="Burden VA" inputMode="decimal" className="num" value={filters.burdenVA} onChange={set('burdenVA')} sizing="sm" />
           <SelectField label="Class" value={filters.accuracyClass} onChange={set('accuracyClass')} sizing="sm">
             <option value="">Any</option>
             {(reference.data?.classes ?? []).map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
           </SelectField>
-          <TextField label="Min ID" value={filters.minId} onChange={set('minId')} sizing="sm" />
-          <TextField label="Max OD" value={filters.maxOd} onChange={set('maxOd')} sizing="sm" />
+          <TextField label="Min ID" inputMode="decimal" className="num" value={filters.minId} onChange={set('minId')} sizing="sm" />
+          <TextField label="Max OD" inputMode="decimal" className="num" value={filters.maxOd} onChange={set('maxOd')} sizing="sm" />
           <SelectField label="Status" value={filters.status} onChange={set('status')} sizing="sm">
             <option value="">Any</option>
             {(Object.keys(STATUS_LABEL) as Design['status'][]).map((s) => (
@@ -144,6 +148,8 @@ export function Register() {
         </div>
       </Card>
 
+      {designs.isError && <Callout tone="warn" title="Design register could not be loaded"><p className="mb-3">{designs.error.message}</p><Button size="sm" onClick={() => { void designs.refetch(); }}>Try again</Button></Callout>}
+      {[duplicate.error, archive.error, restore.error].filter(Boolean).map((error, index) => <Callout key={index} tone="warn" title="The design could not be updated">{error?.message}</Callout>)}
       {designs.isLoading && (
         <Card><div className="flex flex-col gap-2 p-5">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div></Card>
       )}
@@ -229,18 +235,16 @@ export function Register() {
               }}
               whileHover={reduce ? {} : { y: -2, boxShadow: 'var(--shadow-md)' }}
             >
-              <Link to="/designs/$id" params={{ id: d.id }} className="block">
+              <div className="register-design-card">
                 <Card className="h-full">
                   <div className="flex items-start justify-between gap-3 p-4">
                     <div>
-                      <div className="font-[family-name:var(--font-display)] text-[16px] font-bold">{d.designNo}</div>
+                      <Link to="/designs/$id" params={{ id: d.id }} className="register-card-title">{d.designNo}</Link>
                       <div className="text-[13px] text-[var(--text-2)]">{d.customerName}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <Badge tone={STATUS_TONE[d.status]}>{STATUS_LABEL[d.status]}</Badge>
-                      <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                        {rowActions(d)}
-                      </span>
+                      {rowActions(d)}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 border-t border-[var(--line)] p-4 text-[13px]">
@@ -250,7 +254,7 @@ export function Register() {
                     <Spec label="Body">{d.inputs.finishedIdMm}/{d.inputs.finishedOdMm} mm</Spec>
                   </div>
                 </Card>
-              </Link>
+              </div>
             </motion.div>
           ))}
         </motion.div>

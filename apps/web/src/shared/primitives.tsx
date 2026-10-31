@@ -1,11 +1,11 @@
 import { Button as FbButton, Tooltip } from 'flowbite-react';
 import { useReducedMotion } from 'motion/react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type AriaAttributes } from 'react';
 import { duration } from './motion';
 
 /* ─────────────────────────── buttons ─────────────────────────── */
 
-type ButtonProps = {
+type ButtonProps = Pick<AriaAttributes, 'aria-label' | 'aria-pressed' | 'aria-expanded' | 'aria-controls'> & {
   children: ReactNode;
   variant?: 'primary' | 'secondary' | 'ghost';
   size?: 'xs' | 'sm' | 'md' | 'lg';
@@ -23,10 +23,12 @@ type ButtonProps = {
  */
 export function Button({
   children, variant = 'secondary', size = 'md', type = 'button',
-  disabled, onClick, title, className = '',
+  disabled, onClick, title, className = '', ...aria
 }: ButtonProps) {
   const button = (
     <FbButton
+      aria-label={title}
+      {...aria}
       type={type}
       color={variant}
       size={size}
@@ -70,7 +72,7 @@ export function PageHeader({
   eyebrow, title, children, actions,
 }: { eyebrow: string; title: string; children?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="flex flex-col gap-4">
+    <header className="page-heading flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="eyebrow">{eyebrow}</div>
@@ -239,8 +241,8 @@ export function Callout({
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <div className="px-5 py-14 text-center">
-      <p className="font-[family-name:var(--font-display)] text-[16px]">{title}</p>
-      {children && <p className="mx-auto mt-2 max-w-[46ch] text-[13px] text-[var(--text-2)]">{children}</p>}
+      <h2 className="font-[family-name:var(--font-display)] text-[16px]">{title}</h2>
+      {children && <div className="mx-auto mt-2 max-w-[46ch] text-[13px] text-[var(--text-2)]">{children}</div>}
     </div>
   );
 }

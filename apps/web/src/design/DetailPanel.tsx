@@ -26,7 +26,7 @@ const TAB_LABEL: Record<Tab, string> = {
  * "Show the working. Every result should be traceable to the inputs that produced it in
  * one click." (§16)
  */
-export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string }) {
+export function DetailPanel({ result, grade, gradeLabel, presentation = 'tabs' }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string; presentation?: 'tabs' | 'report' }) {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('chain');
   const tabId = useId();
@@ -35,6 +35,25 @@ export function DetailPanel({ result, grade, gradeLabel }: { result: SolveResult
   }, [result, gradeLabel]);
 
   if (result.engineering) return <EngineeringResults result={result} gradeLabel={gradeLabel ?? result.gradeCode} />;
+
+  if (presentation === 'report') return (
+    <div className="calculation-report">
+      <div className="calculation-report-tools">
+        <button type="button" onClick={handleExport}>Download calculation as Excel</button>
+      </div>
+      <Chain result={result} reduce={Boolean(reduce)} />
+      <section className="calculation-report-convergence">
+        <h3>Convergence</h3>
+        <Convergence result={result} />
+      </section>
+      <details className="calculation-report-curve">
+        <summary>B–H curve and operating point</summary>
+        <Suspense fallback={<Skeleton className="h-[320px] w-full" />}>
+          {grade ? <BhChart grade={grade} h={result.h} bRaw={result.bRawT} bUsed={result.bUsedT} capped={result.wasCapped} /> : <p>No curve on record for this grade.</p>}
+        </Suspense>
+      </details>
+    </div>
+  );
 
   return (
     <div>

@@ -1,5 +1,6 @@
+import { CalculatorStatusContext } from '../shared/CalculatorStatus';
 import { accuracyClassLabel } from './accuracyClasses';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -66,6 +67,7 @@ function saveDraft(formValues: FormValues, wireMap: Record<number, number>) {
 
 export function NewDesign() {
   const reduce = useReducedMotion();
+  const setCalculatorStatus = useContext(CalculatorStatusContext);
   const navigate = useNavigate();
   const reference = useReference();
   const canCreate = usePermission('designs.create');
@@ -73,11 +75,25 @@ export function NewDesign() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [activeSection, setActiveSection] = useState('calculator-inputs');
+  useEffect(() => {
+    let frame = 0;
+    const updateSection = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const ids = ['calculator-inputs', 'calculator-calculation', 'calculator-results', 'calculator-model'];
+        const current = ids.filter(id => (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) <= 210).at(-1);
+        setActiveSection(current ?? ids[0]!);
+      });
+    };
+    window.addEventListener('scroll', updateSection, { passive: true });
+    updateSection();
+    return () => { window.removeEventListener('scroll', updateSection); cancelAnimationFrame(frame); };
+  }, []);
   const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
-  const [wireComboEnabled, setWireComboEnabled] = useState(true);
 
   const draft = useMemo(() => loadDraft(), []);
+  const [wireComboEnabled, setWireComboEnabled] = useState(() => Object.values(draft?.wireMap ?? {}).some(count => count > 0));
   const [wireMap, setWireMap] = useState<Record<number, number>>(draft?.wireMap ?? {});
 
   const form = useForm<FormValues>({
@@ -121,6 +137,11 @@ export function NewDesign() {
     values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination]);
 
   const { result, error } = useCalculator(inputs, reference.data);
+
+  useEffect(() => {
+    setCalculatorStatus?.({ text: reference.isLoading ? 'Loading reference data' : reference.isError ? 'Reference data unavailable' : error ? 'Review specification' : result ? 'Calculations up to date' : 'Enter a valid specification', mode: engineering ? 'Engineering mode' : 'Metering mode', ready: Boolean(result && !error) });
+  }, [setCalculatorStatus, reference.isLoading, reference.isError, error, result, engineering]);
+  useEffect(() => () => setCalculatorStatus?.(null), [setCalculatorStatus]);
 
   const options: OptionRow[] = result?.options ?? [];
   const best = options.find((o) => o.rank === 1) ?? null;
@@ -166,6 +187,13 @@ export function NewDesign() {
     onSuccess: (design) => navigate({ to: '/designs/$id', params: { id: design.id } }),
   });
 
+  const submitDesign = form.handleSubmit((v) => save.mutate(v), (errors) => {
+    document.querySelectorAll<HTMLDetailsElement>('#calculator-inputs details').forEach(section => { section.open = true; });
+    document.getElementById('calculator-inputs')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    const firstField = Object.keys(errors)[0] as keyof FormValues | undefined;
+    if (firstField) requestAnimationFrame(() => form.setFocus(firstField));
+  });
+
   const classes = engineering?.purpose === 'protection'
     ? ['5P','10P'].map(code=>({code,perIS:false,note:'Protection engineering screening; confirm standard and limits.'}))
     : engineering?.purpose === 'ps' ? ['PS','PX'].map(code=>({code,perIS:false,note:'Special protection: specify knee voltage, excitation and resistance requirements.'}))
@@ -173,14 +201,15 @@ export function NewDesign() {
   const unconfirmed = (reference.data?.settingRows ?? []).filter((s) => !s.isConfirmed);
 
   return (
-    <div className="calculator-page workspace-redesign flex flex-col gap-6" data-view={activeSection}>
+    <div className="calculator-page workspace-redesign reference-calculator flex flex-col gap-6" data-view={activeSection}>
       <header className="workspace-hero">
-        <div className="workspace-hero-subtitle">LT current transformer · Ring type</div>
+        <div className="workspace-hero-copy"><div className="workspace-hero-subtitle">LT current transformer · Ring type</div>
         <h1>New design</h1>
         <p>Enter the specification, follow each calculation step, then compare the ranked core and winding options before saving.</p>
+        </div>
         <div className="workspace-hero-actions">
           <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
-          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={form.handleSubmit((v) => save.mutate(v))}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
+          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
         </div>
       </header>
       <section className="workspace-overview" aria-label="Design at a glance">
@@ -207,7 +236,7 @@ export function NewDesign() {
           id="calculator-inputs"
           className="calculator-inputs flex min-w-0 flex-col gap-4"
           aria-label="Design input parameters"
-          onSubmit={form.handleSubmit((v) => save.mutate(v))}
+          onSubmit={submitDesign}
         >
           <div className="workflow-heading"><span>01</span><div><h2>Input parameters</h2><p>Calculations update as you type</p></div></div>
           <div className="parameter-grid">
@@ -235,7 +264,7 @@ export function NewDesign() {
                 {...form.register('burdenVA')}
               />
               <SelectField
-                label="Accuracy class" span aria-label="Accuracy class"
+                label="Accuracy class" aria-label="Accuracy class"
                 hint="Permitted error. A tighter class needs more steel."
                 {...form.register('accuracyClass')}
                 value={values.accuracyClass}
@@ -286,7 +315,7 @@ export function NewDesign() {
             </div>
           </Card>
           </details>
-          <details className="workspace-input-group" ><summary><span className="workspace-group-badge">C</span><span>Wire configuration<small>Automatic search or fixed combination</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">C</span><span>Wire configuration<small>Automatic search or fixed combination</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           {/* Wire combination picker */}
           <Card title="Wire combination" subtitle={wireComboEnabled && wireCombination
             ? `${wireCombination.map(e => `${e.count}×${e.swg} SWG`).join(' + ')} — optimizer ranks grades only`
@@ -309,7 +338,7 @@ export function NewDesign() {
             </div>
             {wireComboEnabled && (
               <div className="border-t border-[var(--line)] px-4 py-3">
-                <div className="grid gap-1" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+                <div className="wire-configuration-grid grid gap-1" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Gauge</div>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Diameter</div>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Wires</div>
@@ -321,6 +350,7 @@ export function NewDesign() {
                         <div className="text-[13px] py-1 text-[var(--text-3)]">⌀ {g.diaMm.toFixed(3)} mm</div>
                         <input
                           type="number"
+                          aria-label={`${g.swg} SWG parallel wires`}
                           min={0}
                           max={10}
                           value={wireMap[g.swg] === undefined ? '' : wireMap[g.swg]}
@@ -355,17 +385,8 @@ export function NewDesign() {
 
 
           </details>
-
-          <details className="workspace-input-group" ><summary><span className="workspace-group-badge">D</span><span>Engineering settings<small>Insulation, materials and acceptance limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
-          <EngineeringEditor value={engineering} reference={reference.data} onChange={next => {
-            if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass', next?.purpose === 'protection' ? '5P' : next?.purpose === 'ps' ? 'PS' : '0.5S');
-            setEngineering(next);
-          }}/>
-
-
-          </details>
-
-          <details className="workspace-input-group" open={form.formState.errors.customerName ? true : undefined}><summary><span className="workspace-group-badge">E</span><span>Customer & order<small>Needed to save the design</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">D</span><span>Winding & material<small>Spacing, insulation build and rates</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary><div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" /></details>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">E</span><span>Customer & order<small>Needed to save the design</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Customer & order">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -384,8 +405,14 @@ export function NewDesign() {
             </div>
           </Card>
           </details>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">F</span><span>Engineering settings<small>Insulation, materials and acceptance limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <EngineeringEditor value={engineering} reference={reference.data} onChange={next => {
+            if ((next?.purpose ?? 'metering') !== (engineering?.purpose ?? 'metering')) form.setValue('accuracyClass', next?.purpose === 'protection' ? '5P' : next?.purpose === 'ps' ? 'PS' : '0.5S');
+            setEngineering(next);
+          }}/>
 
-          <details className="workspace-input-group"><summary><span className="workspace-group-badge">F</span><span>Winding analysis inputs<small>Wire counts, spacing and material rates</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary><div ref={setWindingInputHost} className="calculator-winding-inputs flex flex-col gap-4" /></details>
+
+          </details>
           </div>{/* close parameter-grid */}
 
           {/* Similar designs, before the calculate/save action (§11.1). */}
@@ -437,11 +464,6 @@ export function NewDesign() {
 
           <button type="button" className="workspace-mobile-review" onClick={()=>{setActiveSection('calculator-results');requestAnimationFrame(()=>document.getElementById('calculator-results')?.scrollIntoView({behavior:'smooth',block:'start'}));}}>Review calculated results <span aria-hidden="true">→</span></button>
           <div className="calculator-save-actions">
-            {canCreate && (
-              <Button className="calculator-save-button" type="submit" variant="primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending}>
-                {save.isPending ? 'Saving…' : !best && engineering ? 'Save draft with missing data' : 'Save design & options'}
-              </Button>
-            )}
             <span className="text-[12px] text-[var(--text-3)]">
               {!canCreate
                 ? 'Your account can calculate but not save designs.'
@@ -471,7 +493,7 @@ export function NewDesign() {
                   title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
                   subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
                 >
-                  <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} />
+                  <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} presentation="report" />
                 </Card>
               </motion.div>
             </AnimatePresence>
@@ -535,6 +557,7 @@ export function NewDesign() {
                 subtitle={wireCombination ? 'Each grade ranked by cost for your wire combination.' : 'Each grade ranked by cheapest gauge. Infeasible rows stay visible with their reason.'}
               >
                 <OptionsTable
+                  referenceFormat
                   options={options}
                   selectedKey={selectedKey}
                   onSelect={(o) => setSelectedKey(`${o.gradeCode}:${o.swg}`)}
@@ -546,6 +569,7 @@ export function NewDesign() {
 
               <div className="workflow-heading"><span>•</span><div><h2>Winding analysis</h2><p>Layer-by-layer mean turn length for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <WindingAnalysis
+                designWireCombination={wireCombination}
                 inputHost={windingInputHost}
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}
@@ -577,12 +601,13 @@ export function NewDesign() {
             <div><span>Flux B</span><strong className="num">{selected.bUsedT.toFixed(3)} T</strong></div>
             <div><span>Core width</span><strong className="num">{selected.coreWidthMm.toFixed(2)} mm</strong></div>
             <div><span>Feasible</span><strong className="num">{options.filter(o => o.isFeasible).length} / {options.length}</strong></div>
-            <div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
+            <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
             {canCreate && (
-              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={form.handleSubmit((v) => save.mutate(v))}>
+              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={submitDesign}>
                 {save.isPending ? 'Saving…' : 'Save design & options'}
               </Button>
             )}
+            </div>
           </div>
         </footer>
       )}

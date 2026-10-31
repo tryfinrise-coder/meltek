@@ -4,11 +4,12 @@ import {
   Avatar, Dropdown, DropdownDivider, DropdownHeader, DropdownItem, Tooltip,
 } from 'flowbite-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   HiBell, HiChevronDoubleLeft, HiCog, HiKey, HiLogout, HiMenu, HiMoon,
   HiRefresh, HiSun, HiX,
 } from 'react-icons/hi';
+import { CalculatorStatusContext, type CalculatorStatus } from './CalculatorStatus';
 import { ROLE_LABEL } from '@meltek/schema';
 
 import { duration, ease } from './motion';
@@ -26,7 +27,7 @@ function initialsOf(name: string): string {
 }
 
 const EXPANDED = 248;
-const COLLAPSED = 60;
+const COLLAPSED = 64;
 const DRAWER_AT = 900;
 
 export function Wordmark({ size = 20 }: { size?: number }) {
@@ -68,6 +69,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { isDrawer } = useViewport();
   const location = useRouterState({ select: s => s.location });
   const isCalculatorRoute = path === '/calculator' || path === '/design/new';
+  const [calculatorStatus, setCalculatorStatus] = useState<CalculatorStatus | null>(null);
 
   // Collapsed by default; pointer hover or keyboard focus reveals labels. Pinning is optional.
   const [pinned, setPinned] = useState(() => {
@@ -76,6 +78,32 @@ export function Shell({ children }: { children: ReactNode }) {
   const [hovering, setHovering] = useState(false);
   const [keyboardFocus, setKeyboardFocus] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!isDrawer || !drawerOpen) return;
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusable = () => Array.from(sidebarRef.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex="0"]') ?? []);
+    focusable()[0]?.focus({ preventScroll: true });
+    const trapFocus = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); setDrawerOpen(false); }
+      if (event.key !== 'Tab') return;
+      const items = focusable();
+      const target = event.shiftKey ? items.at(-1) : items[0];
+      if (document.activeElement === (event.shiftKey ? items[0] : items.at(-1))) {
+        event.preventDefault();
+        target?.focus();
+      }
+    };
+    document.addEventListener('keydown', trapFocus);
+    return () => {
+      document.removeEventListener('keydown', trapFocus);
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+    };
+  }, [isDrawer, drawerOpen]);
 
   const autoCollapsed = !pinned;
   const expanded = isDrawer ? drawerOpen : !autoCollapsed || hovering || keyboardFocus;
@@ -89,10 +117,11 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
 
   // Close the drawer on navigation, otherwise it covers the page you just opened.
-  useEffect(() => { setDrawerOpen(false); }, [location.href]);
+  useEffect(() => { setDrawerOpen(false); }, [location.href, isDrawer]);
 
   return (
-    <div className="min-h-dvh">
+    <CalculatorStatusContext.Provider value={setCalculatorStatus}>
+    <div className="app-shell reference-shell min-h-dvh" style={{ '--calculator-rail-width': `${railWidth}px` } as CSSProperties}>
       <AnimatePresence>
         {isDrawer && drawerOpen && (
           <motion.div
@@ -105,6 +134,9 @@ export function Shell({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       <motion.aside
+        ref={sidebarRef}
+        role={isDrawer && drawerOpen ? 'dialog' : undefined}
+        aria-modal={isDrawer && drawerOpen ? true : undefined}
         className="glossy-rail fixed inset-y-0 left-0 z-40 flex flex-col no-print"
         aria-label="Application sidebar"
         data-expanded={expanded}
@@ -158,6 +190,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <Link
                   key={item.to}
                   to={item.to}
+                  aria-label={item.label}
                   className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-colors"
                   style={{
                     background: active ? 'var(--sidebar-active)' : undefined,
@@ -231,13 +264,15 @@ export function Shell({ children }: { children: ReactNode }) {
       </motion.aside>
 
       <motion.div
+        inert={isDrawer && drawerOpen}
         initial={false}
         animate={{ paddingLeft: railWidth }}
         transition={reduce ? { duration: 0 } : { duration: duration.base, ease: ease.out }}
       >
-        <Header onOpenDrawer={() => setDrawerOpen(true)} isDrawer={isDrawer} />
+        <Header onOpenDrawer={() => setDrawerOpen(true)} isDrawer={isDrawer} calculatorStatus={calculatorStatus} />
 
-        <main className="mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-10">
+        <a href="#workspace-content" className="skip-navigation">Skip to content</a>
+        <main id="workspace-content" tabIndex={-1} className={`mx-auto max-w-[1440px] px-4 py-6 md:px-8 md:py-10 ${isCalculatorRoute ? 'reference-main' : ''}`}>
           <motion.div
             key={path}
             initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
@@ -249,6 +284,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </main>
       </motion.div>
     </div>
+    </CalculatorStatusContext.Provider>
   );
 }
 
@@ -274,7 +310,7 @@ function BreadcrumbForPath({ path }: { path: string }) {
   );
 }
 
-function Header({ onOpenDrawer, isDrawer }: { onOpenDrawer: () => void; isDrawer: boolean }) {
+function Header({ onOpenDrawer, isDrawer, calculatorStatus }: { onOpenDrawer: () => void; isDrawer: boolean; calculatorStatus: CalculatorStatus | null }) {
   const qc = useQueryClient();
   const reduce = useReducedMotion();
   const fetching = useIsFetching();
@@ -302,6 +338,7 @@ function Header({ onOpenDrawer, isDrawer }: { onOpenDrawer: () => void; isDrawer
           </button>
         )}
         <BreadcrumbForPath path={path} />
+        {!isDesignRoute && <span className="workspace-mobile-title">{path === '/' ? 'Dashboard' : path === '/register' ? 'Design register' : path.startsWith('/admin') ? 'Reference data' : 'Design details'}</span>}
         {isDesignRoute && (
           <div className="workspace-ct-tabs hidden h-full sm:flex">
             <button type="button" className="font-semibold">LT CT</button>
@@ -314,9 +351,9 @@ function Header({ onOpenDrawer, isDrawer }: { onOpenDrawer: () => void; isDrawer
       <div className="flex items-center gap-1">
         {isDesignRoute && (
           <span className="mr-2 hidden items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface-2)] px-3 py-1.5 text-[11px] text-[var(--text-2)] lg:flex">
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#22c55e' }} />
-            Calculations up to date
-            <span className="text-[var(--text-3)]">Metering mode</span>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: calculatorStatus?.ready ? '#2F7D4F' : 'var(--brand)' }} />
+            {calculatorStatus?.text ?? 'Loading calculation'}
+            <span className="text-[var(--text-3)]">{calculatorStatus?.mode ?? 'LT CT'}</span>
           </span>
         )}
         <Tooltip content={fetching ? 'Refreshing…' : 'Refresh reference data and designs'}>

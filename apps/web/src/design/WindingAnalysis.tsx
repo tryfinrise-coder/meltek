@@ -160,6 +160,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
 function fmt(n: number, d = 2) { return n.toFixed(d); }
 
 interface WindingAnalysisProps {
+  designWireCombination?: { swg: number; count: number }[] | null;
   inputHost?: HTMLElement | null;
   reduce: boolean;
   gauges: WireGauge[];
@@ -174,16 +175,19 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  inputHost, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  inputHost, designWireCombination, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
+  const designWireSignature = JSON.stringify(designWireCombination);
 
   const setField = useCallback((key: keyof Omit<State, 'wireMap'>, v: string) => {
     dispatch({ type: 'field', key, value: parseFloat(v) || 0 });
   }, []);
 
   useEffect(() => {
-    const wireMap: Record<number, number> = { ...s.wireMap };
+    const wireMap: Record<number, number> = designWireCombination === undefined
+      ? { ...s.wireMap }
+      : Object.fromEntries(designWireCombination?.length ? designWireCombination.map(w => [w.swg, w.count]) : [[selectedSwg, 1]]);
     if (!Object.values(wireMap).some(v => v > 0)) {
       wireMap[selectedSwg] = 1;
     }
@@ -199,7 +203,7 @@ export function WindingAnalysis({
         wireMap,
       },
     });
-  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg]);
+  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature]);
 
   const result = useMemo(() => calculate(s, gauges), [s, gauges]);
 
@@ -281,6 +285,7 @@ export function WindingAnalysis({
   );
   const windingInputs = <>
       {/* ━━━ Wire selection ━━━ */}
+      {designWireCombination === undefined && <>
       <motion.div variants={fadeUp(reduce)}>
         <Card eyebrow="Wire combination" title="Wire Selection"
           subtitle="Choose wire gauges and how many wires are wound in parallel for each">
@@ -310,6 +315,7 @@ export function WindingAnalysis({
       </motion.div>
 
       {/* ━━━ Winding parameters ━━━ */}
+      </>}
       <motion.div variants={fadeUp(reduce)}>
         <Card eyebrow="Winding parameters" title="Insulation & Spacing"
           subtitle="Insulation thickness, inter-layer tape and winding tightness">

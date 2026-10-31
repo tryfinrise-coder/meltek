@@ -19,22 +19,24 @@ interface BaseFieldProps {
   unit?: string;
   span?: boolean;
   children?: ReactNode;
+  fieldId?: string;
 }
 
-export function FieldShell({ label, error, help, hint, span, children }: BaseFieldProps) {
+export function FieldShell({ label, error, help, hint, span, children, fieldId }: BaseFieldProps) {
   return (
     <div className={`field-shell flex flex-col gap-1.5 ${span ? 'col-span-2' : ''}`}>
       <div className="flex items-center gap-1.5">
-        <Label>{label}</Label>
+        <Label htmlFor={fieldId}>{label}</Label>
         {hint && (
-          <Tooltip content={hint}>
+          <span className="field-hint-icon"><Tooltip content={hint}>
             <HiInformationCircle className="h-3.5 w-3.5 text-[var(--text-3)]" aria-label={hint} />
-          </Tooltip>
+          </Tooltip></span>
         )}
       </div>
       {children}
       {error && <span className="text-[11.5px]" style={{ color: 'var(--warn)' }}>{error}</span>}
       {!error && help && <span className="text-[11.5px] text-[var(--text-3)]">{help}</span>}
+      {!error && hint && !help && <span className="field-inline-hint hidden">{hint}</span>}
     </div>
   );
 }
@@ -46,8 +48,8 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 ) {
   const id = useId();
   return (
-    <FieldShell label={label} {...(error ? { error } : {})} help={help} {...(hint ? { hint } : {})} {...(span ? { span } : {})}>
-      <div className={unit ? 'flex items-center gap-2' : undefined}>
+    <FieldShell fieldId={id} label={label} {...(error ? { error } : {})} help={help} {...(hint ? { hint } : {})} {...(span ? { span } : {})}>
+      <div className={unit ? 'field-unit-control flex items-center gap-2' : undefined}>
         <TextInput
           id={id}
           ref={ref}
@@ -69,7 +71,7 @@ export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(funct
 ) {
   const id = useId();
   return (
-    <FieldShell label={label} {...(error ? { error } : {})} help={help} {...(hint ? { hint } : {})} {...(span ? { span } : {})}>
+    <FieldShell fieldId={id} label={label} {...(error ? { error } : {})} help={help} {...(hint ? { hint } : {})} {...(span ? { span } : {})}>
       <Select id={id} ref={ref} color={error ? 'failure' : 'gray'} {...select}>
         {children}
       </Select>

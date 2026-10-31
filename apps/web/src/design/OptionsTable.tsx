@@ -19,7 +19,7 @@ export interface OptionRow extends RankedOption {
  * feel arbitrary (§5.10). Rows glide on reorder via layout animation (§10.2).
  */
 export function OptionsTable({
-  options, selectedKey, onSelect, showAll, onToggleShowAll, hideWire,
+  options, selectedKey, onSelect, showAll, onToggleShowAll, hideWire, referenceFormat = false,
 }: {
   options: OptionRow[];
   selectedKey: string | null;
@@ -27,6 +27,7 @@ export function OptionsTable({
   showAll: boolean;
   onToggleShowAll: () => void;
   hideWire?: boolean;
+  referenceFormat?: boolean;
 }) {
   const reduce = useReducedMotion();
   const feasible = options.filter((o) => o.isFeasible);
@@ -54,10 +55,10 @@ export function OptionsTable({
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
-              {['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best'].map((h) => (
+              {(referenceFormat ? ['Rank', 'Grade', ...(hideWire ? [] : ['Wire']), 'B (T)', 'Core width', 'Steel kg', 'Cu kg', 'Cost', 'Status'] : ['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best']).map((h) => (
                 <th
                   key={h}
-                  className={`label whitespace-nowrap px-3 py-2 font-semibold ${h !== '#' && h !== 'Grade' && h !== 'vs best' ? 'text-right' : ''}`}
+                  className={`label whitespace-nowrap px-3 py-2 font-semibold ${!['#', 'Rank', 'Grade', 'vs best', 'Status'].includes(h) ? 'text-right' : ''}`}
                 >
                   {h}
                 </th>
@@ -86,7 +87,7 @@ export function OptionsTable({
                   whileHover={reduce ? {} : { y: -2, backgroundColor: 'var(--surface-2)' }}
                 >
                   <td className="whitespace-nowrap px-3 py-2.5 num text-[var(--text-3)]">
-                    {o.rank ?? '—'}
+                    {referenceFormat && <span className={`option-selection-dot ${active ? 'is-selected' : ''}`} aria-hidden="true" />} {o.rank ?? '—'}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2.5">
                     <span className="font-medium">{o.gradeLabel}</span>
@@ -107,15 +108,18 @@ export function OptionsTable({
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right num">{n(o.coreWidthMm)} mm</td>
+                  {!referenceFormat && <>
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>
                     {n(o.orderedWidthMm, 0)} mm
                   </td>
                   <td className="px-3 py-2.5 text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>
+                  </>}
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.coreWeightKg, 3)}</td>
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.copperWeightKg, 3)}</td>
                   <td className="px-3 py-2.5 text-right num font-semibold" style={{ color: o.totalCost === null ? 'var(--text-3)' : 'var(--provisional)' }}>
                     {money(o.totalCost)}
                   </td>
+                  {referenceFormat ? <td className="px-3 py-2.5"><span className={o.isFeasible ? 'option-feasible' : 'option-rejected'}>{o.isFeasible ? 'Feasible' : o.infeasibleReasons[0] || 'Not feasible'}</span></td> : <>
                   <td className="px-3 py-2.5">
                     {o.isFeasible && o.totalCost !== null && bestCost !== null && bestCost > 0 ? (
                       <Tooltip
@@ -141,6 +145,7 @@ export function OptionsTable({
                       <span className="text-[11px] text-[var(--text-3)]">—</span>
                     )}
                   </td>
+                  </>}
                 </motion.tr>
               );
             })}

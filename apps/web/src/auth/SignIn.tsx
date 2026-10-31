@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import { api, ApiError } from '../shared/api';
 import { TextField } from '../shared/fields';
 import { Button, Callout } from '../shared/primitives';
+import { CoreIllustration } from '../shared/CoreIllustration';
 import { Wordmark } from '../shared/Shell';
 import { fadeUp } from '../shared/motion';
 
@@ -20,6 +21,7 @@ export function SignIn({ needsSetup }: { needsSetup: boolean }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = useMutation({
     mutationFn: () =>
@@ -41,14 +43,20 @@ export function SignIn({ needsSetup }: { needsSetup: boolean }) {
     : email.trim() !== '' && password !== '';
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
+    <div className="auth-screen">
+      <aside className="auth-brand-panel">
+        <div className="auth-brand"><span>M</span> MELTEK <small>DESIGN WORKSPACE</small></div>
+        <div className="auth-brand-copy"><span className="eyebrow">ENGINEERED FOR EVERY TURN</span><h2>Precision starts<br />with a better view.</h2><p>One connected workspace for core sizing, winding construction and informed material decisions.</p></div>
+        <CoreIllustration />
+        <div className="auth-brand-footer"><span>LT CURRENT TRANSFORMERS</span><span>DESIGN / COMPARE / BUILD</span></div>
+      </aside>
       <motion.div
-        className="w-full max-w-[420px]"
+        className="auth-form-panel"
         variants={fadeUp(Boolean(reduce))}
         initial="hidden"
         animate="show"
       >
-        <div className="mb-7 text-center">
+        <div className="auth-form-wordmark">
           <Wordmark size={30} />
           <p className="mt-2 text-[13px] text-[var(--text-2)]">
             LT current transformer core design
@@ -57,9 +65,9 @@ export function SignIn({ needsSetup }: { needsSetup: boolean }) {
 
         <form
           className="glossy rounded-[10px] p-6"
-          onSubmit={(e) => { e.preventDefault(); submit.mutate(); }}
+          onSubmit={(e) => { e.preventDefault(); if (ready && !submit.isPending) submit.mutate(); }}
         >
-          <h1 className="text-[19px]">{needsSetup ? 'Set up this system' : 'Sign in'}</h1>
+          <h1 className="text-[19px]">{needsSetup ? 'Set up your workspace' : 'Welcome back'}</h1>
           <p className="mt-1.5 text-[13px] text-[var(--text-2)]">
             {needsSetup
               ? 'Create the first administrator account. You can add the rest of the works afterwards.'
@@ -69,23 +77,26 @@ export function SignIn({ needsSetup }: { needsSetup: boolean }) {
           <div className="mt-5 flex flex-col gap-3">
             {needsSetup && (
               <TextField
-                label="Your name" value={name} autoComplete="name" autoFocus
+                label="Your name" required value={name} autoComplete="name" autoFocus
                 onChange={(e) => setName(e.target.value)}
               />
             )}
             <TextField
-              label="Email" type="email" value={email}
+              label="Email" type="email" required value={email}
               autoComplete="username" autoFocus={!needsSetup}
               onChange={(e) => setEmail(e.target.value)}
             />
+            <div className="auth-password">
             <TextField
-              label="Password" type="password" value={password}
+              label="Password" type={showPassword ? 'text' : 'password'} required value={password}
               autoComplete={needsSetup ? 'new-password' : 'current-password'}
               onChange={(e) => setPassword(e.target.value)}
               {...(needsSetup
                 ? { help: 'At least 12 characters. Length matters more than punctuation.' }
                 : {})}
             />
+            <button type="button" className="auth-password-toggle" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? 'Hide' : 'Show'}</button>
+            </div>
           </div>
 
           {error && (

@@ -37,7 +37,7 @@ export function Admin() {
     return <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-8 w-48" /><Skeleton className="h-64" /></div></Card>;
   }
   if (!reference.data) {
-    return <Callout tone="warn" title="Reference data could not be loaded">Check that the API is running, then reload.</Callout>;
+    return <Callout tone="warn" title="Reference data could not be loaded"><p className="mb-3">Check that the API is running.</p><Button size="sm" onClick={() => { void reference.refetch(); }}>Try again</Button></Callout>;
   }
 
   const ref = reference.data;

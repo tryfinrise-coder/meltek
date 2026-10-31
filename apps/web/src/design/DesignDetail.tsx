@@ -94,6 +94,7 @@ export function DesignDetail() {
   if (q.isLoading) {
     return <Card><div className="flex flex-col gap-3 p-5"><Skeleton className="h-8 w-64" /><Skeleton className="h-64 w-full" /></div></Card>;
   }
+  if (q.isError) return <Card><EmptyState title="This design could not be loaded"><p className="mb-4">{q.error.message}</p><Button onClick={() => { void q.refetch(); }}>Try again</Button></EmptyState></Card>;
   if (!design) {
     return <Card><EmptyState title="No design with that reference">
       It may have been superseded by a later revision. Check the register.

@@ -544,6 +544,7 @@ export function NewDesign() {
                 <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd><AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" /></dd></div>
+                <div><dt>Resistance</dt><dd><AnimatedNumber value={selected.resistanceOhm} dp={5} suffix=" Ω" /></dd></div>
                 {(() => { const wbr = selected.geometry.radialBuildMm > 0 ? selected.coreWidthMm / selected.geometry.radialBuildMm : 0; return (
                   <div><dt>Width : Build-up</dt><dd className="num" style={wbr > 2 ? { color: 'var(--brand)' } : undefined}>{wbr > 0 ? `${wbr.toFixed(2)} : 1` : '—'}{wbr > 2 && <span style={{ marginLeft: 6, fontSize: 11 }} title="Width is more than twice the radial build">⚠</span>}</dd></div>
                 ); })()}

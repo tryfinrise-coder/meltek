@@ -17,6 +17,30 @@ export interface InterpolationResult {
 }
 
 /**
+ * Linear interpolation of magnetising force H from flux density B (reverse of interpolateB).
+ * Returns null if the curve has fewer than two characterised points or B is outside the range.
+ */
+export function interpolateH(curve: readonly BhPoint[], bTarget: number): number | null {
+  const pts = curve
+    .filter((p): p is BhPoint & { hAtCm: number } => p.hAtCm !== null && Number.isFinite(p.hAtCm))
+    .sort((a, b) => a.teslaT - b.teslaT);
+  if (pts.length < 2) return null;
+  const first = pts[0]!;
+  const last = pts[pts.length - 1]!;
+  if (bTarget <= first.teslaT) return first.hAtCm;
+  if (bTarget >= last.teslaT) return last.hAtCm;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const lo = pts[i]!;
+    const hi = pts[i + 1]!;
+    if (bTarget >= lo.teslaT && bTarget <= hi.teslaT) {
+      const f = (hi.teslaT - lo.teslaT) === 0 ? 0 : (bTarget - lo.teslaT) / (hi.teslaT - lo.teslaT);
+      return lo.hAtCm + f * (hi.hAtCm - lo.hAtCm);
+    }
+  }
+  return last.hAtCm;
+}
+
+/**
  * Curve rows with a characterised H, ascending by H.
  * A `null` entry means the grade is not characterised at that flux density — it is
  * skipped, never treated as zero (§6.1).

@@ -544,6 +544,7 @@ export function NewDesign() {
                 <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd><AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" /></dd></div>
+                <div><dt>Width : Build-up</dt><dd className="num">{selected.geometry.radialBuildMm > 0 ? `${(selected.coreWidthMm / selected.geometry.radialBuildMm).toFixed(2)} : 1` : '—'}</dd></div>
               </dl></Card>
 
               <Card

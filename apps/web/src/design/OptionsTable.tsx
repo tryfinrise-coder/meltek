@@ -54,11 +54,12 @@ export function OptionsTable({
       <div className="options-desktop-table overflow-x-auto">
         <table className="data-table w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[var(--line-strong)] text-left">
-              {(referenceFormat ? ['Rank', 'Grade', ...(hideWire ? [] : ['Wire']), 'B (T)', 'Calculated width', 'Rounded width', 'Steel kg', 'Cu kg', 'Cost', 'Status'] : ['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best']).map((h) => (
+            <tr className="text-left">
+              {(referenceFormat ? [{h:'',w:28}, {h:'Rank'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B (T)'}, {h:'Core width'}, {h:'Steel kg'}, {h:'Cu kg'}, {h:'Cost'}, {h:'Status'}] : [{h:'#'}, {h:'Grade'}, ...(hideWire ? [] : [{h:'Wire'}]), {h:'B used'}, {h:'Core width'}, {h:'Ordered'}, {h:'Die'}, {h:'Core kg'}, {h:'Copper kg'}, {h:'Total cost'}, {h:'vs best'}]).map(({h,w}, i) => (
                 <th
-                  key={h}
-                  className={`label whitespace-nowrap px-3 py-2 font-semibold ${!['#', 'Rank', 'Grade', 'vs best', 'Status'].includes(h) ? 'text-right' : ''}`}
+                  key={h || `dot-${i}`}
+                  className={`label whitespace-nowrap ${!['', '#', 'Rank', 'Grade', 'vs best', 'Status'].includes(h) ? 'text-right' : ''}`}
+                  style={w ? {width: w, paddingLeft: 16, paddingRight: 0} : undefined}
                 >
                   {h}
                 </th>
@@ -79,23 +80,20 @@ export function OptionsTable({
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(o); } }}
                   role="button"
                   aria-pressed={active}
-                  className="cursor-pointer border-b border-[var(--line)] transition-colors"
-                  style={{
-                    background: active ? 'var(--option-selected-background, var(--surface-3))' : undefined,
-                    opacity: o.isFeasible ? 1 : 0.45,
-                  }}
-                  whileHover={reduce ? {} : { y: -2, backgroundColor: 'var(--surface-2)' }}
+                  className="cursor-pointer border-b border-[var(--line)]"
+                  style={{ opacity: o.isFeasible ? 1 : 0.45 }}
                 >
-                  <td className="whitespace-nowrap px-3 py-2.5 num text-[var(--text-3)]">
-                    {referenceFormat && <span className={`option-selection-dot ${active ? 'is-selected' : ''}`} aria-hidden="true" />} {o.rank ?? '—'}
+                  {referenceFormat && <td style={{width: 28, paddingLeft: 16, paddingRight: 0}}><span className={`option-selection-dot ${active ? 'is-selected' : ''}`} aria-hidden="true" /></td>}
+                  <td className="whitespace-nowrap num text-[var(--text-3)]">
+                    {o.rank ?? '—'}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-2.5">
+                  <td className="whitespace-nowrap">
                     <span className="font-medium">{o.gradeLabel}</span>
                     {o.isSelected && <span className="ml-2"><Badge tone="ok">selected</Badge></span>}
                     {!o.isFeasible && <span className="mt-1 block max-w-64 whitespace-normal text-[12px] text-[var(--text-3)]">{o.infeasibleReasons[0]}</span>}
                   </td>
-                  {!hideWire && <td className="px-3 py-2.5 text-right num">{o.wireCombinationLabel || o.swg}</td>}
-                  <td className="whitespace-nowrap px-3 py-2.5 text-right num">
+                  {!hideWire && <td className="text-right num">{o.wireCombinationLabel || o.swg}</td>}
+                  <td className="whitespace-nowrap text-right num">
                     {n(o.bUsedT, 4)}
                     {o.wasCapped && (
                       <span className="ml-2 inline-block">
@@ -107,18 +105,18 @@ export function OptionsTable({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2.5 text-right num">{n(o.coreWidthMm)} mm</td>
-                  <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>
-                    {n(o.orderedWidthMm, 0)} mm
-                  </td>
-                  {!referenceFormat && <td className="px-3 py-2.5 text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>}
-                  <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.coreWeightKg, 3)}</td>
-                  <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.copperWeightKg, 3)}</td>
-                  <td className="px-3 py-2.5 text-right num font-semibold" style={{ color: o.totalCost === null ? 'var(--text-3)' : 'var(--provisional)' }}>
+                  {referenceFormat
+                    ? <td className="text-right num">{n(o.orderedWidthMm, 0)} mm</td>
+                    : <><td className="text-right num">{n(o.coreWidthMm)} mm</td><td className="text-right num" style={{ color: 'var(--provisional)' }}>{n(o.orderedWidthMm, 0)} mm</td></>
+                  }
+                  {!referenceFormat && <td className="text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>}
+                  <td className="text-right num">{n(o.coreWeightKg, 3)}</td>
+                  <td className="text-right num">{n(o.copperWeightKg, 3)}</td>
+                  <td className="text-right num font-semibold">
                     {money(o.totalCost)}
                   </td>
-                  {referenceFormat ? <td className="px-3 py-2.5"><span className={o.isFeasible ? 'option-feasible' : 'option-rejected'}>{o.isFeasible ? 'Feasible' : o.infeasibleReasons[0] || 'Not feasible'}</span></td> : <>
-                  <td className="px-3 py-2.5">
+                  {referenceFormat ? <td><span className={o.isFeasible ? 'option-feasible' : 'option-rejected'}>{o.isFeasible ? 'Feasible' : 'Rejected'}</span></td> : <>
+                  <td>
                     {o.isFeasible && o.totalCost !== null && bestCost !== null && bestCost > 0 ? (
                       <Tooltip
                         content={o.totalCost === bestCost

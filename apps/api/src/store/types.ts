@@ -58,6 +58,7 @@ export interface StoredDesignInputs {
   ctType: 'ring' | 'wound-primary';
   maxWidthMm: number | null;
   wireCombination?: { swg: number; count: number }[] | null;
+  layerPitchOverridesMm?: Record<string, number> | null;
 }
 
 export type DesignStatus =

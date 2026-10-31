@@ -9,7 +9,7 @@ import {
   computeWindingAllowance,
   virtualGaugeFromCombination,
   seedReferenceData,
-  DEFAULT_SETTINGS,
+  DEFAULT_SETTINGS as LIVE_DEFAULT_SETTINGS,
   EngineError,
   MissingReferenceData,
   type DesignInputs,
@@ -17,6 +17,10 @@ import {
   type ReferenceData,
   type WireCombinationEntry,
 } from '../src/index.js';
+
+// Preserve the established baseline; tolerance rounding is tested separately.
+const DEFAULT_SETTINGS = { ...LIVE_DEFAULT_SETTINGS };
+delete DEFAULT_SETTINGS.coreWidthRoundingTolerancePercent;
 
 const ref: ReferenceData = seedReferenceData();
 const settings: ProcessSettings = { ...DEFAULT_SETTINGS };

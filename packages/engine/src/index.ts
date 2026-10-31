@@ -8,3 +8,5 @@ export * from './reference/index.js';
 
 export * from './engineeringTypes.js';
 export * from './engineering.js';
+
+export * from './layerPitch.js';

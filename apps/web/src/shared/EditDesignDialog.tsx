@@ -91,6 +91,7 @@ export function EditDesignDialog({
         ...(specChanged
           ? {
               inputs: {
+                ...design.inputs,
                 engineering,
                 primaryCurrent: Number(v.primaryCurrent),
                 secondaryCurrent: Number(v.secondaryCurrent),

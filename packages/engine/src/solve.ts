@@ -1,3 +1,6 @@
+import { resolveLayerPitchMm } from './layerPitch.js';
+import { roundToSlitWidth } from './slitWidth.js';
+export { roundToSlitWidth } from './slitWidth.js';
 import { interpolateB, type InterpolationResult } from './interpolate.js';
 import { solveEngineering } from './engineering.js';
 import { computeWindingAllowance, type WindingResult } from './winding.js';
@@ -107,6 +110,7 @@ export function computeWindingBuild(
   resinCover: number,
   settings: ProcessSettings,
   combo?: { entries: WireCombinationEntry[]; ref: ReferenceData },
+  layerPitchOverridesMm?: Record<string, number> | null,
 ): WindingResult | null {
   const packingFactor = (settings.windingPackingFactor > 0 && settings.windingPackingFactor <= 1)
     ? settings.windingPackingFactor : 0.95;
@@ -116,26 +120,34 @@ export function computeWindingBuild(
   if (active && active.length > 0) {
     let bareBundleWidthMm = 0;
     let maxInsulatedDiaMm = 0;
+    let configuredPitch = false;
     for (const e of active) {
       const g = findGauge(combo!.ref, e.swg);
       const insulatedDia = g.diaMm + settings.wireInsulationMm;
       bareBundleWidthMm += e.count * g.diaMm;
-      maxInsulatedDiaMm = Math.max(maxInsulatedDiaMm, insulatedDia);
+      const layerPitch = resolveLayerPitchMm(g, insulatedDia, layerPitchOverridesMm);
+      configuredPitch ||= layerPitch !== undefined;
+      maxInsulatedDiaMm = Math.max(maxInsulatedDiaMm, layerPitch ?? insulatedDia);
     }
     const pitch = bareBundleWidthMm / packingFactor;
     const turnsPerLayer = Math.floor(Math.PI * boreIdMm / pitch);
-    if (turnsPerLayer < 1) return null;
+    if (turnsPerLayer < 1) {
+      if (configuredPitch) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'The wire combination does not fit around the winding bore.');
+      return null;
+    }
     const layers = Math.ceil(roundedTurns / turnsPerLayer);
     const windingBuildMm = layers * maxInsulatedDiaMm + (layers - 1) * settings.interLayerTapeMm;
-    return { turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm };
+    return { ...(configuredPitch ? {layerPitchMm:maxInsulatedDiaMm} : {}), turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm };
   }
   const insulatedDiaMm = gauge.diaMm + settings.wireInsulationMm;
+  const layerPitch = resolveLayerPitchMm(gauge, insulatedDiaMm, layerPitchOverridesMm);
   try {
     return computeWindingAllowance(
-      { turns: roundedTurns, swg: gauge.swg, wireDiaMm: insulatedDiaMm, bareDiaMm: gauge.diaMm, parallelStrands: 1, boreIdMm },
+      { ...(layerPitch === undefined ? {} : {layerPitchMm:layerPitch}), turns: roundedTurns, swg: gauge.swg, wireDiaMm: insulatedDiaMm, bareDiaMm: gauge.diaMm, parallelStrands: 1, boreIdMm },
       { layerStackingFactorBySwg: { [gauge.swg]: packingFactor }, interlayerThicknessMm: settings.interLayerTapeMm, minEpoxyThicknessMm: 0 },
     );
-  } catch {
+  } catch (error) {
+    if (layerPitch !== undefined) throw error;
     return null;
   }
 }
@@ -201,23 +213,6 @@ export function transformerConstant(frequencyHz: number): number {
   return 4.44 * frequencyHz * 1e-4;
 }
 
-/** §5.9 - nearest stocked slit width (round to nearest multiple of step). */
-export function roundToSlitWidth(widthMm: number, ref: ReferenceData, settings: ProcessSettings): number {
-  const stocked = [...ref.slitWidthsMm].filter((w) => Number.isFinite(w) && w > 0).sort((a, b) => a - b);
-  if (stocked.length > 0) {
-    // Find the stocked width closest to the converged width.
-    let best = stocked[0]!;
-    let bestDist = Math.abs(widthMm - best);
-    for (const w of stocked) {
-      const d = Math.abs(widthMm - w);
-      if (d < bestDist) { best = w; bestDist = d; }
-    }
-    return best;
-  }
-  // Fallback: round to nearest step.
-  const step = settings.slitStepMm > 0 ? settings.slitStepMm : 5;
-  return Math.round(widthMm / step) * step;
-}
 
 export interface SolveOptions {
   /** Attach the full substituted chain. On by default. */
@@ -270,6 +265,7 @@ export function solve(
   const windingBuild = computeWindingBuild(
     prelimTurns, gauge, inputs.finishedIdMm, resinCover, settings,
     isCombo ? { entries: combo!, ref } : undefined,
+    inputs.layerPitchOverridesMm,
   );
   const allowanceMm = windingBuild
     ? resinCover + settings.coreInsulationMm + 2 * windingBuild.windingBuildMm
@@ -277,6 +273,7 @@ export function solve(
 
   const geometry = computeGeometry(inputs, settings, allowanceMm);
   if (windingBuild) {
+    if (windingBuild.layerPitchMm !== undefined) geometry.windingLayerPitchMm = windingBuild.layerPitchMm;
     geometry.windingBuildMm = windingBuild.windingBuildMm;
     geometry.windingLayers = windingBuild.layers;
     geometry.turnsPerLayer = windingBuild.turnsPerLayer;
@@ -481,7 +478,7 @@ function buildSteps(
       substituted: `${i.primaryCurrent} / ${i.secondaryCurrent}`, value: g.turns, unit: 'turns' },
     { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + core insulation + 2 × winding build',
       substituted: windingDesc, value: g.allowanceMm, unit: 'mm',
-      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover, 1)} mm (circumference ${f(Math.PI * (i.finishedIdMm + resinCover), 1)} mm). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(gauge.diaMm + s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
+      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Winding bore ${f(i.finishedIdMm + resinCover, 1)} mm (circumference ${f(Math.PI * (i.finishedIdMm + resinCover), 1)} mm). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(g.windingLayerPitchMm ?? gauge.diaMm + s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${f(g.allowanceMm, 3)}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',
@@ -516,8 +513,10 @@ function buildSteps(
       note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
       substituted: `${f(r.coreAreaCm2, 4)} / ${f(orig.origRadialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
-    { step: 14, key: 'orderedWidth', label: 'Ordered width', formula: 'nearest stocked slit width to core width',
-      substituted: ref.slitWidthsMm.length
+    { step: 14, key: 'orderedWidth', label: 'Rounded core width', formula: s.coreWidthRoundingTolerancePercent === undefined ? 'nearest stocked slit width to core width' : `round to ${s.slitStepMm} mm steps; allow ${s.coreWidthRoundingTolerancePercent}% above the lower width`,
+      substituted: s.coreWidthRoundingTolerancePercent !== undefined
+        ? `${f(r.coreWidthMm)} mm → ${f(r.orderedWidthMm, 0)} mm; tolerance ${s.coreWidthRoundingTolerancePercent}% of lower step${ref.slitWidthsMm.length ? '; stocked step widths checked' : ''}`
+        : ref.slitWidthsMm.length
         ? `stocked widths: ${ref.slitWidthsMm.join(', ')} mm`
         : `no slit widths on record - rounded to nearest ${s.slitStepMm} mm`,
       value: r.orderedWidthMm, unit: 'mm', provisional: true,

@@ -83,7 +83,11 @@ export class JsonStore implements Store {
 
   /* ── reference ── */
 
-  async getReference(): Promise<ReferenceData> { return this.clone(this.db.reference); }
+  async getReference(): Promise<ReferenceData> {
+    const reference = this.clone(this.db.reference);
+    reference.gauges = reference.gauges.map(g => ({...g,layerPitchMm:g.layerPitchMm ?? null}));
+    return reference;
+  }
 
   async saveGrade(grade: SteelGrade): Promise<void> {
     return this.write(() => {

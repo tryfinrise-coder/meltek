@@ -385,7 +385,8 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     if (windings) {
       const numLayers = Math.max(1, windingLayers || 1);
       const tpl = turnsPerLayer || turns;
-      const layerGap = windingBuildMm > 0 ? windingBuildMm / numLayers : outer / 72;
+      const layerGap = windingBuildMm > 0 ? (windingBuildMm - tapeThickness * (numLayers - 1)) / numLayers : outer / 72;
+      const layerStep = layerGap + tapeThickness;
       const baseRadius = Math.min(layerGap * .4, (outer - inner) / 18);
       const clearance = baseRadius * 2;
       const roBase = outer / 2 + coreCover + layerGap / 2;
@@ -400,13 +401,13 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
         layerGroup.position.z = (layer * 2 + 2) * explodeStep;
         model.add(layerGroup);
         const count = Math.min(48, Math.max(1, layerTurns));
-        const layerOffset = layer * layerGap;
+        const layerOffset = layer * layerStep;
         const riLayer = Math.max(inner / 2 - coreCover - layerGap / 2 - layerOffset, baseRadius);
         const roLayer = roBase + layerOffset;
         const half = width / 2 + coreCover + layerGap / 2 + layerOffset;
         const layerAlpha = 1;
         if (covers && tapeVisible && tapeThickness > 0 && layer < numLayers - 1) {
-          addCover(coreCover + (layer + 1) * layerGap, tapeThickness, 0xf4e9bb, .1, layer * 2 + 3);
+          addCover(coreCover + (layer + 1) * layerStep, tapeThickness, 0xf4e9bb, .1, layer * 2 + 3);
         }
 
         if (wireCount > 1) {
@@ -705,6 +706,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
       <div className="grid grid-cols-2 gap-3 px-4 pb-4 text-xs sm:grid-cols-4">
         <div><span className="block text-[var(--text-2)]">Core insulation / side</span><strong>{mm(coreCover)} mm</strong></div>
         <div><span className="block text-[var(--text-2)]">Winding build / side</span><strong>{mm(windingBuildMm)} mm · {windingLayers} layers</strong></div>
+        {option.geometry.windingLayerPitchMm !== undefined && <div><span className="block text-[var(--text-2)]">Layer pitch (wire + air)</span><strong>{mm(option.geometry.windingLayerPitchMm)} mm</strong></div>}
         <div><span className="block text-[var(--text-2)]">Inter-layer tape</span><strong>{mm(tapeThickness)} mm</strong></div>
         <div><span className="block text-[var(--text-2)]">Resin / outer cover per side</span><strong>{mm(resinCover)} mm</strong></div>
       </div>

@@ -28,6 +28,7 @@ export const designInputsSchema = z
     ctType: ctTypeSchema.default('ring'),
     maxWidthMm: z.number().positive().nullable().optional(),
     wireCombination: z.array(wireCombinationEntrySchema).nullable().optional(),
+    layerPitchOverridesMm: z.record(z.string().regex(/^[1-9]\d*$/), z.number().finite().positive()).nullable().optional(),
   })
   .refine((v) => v.finishedOdMm > v.finishedIdMm, {
     message: 'Finished OD must be larger than finished ID.',
@@ -49,6 +50,7 @@ export const processSettingsSchema = z.object({
   maxIterations: z.number().int().min(1).max(500),
   convergenceTolerance: z.number().positive(),
   slitStepMm: z.number().positive(),
+  coreWidthRoundingTolerancePercent: z.number().finite().min(0).max(100).optional(),
   plusFiveAbove400A: z.boolean(),
 });
 
@@ -120,6 +122,7 @@ export const gradeUpsertSchema = z.object({
 
 export const gaugeUpsertSchema = z.object({
   swg: z.number().int().positive(),
+  layerPitchMm: z.number().finite().positive().nullable().default(null),
   diaMm: z.number().positive(),
   areaSqmm: z.number().positive(),
   ohmPerM20c: z.number().positive(),

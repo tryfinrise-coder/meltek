@@ -55,7 +55,7 @@ export function OptionsTable({
         <table className="data-table w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
-              {(referenceFormat ? ['Rank', 'Grade', ...(hideWire ? [] : ['Wire']), 'B (T)', 'Core width', 'Steel kg', 'Cu kg', 'Cost', 'Status'] : ['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best']).map((h) => (
+              {(referenceFormat ? ['Rank', 'Grade', ...(hideWire ? [] : ['Wire']), 'B (T)', 'Calculated width', 'Rounded width', 'Steel kg', 'Cu kg', 'Cost', 'Status'] : ['#', 'Grade', ...(hideWire ? [] : ['Wire']), 'B used', 'Core width', 'Ordered', 'Die', 'Core kg', 'Copper kg', 'Total cost', 'vs best']).map((h) => (
                 <th
                   key={h}
                   className={`label whitespace-nowrap px-3 py-2 font-semibold ${!['#', 'Rank', 'Grade', 'vs best', 'Status'].includes(h) ? 'text-right' : ''}`}
@@ -108,12 +108,10 @@ export function OptionsTable({
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right num">{n(o.coreWidthMm)} mm</td>
-                  {!referenceFormat && <>
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>
                     {n(o.orderedWidthMm, 0)} mm
                   </td>
-                  <td className="px-3 py-2.5 text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>
-                  </>}
+                  {!referenceFormat && <td className="px-3 py-2.5 text-right num text-[var(--text-3)]">{o.dieNo ?? '—'}</td>}
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.coreWeightKg, 3)}</td>
                   <td className="px-3 py-2.5 text-right num" style={{ color: 'var(--provisional)' }}>{n(o.copperWeightKg, 3)}</td>
                   <td className="px-3 py-2.5 text-right num font-semibold" style={{ color: o.totalCost === null ? 'var(--text-3)' : 'var(--provisional)' }}>

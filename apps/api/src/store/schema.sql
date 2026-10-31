@@ -251,3 +251,7 @@ INSERT INTO accuracy_class (code, percent, per_is, note) VALUES
  ('5P',5,false,'Engineering protection workflow only'), ('10P',10,false,'Engineering protection workflow only'),
  ('PS',0,false,'Client-defined special protection specification'), ('PX',0,false,'Special protection specification; confirm applicable standard')
 ON CONFLICT (code) DO NOTHING;
+
+-- Per-wire layer defaults and per-design winding overrides. Nullable for older snapshots.
+ALTER TABLE wire_gauge ADD COLUMN IF NOT EXISTS layer_pitch_mm numeric;
+ALTER TABLE design ADD COLUMN IF NOT EXISTS winding_configuration jsonb;

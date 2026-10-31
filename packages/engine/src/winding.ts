@@ -6,6 +6,8 @@ export interface WindingInputs {
   swg?: number;
   /** Insulated diameter, not bare conductor diameter. */
   wireDiaMm: number;
+  /** Per-layer wire and air allowance; tape is added separately. */
+  layerPitchMm?: number;
   /** Bare conductor diameter for pitch calculation. */
   bareDiaMm: number;
   parallelStrands: number;
@@ -19,6 +21,7 @@ export interface WindingReference {
   minEpoxyThicknessMm: number | null;
 }
 export interface WindingResult {
+  layerPitchMm?: number;
   turnsPerLayer: number;
   layers: number;
   windingBuildMm: number;
@@ -39,6 +42,8 @@ export function computeWindingAllowance(inputs: WindingInputs, ref: WindingRefer
   const turnsPerLayer = Math.floor(Math.PI * inputs.boreIdMm / pitch);
   if (turnsPerLayer < 1) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
   const layers = Math.ceil(inputs.turns / turnsPerLayer);
-  const windingBuildMm = layers * inputs.wireDiaMm * (radial ? inputs.parallelStrands : 1) + (layers - 1) * ref.interlayerThicknessMm;
-  return { turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm + ref.minEpoxyThicknessMm };
+  const layerPitch = inputs.layerPitchMm ?? inputs.wireDiaMm;
+  if (!Number.isFinite(layerPitch) || layerPitch + 1e-9 < inputs.wireDiaMm) throw new EngineError('INVALID_INPUT', 'Layer pitch cannot be smaller than the insulated wire diameter.');
+  const windingBuildMm = layers * layerPitch * (radial ? inputs.parallelStrands : 1) + (layers - 1) * ref.interlayerThicknessMm;
+  return { ...(inputs.layerPitchMm === undefined ? {} : { layerPitchMm: layerPitch }), turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm + ref.minEpoxyThicknessMm };
 }

@@ -127,6 +127,7 @@ function Settings({ rows }: { rows: SettingRow[] }) {
       title="Process settings"
       subtitle="Every constant the calculation uses is a value you can change here. Those still on a shipped default are marked."
     >
+      {save.isError && <div className="p-4"><Callout tone="warn" title="Setting could not be saved">{save.error.message}</Callout></div>}
       <ul className="divide-y divide-[var(--line)]">
         {rows.map((row) => (
           <li key={row.key} className="grid grid-cols-1 gap-3 px-5 py-4 md:grid-cols-[1fr_200px]">
@@ -162,6 +163,7 @@ function Settings({ rows }: { rows: SettingRow[] }) {
                     className="num w-28 [&_input]:text-right"
                     type="number" step="any" defaultValue={row.value}
                     onBlur={(e) => {
+                      if (e.target.value.trim() === '') return;
                       const v = Number(e.target.value);
                       if (Number.isFinite(v) && v !== row.value) save.mutate({ key: row.key, value: v });
                     }}
@@ -329,7 +331,7 @@ function Gauges({ gauges }: { gauges: WireGauge[] }) {
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b border-[var(--line-strong)] text-left">
-              {['SWG', 'Dia mm', 'Area mm²', 'Ω/m @20°C', 'Ω/m @75°C', 'g/m', 'In stock', ''].map((h, i) => (
+              {['SWG', 'Dia mm', 'Layer pitch mm', 'Area mm²', 'Ω/m @20°C', 'Ω/m @75°C', 'g/m', 'In stock', ''].map((h, i) => (
                 <th key={h || `a-${i}`} className="label px-4 py-2 font-semibold">{h}</th>
               ))}
             </tr>
@@ -339,6 +341,7 @@ function Gauges({ gauges }: { gauges: WireGauge[] }) {
               <tr key={g.swg} className="border-b border-[var(--line)]">
                 <td className="px-4 py-2 num font-medium">{g.swg}</td>
                 <td className="px-4 py-2 num">{g.diaMm}</td>
+                <td className="px-4 py-2 num">{g.layerPitchMm == null ? 'Auto (round up)' : g.layerPitchMm}</td>
                 <td className="px-4 py-2 num">{g.areaSqmm}</td>
                 <td className="px-4 py-2 num mono text-[12px]">{g.ohmPerM20c}</td>
                 <td className="px-4 py-2">
@@ -371,6 +374,7 @@ function Gauges({ gauges }: { gauges: WireGauge[] }) {
       </div>
 
       <GaugeDialog
+        key={dialog?.mode === 'edit' ? `edit-${dialog.gauge?.swg}` : dialog ? 'new' : 'closed'}
         open={dialog !== null}
         existing={dialog?.mode === 'edit' ? dialog.gauge : null}
         onClose={() => setDialog(null)}

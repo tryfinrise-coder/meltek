@@ -1,3 +1,4 @@
+import { parseWindingConfiguration, serializeWindingConfiguration } from './winding-configuration.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -112,7 +113,7 @@ export class PgStore implements Store {
       gauges: gauges.rows.map((w) => ({
         swg: num(w.swg), diaMm: num(w.dia_mm), areaSqmm: num(w.area_sqmm),
         ohmPerM20c: num(w.ohm_per_m_20c), ohmPerM75c: numOrNull(w.ohm_per_m_75c),
-        gramPerM: num(w.gram_per_m), isAvailable: Boolean(w.is_available),
+        gramPerM: num(w.gram_per_m), layerPitchMm: numOrNull(w.layer_pitch_mm), isAvailable: Boolean(w.is_available),
       })),
       classes: classes.rows.map((c) => ({
         code: c.code as string, percent: num(c.percent), perIS: Boolean(c.per_is),
@@ -179,12 +180,12 @@ export class PgStore implements Store {
 
   async saveGauge(g: WireGauge): Promise<void> {
     await this.pool.query(
-      `INSERT INTO wire_gauge (swg, dia_mm, area_sqmm, ohm_per_m_20c, ohm_per_m_75c, gram_per_m, is_available)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+      `INSERT INTO wire_gauge (swg, dia_mm, area_sqmm, ohm_per_m_20c, ohm_per_m_75c, gram_per_m, is_available, layer_pitch_mm)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
        ON CONFLICT (swg) DO UPDATE SET dia_mm = EXCLUDED.dia_mm, area_sqmm = EXCLUDED.area_sqmm,
          ohm_per_m_20c = EXCLUDED.ohm_per_m_20c, ohm_per_m_75c = EXCLUDED.ohm_per_m_75c,
-         gram_per_m = EXCLUDED.gram_per_m, is_available = EXCLUDED.is_available`,
-      [g.swg, g.diaMm, g.areaSqmm, g.ohmPerM20c, g.ohmPerM75c, g.gramPerM, g.isAvailable],
+         gram_per_m = EXCLUDED.gram_per_m, is_available = EXCLUDED.is_available, layer_pitch_mm = EXCLUDED.layer_pitch_mm`,
+      [g.swg, g.diaMm, g.areaSqmm, g.ohmPerM20c, g.ohmPerM75c, g.gramPerM, g.isAvailable, g.layerPitchMm ?? null],
     );
   }
 
@@ -444,14 +445,14 @@ export class PgStore implements Store {
       `INSERT INTO design (id, design_no, revision, customer_id, customer_name, enquiry_no, po_no,
         prd_no, quantity, required_by, ct_type, primary_current, secondary_current, burden_va,
         accuracy_class, finished_id_mm, finished_od_mm, max_width_mm, insulation_type,
-        settings_snapshot, reference_snapshot, status, created_by, supersedes, engineering_spec)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+        settings_snapshot, reference_snapshot, status, created_by, supersedes, engineering_spec, winding_configuration)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
        RETURNING *`,
       [d.id, d.designNo, d.revision, d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo,
         d.quantity, d.requiredBy, d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent,
         d.inputs.burdenVA, d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm,
         d.inputs.maxWidthMm, d.insulationType, d.settingsSnapshot, d.referenceSnapshot,
-        d.status, d.createdBy, d.supersedesId, d.inputs.engineering ?? null],
+        d.status, d.createdBy, d.supersedesId, d.inputs.engineering ?? null, serializeWindingConfiguration(d.inputs)],
     );
     return toDesign(rows[0]);
   }
@@ -462,13 +463,13 @@ export class PgStore implements Store {
          quantity=$7, required_by=$8, ct_type=$9, primary_current=$10, secondary_current=$11,
          burden_va=$12, accuracy_class=$13, finished_id_mm=$14, finished_od_mm=$15, max_width_mm=$16,
          insulation_type=$17, settings_snapshot=$18, reference_snapshot=$19, status=$20,
-         selected_option_id=$21, approved_by=$22, approved_at=$23, superseded_by=$24, engineering_spec=$25, updated_at=now()
+         selected_option_id=$21, approved_by=$22, approved_at=$23, superseded_by=$24, engineering_spec=$25, winding_configuration=$26, updated_at=now()
        WHERE id=$1 RETURNING *`,
       [d.id, d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo, d.quantity, d.requiredBy,
         d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent, d.inputs.burdenVA,
         d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm, d.inputs.maxWidthMm,
         d.insulationType, d.settingsSnapshot, d.referenceSnapshot, d.status, d.selectedOptionId,
-        d.approvedBy, d.approvedAt, d.supersededById, d.inputs.engineering ?? null],
+        d.approvedBy, d.approvedAt, d.supersededById, d.inputs.engineering ?? null, serializeWindingConfiguration(d.inputs)],
     );
     return toDesign(rows[0]);
   }
@@ -652,6 +653,7 @@ function toDesign(r: Record<string, unknown>): Design {
     requiredBy: r.required_by ? String(r.required_by).slice(0, 10) : null,
     insulationType: (r.insulation_type as string | null) ?? null,
     inputs: {
+      ...parseWindingConfiguration(r.winding_configuration),
       engineering: (r.engineering_spec as import('@meltek/engine').EngineeringSpec | null) ?? null,
       primaryCurrent: num(r.primary_current),
       secondaryCurrent: num(r.secondary_current),

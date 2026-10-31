@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { solve, optimise, computeWindingAllowance, resistanceAtTemperature, DEFAULT_SETTINGS, seedReferenceData, type DesignInputs, type EngineeringSpec } from '../src/index.js';
+import { solve, optimise, computeWindingAllowance, resistanceAtTemperature, DEFAULT_SETTINGS as LIVE_DEFAULT_SETTINGS, seedReferenceData, type DesignInputs, type EngineeringSpec } from '../src/index.js';
+
+// Preserve the established baseline; tolerance rounding is tested separately.
+const DEFAULT_SETTINGS = { ...LIVE_DEFAULT_SETTINGS };
+delete DEFAULT_SETTINGS.coreWidthRoundingTolerancePercent;
 const fixture = JSON.parse(readFileSync(new URL('../../../scripts/fixtures/engineering.json', import.meta.url), 'utf8').replace(/^\uFEFF/, '')) as DesignInputs;
 const make = () => { const i=structuredClone(fixture); i.engineering!.confirmed=true; return i; };
 const reference = () => ({ ...seedReferenceData(), slitWidthsMm: Array.from({length:80},(_,i)=>(i+1)*5), dies:[{id:'test',dieNo:'TEST ONLY',minOdMm:1,maxOdMm:500,maxWidthMm:500,quantity:1,isAvailable:true}] });

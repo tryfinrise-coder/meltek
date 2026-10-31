@@ -135,7 +135,9 @@ export function optimise(
   if (ref.slitWidthsMm.length === 0) {
     warnings.push({
       code: 'UNCONFIRMED_SETTINGS',
-      message: `Your stocked slit widths are not on record, so core widths are rounded to the nearest ${settings.slitStepMm} mm rather than to a width you actually buy.`,
+      message: settings.coreWidthRoundingTolerancePercent === undefined
+        ? `Your stocked slit widths are not on record, so core widths are rounded to the nearest ${settings.slitStepMm} mm rather than to a width you actually buy.`
+        : `Your stocked slit widths are not on record. Core widths use ${settings.slitStepMm} mm steps with ${settings.coreWidthRoundingTolerancePercent}% tolerance above the lower width; confirm availability before ordering.`,
       ref: 'Stock',
     });
   }

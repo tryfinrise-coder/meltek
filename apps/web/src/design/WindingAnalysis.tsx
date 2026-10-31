@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Card } from '../shared/primitives';
 import { TextField, SelectField, FieldShell } from '../shared/fields';
 import { fadeUp } from '../shared/motion';
-import type { WireGauge } from '@meltek/engine';
+import { resolveLayerPitchMm, type WireGauge } from '@meltek/engine';
 
 const PI = Math.PI;
 const CU_DENSITY = 8.89;
@@ -27,6 +27,7 @@ interface State {
   coreRate: number;
   cuRate: number;
   wireMap: Record<number, number>;
+  layerPitchOverridesMm?: Record<string, number>;
 }
 
 const initial: State = {
@@ -42,7 +43,7 @@ const initial: State = {
 };
 
 type Action =
-  | { type: 'field'; key: keyof Omit<State, 'wireMap'>; value: number }
+  | { type: 'field'; key: keyof Omit<State, 'wireMap' | 'layerPitchOverridesMm'>; value: number }
   | { type: 'wire'; swg: number; count: number }
   | { type: 'sync'; patch: Partial<State> };
 
@@ -98,8 +99,10 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const totalCuArea = wires.reduce((sum, w) => sum + w.count * w.area, 0);
   const cuSurfacePerTurn = wires.reduce((sum, w) => sum + w.count * w.dia, 0);
 
-  const maxWireDia = wires.length > 0
-    ? Math.max(...wires.map(w => w.dia)) + s.insThickness : 0;
+  let maxWireDia = 0;
+  try {
+    maxWireDia = Math.max(0,...gauges.filter(g=>(s.wireMap[g.swg] ?? 0)>0).map(g=>resolveLayerPitchMm(g,g.diaMm+s.insThickness,s.layerPitchOverridesMm) ?? g.diaMm+s.insThickness));
+  } catch { return null; }
 
   // Bore = finished ID + resin cover (winding wraps around the resin)
   const boreMm = s.finishedID + s.resinCover;
@@ -161,6 +164,7 @@ function fmt(n: number, d = 2) { return n.toFixed(d); }
 
 interface WindingAnalysisProps {
   designWireCombination?: { swg: number; count: number }[] | null;
+  layerPitchOverridesMm?: Record<string, number>;
   inputHost?: HTMLElement | null;
   reduce: boolean;
   gauges: WireGauge[];
@@ -175,12 +179,13 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  inputHost, designWireCombination, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
   const designWireSignature = JSON.stringify(designWireCombination);
+  const pitchSignature = JSON.stringify(layerPitchOverridesMm);
 
-  const setField = useCallback((key: keyof Omit<State, 'wireMap'>, v: string) => {
+  const setField = useCallback((key: keyof Omit<State, 'wireMap' | 'layerPitchOverridesMm'>, v: string) => {
     dispatch({ type: 'field', key, value: parseFloat(v) || 0 });
   }, []);
 
@@ -194,6 +199,7 @@ export function WindingAnalysis({
     dispatch({
       type: 'sync',
       patch: {
+        layerPitchOverridesMm,
         finishedID: finishedIdMm,
         resinCover: resinCoverMm,
         coreID: coreIdMm,
@@ -203,7 +209,7 @@ export function WindingAnalysis({
         wireMap,
       },
     });
-  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature]);
+  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature, pitchSignature]);
 
   const result = useMemo(() => calculate(s, gauges), [s, gauges]);
 

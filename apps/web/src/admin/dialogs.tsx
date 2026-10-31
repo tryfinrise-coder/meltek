@@ -1,7 +1,8 @@
 import { Modal, ModalBody, ModalFooter, ModalHeader } from 'flowbite-react';
 import { useState } from 'react';
-import { TESLA, type SteelGrade, type WireGauge } from '@meltek/engine';
+import { DEFAULT_SETTINGS, TESLA, type SteelGrade, type WireGauge } from '@meltek/engine';
 import { api, ApiError, type Customer } from '../shared/api';
+import { useReference } from '../design/useCalculator';
 import { TextField } from '../shared/fields';
 import { Button, Callout } from '../shared/primitives';
 
@@ -126,6 +127,9 @@ export function GaugeDialog({
   open: boolean; onClose: () => void; onSaved: () => void; existing?: WireGauge | null;
 }) {
   const editing = Boolean(existing);
+  const reference = useReference();
+  const insulation = reference.data?.settings.wireInsulationMm ?? DEFAULT_SETTINGS.wireInsulationMm;
+  const [layerPitch, setLayerPitch] = useState(existing?.layerPitchMm?.toString() ?? '');
   const [swg, setSwg] = useState(existing?.swg?.toString() ?? '');
   const [diaMm, setDia] = useState(existing?.diaMm?.toString() ?? '');
   const [areaSqmm, setArea] = useState(existing?.areaSqmm?.toString() ?? '');
@@ -135,7 +139,7 @@ export function GaugeDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const complete = [swg, diaMm, areaSqmm, ohm20, gramPerM].every((v) => v.trim() !== '');
+  const complete = [swg, diaMm, areaSqmm, ohm20, gramPerM].every((v) => v.trim() !== '') && (layerPitch.trim()==='' || (Number.isFinite(Number(layerPitch)) && Number(layerPitch)>=Number(diaMm)+insulation));
 
   const submit = async () => {
     setBusy(true);
@@ -148,6 +152,7 @@ export function GaugeDialog({
         ohmPerM20c: Number(ohm20),
         ohmPerM75c: ohm75.trim() === '' ? null : Number(ohm75),
         gramPerM: Number(gramPerM),
+        layerPitchMm: layerPitch.trim()==='' ? null : Number(layerPitch),
         isAvailable: existing?.isAvailable ?? true,
       });
       onSaved();
@@ -180,6 +185,7 @@ export function GaugeDialog({
           help="Optional. Left blank rather than estimated."
         />
         <TextField label="Mass" unit="g/m" type="number" step="any" value={gramPerM} onChange={(e) => setGram(e.target.value)} />
+        <TextField label="Layer pitch (wire + air)" unit="mm" type="number" step="0.01" value={layerPitch} min={Number(diaMm)+insulation} placeholder={String(Math.ceil(Number(diaMm)+insulation))} onChange={e=>setLayerPitch(e.target.value)} help="Blank automatically rounds the insulated diameter up to 1 mm. Tape between layers is added separately. Users can override the pitch in the calculator." />
       </div>
     </Shell>
   );

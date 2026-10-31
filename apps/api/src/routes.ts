@@ -39,6 +39,7 @@ const asInputs = (i: StoredDesignInputs | DesignInputs): DesignInputs => ({
   ctType: i.ctType,
   maxWidthMm: i.maxWidthMm ?? null,
   wireCombination: i.wireCombination ?? null,
+  layerPitchOverridesMm: i.layerPitchOverridesMm ?? null,
 });
 
 const store_ = (req: Request): Store => (req.app.locals.store as Store);
@@ -616,6 +617,7 @@ export function buildRouter(): Router {
   r.put('/reference/gauges/:swg', requirePermission('reference.edit'), wrap(async (req, res) => {
     const store = store_(req);
     const body = gaugeUpsertSchema.parse({ ...req.body, swg: Number(param(req, 'swg')) });
+    if (body.layerPitchMm !== null && body.layerPitchMm + 1e-9 < body.diaMm + (await store.getSettings()).wireInsulationMm) return res.status(400).json({error:'Layer pitch must include the wire diameter and insulation.'});
     await store.saveGauge(body);
     await audit(store, 'wire_gauge', String(body.swg), 'update', actorOf(req), null, body);
     res.json(await store.getReference());
@@ -661,6 +663,7 @@ export function buildRouter(): Router {
     const rows = await store.getSettingRows();
     const row = rows.find((s) => s.key === param(req, 'key'));
     if (!row) return res.status(404).json({ error: `No process setting "${param(req, 'key')}".` });
+    if (row.key === 'coreWidthRoundingTolerancePercent') z.number().finite().min(0).max(100).parse(value);
     await store.saveSetting(row.key, value, actorOf(req));
     await audit(store, 'process_setting', row.key, 'update', actorOf(req), row.value, value);
     return res.json({ settings: await store.getSettings(), settingRows: await store.getSettingRows() });

@@ -149,7 +149,7 @@
 .option-rejected { color: var(--brand); font-size: 12px; }
 .calculator-page .calculator-winding-inputs .card > header { display: none; }
 .calculator-page .workspace-input-group:nth-child(4) .card { border-bottom: 1px solid var(--line); }
-.calculator-page .wire-configuration-grid { grid-template-columns: 88px minmax(0,1fr) 72px !important; align-items: center; column-gap: 12px; }
+.calculator-page .wire-configuration-grid { grid-template-columns: 62px minmax(0,1fr) 56px 96px !important; align-items: center; column-gap: 12px; }
 .calculator-page .calculator-save-actions { display: flex; justify-content: flex-end; min-height: 0; }
 
 @media(max-width:1100px) { .workspace-bottom-bar-inner > div:nth-child(5) { display: none; } .reference-shell .glossy-bar { padding-inline: 24px; } }
@@ -219,3 +219,30 @@
   .workspace-bottom-bar-inner > .workspace-dock-action { padding: 10px; }
 }
 @media(prefers-reduced-motion:reduce) { .reference-shell * { scroll-behavior: auto; transition: none; } }
+
+.core-rounding-control {max-width:340px;min-width:0;}
+.core-rounding-editor {display:flex;align-items:flex-end;gap:10px;}
+.core-rounding-editor .field-shell {width:auto;max-width:100%;display:grid;grid-template-columns:auto 86px;align-items:center;gap:8px;}
+.core-rounding-editor label {font-size:12px;white-space:nowrap;}
+.core-rounding-editor .field-unit-control,.core-rounding-editor .field-unit-control > div {min-width:0;}
+.core-rounding-editor .field-shell > span {grid-column:1/-1;}
+.core-rounding-editor input {min-height:36px;}
+.core-rounding-control > p {margin-top:5px;font-size:11px;line-height:1.4;color:var(--text-3);}
+.core-rounding-help {margin-top:5px;font-size:11px;color:var(--text-3);}
+.core-rounding-help summary {cursor:pointer;color:var(--brand);}
+.core-rounding-help p {max-width:320px;margin-top:6px;line-height:1.5;}
+.core-rounding-control .core-rounding-error {color:var(--warn);}
+@media(max-width:700px) {.core-rounding-control {width:100%;max-width:100%;}.core-rounding-editor input {min-height:44px;font-size:16px;}}
+.calculator-page .core-rounding-editor .field-unit-control input {padding:8px 28px 8px 10px;}
+.core-rounding-editor input::-webkit-inner-spin-button,.core-rounding-editor input::-webkit-outer-spin-button {-webkit-appearance:none;margin:0;}
+.calculator-page .card > header > div:has(> .core-rounding-control) {min-width:0;max-width:100%;}
+@media(max-width:700px) {
+  .calculator-page .card > header > div:has(> .core-rounding-control) {flex:1 1 100%;}
+  .core-rounding-editor {flex-wrap:wrap;}
+  .core-rounding-editor .field-shell {grid-template-columns:minmax(0,1fr) 86px;}
+}
+
+.wire-layer-pitch-field {min-width:0;}
+.wire-layer-pitch-field input {width:100%;}
+.wire-pitch-error {display:block;font-size:10px;line-height:1.3;color:var(--warn);margin-top:4px;}
+@media(max-width:700px) {.calculator-page .wire-configuration-grid {grid-template-columns:48px minmax(0,1fr) 44px 68px !important;column-gap:8px;}.wire-layer-pitch-field input {padding-inline:5px;}}

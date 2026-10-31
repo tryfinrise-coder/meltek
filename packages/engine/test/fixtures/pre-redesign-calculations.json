@@ -1,0 +1,1247 @@
+{
+  "baselineCommit": "e1ff7be",
+  "cases": [
+    {
+      "name": "default",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 8.14,
+          "windingBuildMm": 1.5699999999999998,
+          "windingLayers": 1,
+          "turnsPerLayer": 92,
+          "coreIdMm": 48.14,
+          "coreOdMm": 68.62534259062107,
+          "radialBuildMm": 10.242671295310537,
+          "radialBuildCm": 1.0242671295310537,
+          "mmlCm": 18.341457123829528
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.5884109777447905,
+        "bUsedT": 0.5884109777447905,
+        "wasCapped": false,
+        "coreAreaCm2": 1.5364006942965807,
+        "coreWidthMm": 16.414537332228427,
+        "wireLengthM": 3.7515333758408933,
+        "resistanceOhm": 0.040835440796028126,
+        "vDrop": 0.20417720398014064,
+        "vTotal": 1.2041772039801406,
+        "converged": true,
+        "passes": 6,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.5364006942965807,
+        "coreVolumeCm3": 28.179827459462654,
+        "coreWeightKg": 0.20479689606164483,
+        "copperWeightKg": 0.052153271230558844,
+        "coreCost": 34.81547233047962,
+        "copperCost": 73.53611243508797,
+        "totalCost": 108.3515847655676
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 67.37232173173919
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 20,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 80.42054082373238
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 19,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 113.86582311456758
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "higher-current",
+      "inputs": {
+        "primaryCurrent": 600,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 120,
+          "allowanceMm": 13.48,
+          "windingBuildMm": 3.2399999999999998,
+          "windingLayers": 2,
+          "turnsPerLayer": 96,
+          "coreIdMm": 53.480000000000004,
+          "coreOdMm": 61.41909115454755,
+          "radialBuildMm": 3.9695455772737724,
+          "radialBuildCm": 0.39695455772737726,
+          "mmlCm": 18.04830703376353
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 3.96,
+        "h": 0.21921863465874972,
+        "bRawT": 1.379211455038042,
+        "bUsedT": 0.65,
+        "wasCapped": true,
+        "coreAreaCm2": 0.7939091154547545,
+        "coreWidthMm": 19.748982971511325,
+        "wireLengthM": 6.885467095795259,
+        "resistanceOhm": 0.0749483093377314,
+        "vDrop": 0.374741546688657,
+        "vTotal": 1.374741546688657,
+        "converged": true,
+        "passes": 8,
+        "orderedWidthMm": 20,
+        "finalAreaCm2": 0.7939091154547545,
+        "coreVolumeCm3": 14.328715472631027,
+        "coreWeightKg": 0.10413393969734598,
+        "copperWeightKg": 0.09853539160357574,
+        "coreCost": 17.702769748548818,
+        "copperCost": 138.9349021610418,
+        "totalCost": 156.6376719095906
+      },
+      "ranked": [
+        {
+          "gradeCode": "M-4",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 70.47905507280385
+        },
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 76.75753858345506
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 20,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 97.95346170991256
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "one-amp-secondary",
+      "inputs": {
+        "primaryCurrent": 100,
+        "secondaryCurrent": 1,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "23-MOH",
+      "swg": 21,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 100,
+          "allowanceMm": 6.926,
+          "windingBuildMm": 0.963,
+          "windingLayers": 1,
+          "turnsPerLayer": 161,
+          "coreIdMm": 46.926,
+          "coreOdMm": 67.85198969788263,
+          "radialBuildMm": 10.462994848941317,
+          "radialBuildCm": 1.0462994848941318,
+          "mmlCm": 18.029284461433654
+        },
+        "burdenVoltage": 5,
+        "classPercent": 0.33,
+        "atLoss": 0.66,
+        "h": 0.036536439109791624,
+        "bRawT": 0.17520243949884237,
+        "bUsedT": 0.17520243949884237,
+        "wasCapped": false,
+        "coreAreaCm2": 16.21764201585904,
+        "coreWidthMm": 153.37282027481598,
+        "wireLengthM": 39.387236865955835,
+        "resistanceOhm": 1.3078532001340635,
+        "vDrop": 1.3078532001340635,
+        "vTotal": 6.307853200134064,
+        "converged": true,
+        "passes": 8,
+        "orderedWidthMm": 155,
+        "finalAreaCm2": 16.21764201585904,
+        "coreVolumeCm3": 292.392481197621,
+        "coreWeightKg": 2.1249623571037106,
+        "copperWeightKg": 0.1849202169330078,
+        "coreCost": 446.24209499177925,
+        "copperCost": 260.737505875541,
+        "totalCost": 706.9796008673202
+      },
+      "ranked": [
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 22,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 552.2721598777164
+        },
+        {
+          "gradeCode": "23-MOH",
+          "swg": 22,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 689.7193074995877
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 20,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 1591.8270925136935
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "flux-ceiling",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "LASER-SCRIBED",
+      "swg": 17,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 8.14,
+          "windingBuildMm": 1.5699999999999998,
+          "windingLayers": 1,
+          "turnsPerLayer": 92,
+          "coreIdMm": 48.14,
+          "coreOdMm": 66.47628163632217,
+          "radialBuildMm": 9.168140818161085,
+          "radialBuildCm": 0.9168140818161086,
+          "mmlCm": 18.003883418522424
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 1.1560931732937485,
+        "bUsedT": 0.65,
+        "wasCapped": true,
+        "coreAreaCm2": 1.3752211227241629,
+        "coreWidthMm": 14.692533362437638,
+        "wireLengthM": 3.5035648041910195,
+        "resistanceOhm": 0.03813630289361925,
+        "vDrop": 0.19068151446809625,
+        "vTotal": 1.1906815144680962,
+        "converged": true,
+        "passes": 5,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.3752211227241629,
+        "coreVolumeCm3": 24.759320768215346,
+        "coreWeightKg": 0.17993836368300503,
+        "copperWeightKg": 0.04995737415759658,
+        "coreCost": 62.97842728905176,
+        "copperCost": 70.43989756221117,
+        "totalCost": 133.41832485126292
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 67.37232173173919
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 20,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 80.42054082373238
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 19,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 113.86582311456758
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "fixed-parallel",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring",
+        "wireCombination": [
+          {
+            "swg": 21,
+            "count": 2
+          },
+          {
+            "swg": 22,
+            "count": 1
+          }
+        ]
+      },
+      "grade": "M-4",
+      "swg": 21,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 9.052,
+          "windingBuildMm": 2.026,
+          "windingLayers": 2,
+          "turnsPerLayer": 56,
+          "coreIdMm": 49.052,
+          "coreOdMm": 64.83471856671002,
+          "radialBuildMm": 7.891359283355013,
+          "radialBuildCm": 0.7891359283355013,
+          "mmlCm": 17.889283919531223
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.5884109777447905,
+        "bUsedT": 0.5884109777447905,
+        "wasCapped": false,
+        "coreAreaCm2": 1.5782718566710026,
+        "coreWidthMm": 18.682195273094244,
+        "wireLengthM": 3.9467481193255716,
+        "resistanceOhm": 0.04739991588307404,
+        "vDrop": 0.2369995794153702,
+        "vTotal": 1.2369995794153703,
+        "converged": true,
+        "passes": 6,
+        "orderedWidthMm": 20,
+        "finalAreaCm2": 1.5782718566710026,
+        "coreVolumeCm3": 28.234153346193253,
+        "coreWeightKg": 0.20519170944345946,
+        "copperWeightKg": 0.05217203621561438,
+        "coreCost": 34.88259060538811,
+        "copperCost": 73.56257106401627,
+        "totalCost": 108.44516166940437
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 91.62921588604249
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 21,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 108.44516166940437
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 21,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 130.21054226953555
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 21,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 21,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 21,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 21,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 21,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "customer-width-limit",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring",
+        "maxWidthMm": 15
+      },
+      "grade": "23-MOH",
+      "swg": 21,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 6.926,
+          "windingBuildMm": 0.963,
+          "windingLayers": 1,
+          "turnsPerLayer": 161,
+          "coreIdMm": 46.926,
+          "coreOdMm": 67.80892531820422,
+          "radialBuildMm": 10.441462659102104,
+          "radialBuildCm": 1.0441462659102103,
+          "mmlCm": 18.022519924492194
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.7734368592152763,
+        "bUsedT": 0.7734368592152763,
+        "wasCapped": false,
+        "coreAreaCm2": 1.5662193988653155,
+        "coreWidthMm": 14.811985992673687,
+        "wireLengthM": 3.6955819829450105,
+        "resistanceOhm": 0.12271179974368907,
+        "vDrop": 0.6135589987184453,
+        "vTotal": 1.6135589987184453,
+        "converged": true,
+        "passes": 8,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.5662193988653155,
+        "coreVolumeCm3": 28.227220322176336,
+        "coreWeightKg": 0.20514132369141652,
+        "copperWeightKg": 0.01722882535924945,
+        "coreCost": 43.07967797519747,
+        "copperCost": 24.292643756541725,
+        "totalCost": 67.37232173173919
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 67.37232173173919
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 19,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 113.86582311456758
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 20,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": 80.42054082373238
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "stocked-slits",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {},
+      "slits": [
+        15,
+        25,
+        40
+      ],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 8.14,
+          "windingBuildMm": 1.5699999999999998,
+          "windingLayers": 1,
+          "turnsPerLayer": 92,
+          "coreIdMm": 48.14,
+          "coreOdMm": 68.62534259062107,
+          "radialBuildMm": 10.242671295310537,
+          "radialBuildCm": 1.0242671295310537,
+          "mmlCm": 18.341457123829528
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.5884109777447905,
+        "bUsedT": 0.5884109777447905,
+        "wasCapped": false,
+        "coreAreaCm2": 1.5364006942965807,
+        "coreWidthMm": 16.414537332228427,
+        "wireLengthM": 3.7515333758408933,
+        "resistanceOhm": 0.040835440796028126,
+        "vDrop": 0.20417720398014064,
+        "vTotal": 1.2041772039801406,
+        "converged": true,
+        "passes": 6,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.5364006942965807,
+        "coreVolumeCm3": 28.179827459462654,
+        "coreWeightKg": 0.20479689606164483,
+        "copperWeightKg": 0.052153271230558844,
+        "coreCost": 34.81547233047962,
+        "copperCost": 73.53611243508797,
+        "totalCost": 108.3515847655676
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 67.37232173173919
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 20,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 81.00822840474447
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 19,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 113.86582311456758
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "margin-enabled",
+      "inputs": {
+        "primaryCurrent": 600,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {
+        "plusFiveAbove400A": true
+      },
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 125,
+          "allowanceMm": 13.48,
+          "windingBuildMm": 3.2399999999999998,
+          "windingLayers": 2,
+          "turnsPerLayer": 96,
+          "coreIdMm": 53.480000000000004,
+          "coreOdMm": 61.12031255099022,
+          "radialBuildMm": 3.8201562754951093,
+          "radialBuildCm": 0.3820156275495109,
+          "mmlCm": 18.001375000464254
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 3.96,
+        "h": 0.21921863465874972,
+        "bRawT": 1.379211455038042,
+        "bUsedT": 0.65,
+        "wasCapped": true,
+        "coreAreaCm2": 0.7640312550990218,
+        "coreWidthMm": 19.005752614403548,
+        "wireLengthM": 6.947725784321063,
+        "resistanceOhm": 0.07562599516233477,
+        "vDrop": 0.37812997581167385,
+        "vTotal": 1.3781299758116738,
+        "converged": true,
+        "passes": 8,
+        "orderedWidthMm": 20,
+        "finalAreaCm2": 0.7640312550990218,
+        "coreVolumeCm3": 13.753613135112857,
+        "coreWeightKg": 0.0999543834594327,
+        "copperWeightKg": 0.10198135921885726,
+        "coreCost": 16.992245188103556,
+        "copperCost": 143.79371649858874,
+        "totalCost": 160.7859616866923
+      },
+      "ranked": [
+        {
+          "gradeCode": "M-4",
+          "swg": 21,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 70.98046091124667
+        },
+        {
+          "gradeCode": "23-MOH",
+          "swg": 21,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 77.05600064698395
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 20,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 97.45009948194902
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "sixty-hertz",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {
+        "frequencyHz": 60
+      },
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 8.14,
+          "windingBuildMm": 1.5699999999999998,
+          "windingLayers": 1,
+          "turnsPerLayer": 92,
+          "coreIdMm": 48.14,
+          "coreOdMm": 64.87733676660193,
+          "radialBuildMm": 8.36866838330096,
+          "radialBuildCm": 0.8368668383300961,
+          "mmlCm": 17.752721745712012
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.5884109777447905,
+        "bUsedT": 0.5884109777447905,
+        "wasCapped": false,
+        "coreAreaCm2": 1.2553002574951442,
+        "coreWidthMm": 13.411327537341284,
+        "wireLengthM": 3.319071165377145,
+        "resistanceOhm": 0.03612808963513023,
+        "vDrop": 0.18064044817565114,
+        "vTotal": 1.1806404481756512,
+        "converged": true,
+        "passes": 5,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.2553002574951442,
+        "coreVolumeCm3": 22.284996178631935,
+        "coreWeightKg": 0.16195620972820757,
+        "copperWeightKg": 0.048323582267132424,
+        "coreCost": 27.532555653795285,
+        "copperCost": 68.13625099665671,
+        "totalCost": 95.668806650452
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 22,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 56.20519433720152
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 21,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 65.68106314355609
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 20,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 92.70310990059966
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "fractional-burden",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 2.5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "23-MOH",
+      "swg": 20,
+      "settingsPatch": {},
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 7.128,
+          "windingBuildMm": 1.064,
+          "windingLayers": 1,
+          "turnsPerLayer": 143,
+          "coreIdMm": 47.128,
+          "coreOdMm": 63.67445722517297,
+          "radialBuildMm": 8.273228612586486,
+          "radialBuildCm": 0.8273228612586485,
+          "mmlCm": 17.404809280915035
+        },
+        "burdenVoltage": 0.5,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.7734368592152763,
+        "bUsedT": 0.7734368592152763,
+        "wasCapped": false,
+        "coreAreaCm2": 0.8273228612586485,
+        "coreWidthMm": 7.976502711710842,
+        "wireLengthM": 2.6821843904863614,
+        "resistanceOhm": 0.07046634830685769,
+        "vDrop": 0.3523317415342885,
+        "vTotal": 0.8523317415342885,
+        "converged": true,
+        "passes": 7,
+        "orderedWidthMm": 10,
+        "finalAreaCm2": 0.8273228612586485,
+        "coreVolumeCm3": 14.399396613947708,
+        "coreWeightKg": 0.10464761489186497,
+        "copperWeightKg": 0.015706386165982737,
+        "coreCost": 21.975999127291644,
+        "copperCost": 22.146004494035658,
+        "totalCost": 44.1220036213273
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 20,
+          "rank": 1,
+          "isFeasible": true,
+          "totalCost": 44.1220036213273
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 21,
+          "rank": 2,
+          "isFeasible": true,
+          "totalCost": 52.60699748369434
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 19,
+          "rank": 3,
+          "isFeasible": true,
+          "totalCost": 70.48175106988339
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    },
+    {
+      "name": "single-pass",
+      "inputs": {
+        "primaryCurrent": 300,
+        "secondaryCurrent": 5,
+        "burdenVA": 5,
+        "accuracyClass": "0.5S",
+        "finishedIdMm": 40,
+        "finishedOdMm": 75,
+        "ctType": "ring"
+      },
+      "grade": "M-4",
+      "swg": 17,
+      "settingsPatch": {
+        "maxIterations": 1
+      },
+      "slits": [],
+      "expected": {
+        "geometry": {
+          "turns": 60,
+          "allowanceMm": 8.14,
+          "windingBuildMm": 1.5699999999999998,
+          "windingLayers": 1,
+          "turnsPerLayer": 92,
+          "coreIdMm": 48.14,
+          "coreOdMm": 65.15193619530262,
+          "radialBuildMm": 8.505968097651312,
+          "radialBuildCm": 0.8505968097651312,
+          "mmlCm": 17.795855723106314
+        },
+        "burdenVoltage": 1,
+        "classPercent": 0.33,
+        "atLoss": 1.98,
+        "h": 0.10960931732937486,
+        "bRawT": 0.5884109777447905,
+        "bUsedT": 0.5884109777447905,
+        "wasCapped": false,
+        "coreAreaCm2": 1.2758952146476967,
+        "coreWidthMm": 13.631359130851461,
+        "wireLengthM": 3.35075571484261,
+        "resistanceOhm": 0.03647297595606181,
+        "vDrop": 0.18236487978030905,
+        "vTotal": 1.182364879780309,
+        "converged": false,
+        "passes": 1,
+        "orderedWidthMm": 15,
+        "finalAreaCm2": 1.2758952146476967,
+        "coreVolumeCm3": 22.70564715767217,
+        "coreWeightKg": 0.1650132907183825,
+        "copperWeightKg": 0.04860416624987836,
+        "coreCost": 28.052259422125026,
+        "copperCost": 68.53187441232849,
+        "totalCost": 96.58413383445352
+      },
+      "ranked": [
+        {
+          "gradeCode": "23-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": 145.17433162956314
+        },
+        {
+          "gradeCode": "30-MOH",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "HPDR-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "LASER-SCRIBED",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": 187.9763073862471
+        },
+        {
+          "gradeCode": "M-4",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": 168.71447941094104
+        },
+        {
+          "gradeCode": "M4-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "MOH-PRIME",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        },
+        {
+          "gradeCode": "NANO",
+          "swg": 14,
+          "rank": null,
+          "isFeasible": false,
+          "totalCost": null
+        }
+      ]
+    }
+  ]
+}

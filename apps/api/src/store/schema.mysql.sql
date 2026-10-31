@@ -255,3 +255,7 @@ ALTER TABLE design ADD COLUMN engineering_spec JSON;
 INSERT IGNORE INTO accuracy_class (code, percent, per_is, note) VALUES
  ('5P',5,0,'Engineering protection workflow only'), ('10P',10,0,'Engineering protection workflow only'),
  ('PS',0,0,'Client-defined special protection specification'), ('PX',0,0,'Special protection specification; confirm applicable standard');
+
+-- Duplicate-column errors are ignored by the idempotent migration runner.
+ALTER TABLE wire_gauge ADD COLUMN layer_pitch_mm DECIMAL(20,6);
+ALTER TABLE design ADD COLUMN winding_configuration JSON;

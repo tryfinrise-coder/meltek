@@ -9,8 +9,10 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
 import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
 import { EngineeringEditor } from './EngineeringEditor';
+import { LayerPitchField } from './LayerPitchField';
+import { CoreWidthRounding } from './CoreWidthRounding';
 import { WindingAnalysis } from './WindingAnalysis';
-import { designInputsSchema } from '@meltek/schema';
+import { createCalculatorInputs, wireCombinationFromMap, wireModeFromDraft } from './calculationInputs';
 import { api, ApiError } from '../shared/api';
 import { useCalculator, useDetail, useReference } from './useCalculator';
 import { usePermission } from '../auth/session';
@@ -54,15 +56,15 @@ const DEFAULTS: FormValues = {
 
 const STORAGE_KEY = 'meltek-design-draft';
 
-function loadDraft(): { form: Partial<FormValues>; wireMap: Record<number, number> } | null {
+function loadDraft(): { form: Partial<FormValues>; wireMap: Record<number, number>; wireComboEnabled?: boolean; layerPitchOverridesMm?: Record<string, number> } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 
-function saveDraft(formValues: FormValues, wireMap: Record<number, number>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap })); } catch {}
+function saveDraft(formValues: FormValues, wireMap: Record<number, number>, wireComboEnabled: boolean, layerPitchOverridesMm: Record<string, number>) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap, wireComboEnabled, layerPitchOverridesMm })); } catch {}
 }
 
 export function NewDesign() {
@@ -74,6 +76,7 @@ export function NewDesign() {
   const canSelect = usePermission('designs.select');
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [roundingPending, setRoundingPending] = useState(false);
   const [activeSection, setActiveSection] = useState('calculator-inputs');
   useEffect(() => {
     let frame = 0;
@@ -93,8 +96,12 @@ export function NewDesign() {
   const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
 
   const draft = useMemo(() => loadDraft(), []);
-  const [wireComboEnabled, setWireComboEnabled] = useState(() => Object.values(draft?.wireMap ?? {}).some(count => count > 0));
+  const [wireComboEnabled, setWireComboEnabled] = useState(() => wireModeFromDraft(draft));
   const [wireMap, setWireMap] = useState<Record<number, number>>(draft?.wireMap ?? {});
+  const [layerPitchOverridesMm, setLayerPitchOverridesMm] = useState<Record<string, number>>(draft?.layerPitchOverridesMm ?? {});
+  const setLayerPitch = (swg: number, pitch: number | undefined) => setLayerPitchOverridesMm(previous => {
+    const next={...previous}; if(pitch===undefined) delete next[String(swg)]; else next[String(swg)]=pitch; return next;
+  });
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -104,14 +111,10 @@ export function NewDesign() {
   const values = form.watch();
 
   // Auto-save form + wireMap to localStorage on every change.
-  useEffect(() => { saveDraft(values, wireMap); }, [values, wireMap]);
+  useEffect(() => { saveDraft(values, wireMap, wireComboEnabled, layerPitchOverridesMm); }, [values, wireMap, wireComboEnabled, layerPitchOverridesMm]);
 
   const wireCombination: WireCombinationEntry[] | null = useMemo(() => {
-    if (!wireComboEnabled) return null;
-    const entries = Object.entries(wireMap)
-      .filter(([, count]) => count > 0)
-      .map(([swg, count]) => ({ swg: Number(swg), count }));
-    return entries.length > 0 ? entries : null;
+    return wireCombinationFromMap(wireComboEnabled, wireMap);
   }, [wireComboEnabled, wireMap]);
 
   const setWireCount = useCallback((swg: number, count: number) => {
@@ -120,21 +123,9 @@ export function NewDesign() {
 
   /** Valid electrical spec → live engine run, in the browser, on every keystroke (§3.1). */
   const inputs: DesignInputs | null = useMemo(() => {
-    const parsed = designInputsSchema.safeParse({
-      engineering,
-      primaryCurrent: Number(values.primaryCurrent),
-      secondaryCurrent: Number(values.secondaryCurrent),
-      burdenVA: Number(values.burdenVA),
-      accuracyClass: values.accuracyClass,
-      finishedIdMm: Number(values.finishedIdMm),
-      finishedOdMm: Number(values.finishedOdMm),
-      ctType: values.ctType,
-      maxWidthMm: values.maxWidthMm === '' ? null : Number(values.maxWidthMm),
-      wireCombination,
-    });
-    return parsed.success ? (parsed.data as DesignInputs) : null;
+    return createCalculatorInputs(values, engineering, wireCombination, layerPitchOverridesMm);
   }, [values.primaryCurrent, values.secondaryCurrent, values.burdenVA, values.accuracyClass,
-    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination]);
+    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination, layerPitchOverridesMm]);
 
   const { result, error } = useCalculator(inputs, reference.data);
 
@@ -208,8 +199,8 @@ export function NewDesign() {
         <p>Enter the specification, follow each calculation step, then compare the ranked core and winding options before saving.</p>
         </div>
         <div className="workspace-hero-actions">
-          <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
-          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
+          <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setWireComboEnabled(false); setLayerPitchOverridesMm({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
+          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
         </div>
       </header>
       <section className="workspace-overview" aria-label="Design at a glance">
@@ -283,7 +274,7 @@ export function NewDesign() {
 
 
           </details>
-          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">B</span><span>Core dimensions<small>Finished size and physical limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
+          <details className="workspace-input-group" open><summary><span className="workspace-group-badge">B</span><span>CT Dimensions<small>Finished size and physical limits</small></span><span className="workspace-chevron" aria-hidden="true">⌄</span></summary>
           <Card title="Physical limits">
             <div className="grid grid-cols-2 gap-3 p-4">
               <TextField
@@ -333,15 +324,15 @@ export function NewDesign() {
               <p className="mt-1 text-[12px] text-[var(--text-3)]">
                 {wireComboEnabled
                   ? 'Set the number of wires for each gauge. The optimizer will rank by grade using this combination.'
-                  : 'When off, the optimizer explores every grade × gauge pair independently.'}
+                  : 'Enter wire counts below, then enable this option to apply them. When off, the optimizer explores every grade × gauge pair independently.'}
               </p>
             </div>
-            {wireComboEnabled && (
               <div className="border-t border-[var(--line)] px-4 py-3">
-                <div className="wire-configuration-grid grid gap-1" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+                <div className="wire-configuration-grid grid gap-1" style={{ gridTemplateColumns: 'auto 1fr auto auto' }}>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Gauge</div>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Diameter</div>
                   <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Wires</div>
+                  <div className="text-[11px] font-medium text-[var(--text-3)] uppercase tracking-wider pb-1">Layer pitch<br />(mm)</div>
                   {(reference.data?.gauges ?? []).filter(g => g.isAvailable).map(g => {
                     const key = g.swg;
                     return (
@@ -362,10 +353,13 @@ export function NewDesign() {
                           onBlur={() => { if (wireMap[g.swg] === undefined) setWireCount(g.swg, 0); }}
                           className="w-14 rounded border border-[var(--line)] bg-[var(--surface-1)] px-2 py-1 text-center text-[13px]"
                         />
+                        {reference.data && <LayerPitchField gauge={g} settings={reference.data.settings} value={layerPitchOverridesMm[String(g.swg)]} onChange={pitch=>setLayerPitch(g.swg,pitch)} />}
                       </div>
                     );
                   })}
                 </div>
+                {Object.keys(layerPitchOverridesMm).length > 0 && <button type="button" className="mt-3 text-[12px] text-[var(--brand)] underline underline-offset-4" onClick={()=>setLayerPitchOverridesMm({})}>Reset layer pitches to saved defaults</button>}
+                <p className="mt-3 text-[12px] text-[var(--text-3)]">Layer pitch includes the wire and air allowance. Blank uses the saved per-wire default shown in grey; automatic defaults round the insulated diameter up to 1 mm. Tape is added separately. For mixed gauges, the largest layer pitch is used. Overrides apply to this design and are saved with it.</p>
                 {wireCombination && (
                   <div className="mt-3 rounded bg-[var(--surface-2)] px-3 py-2 text-[13px]">
                     <strong>Active:</strong>{' '}
@@ -380,7 +374,6 @@ export function NewDesign() {
                   <p className="mt-2 text-[12px] text-[var(--text-warn)]">Select at least one wire to enable combination mode.</p>
                 )}
               </div>
-            )}
           </Card>
 
 
@@ -541,11 +534,12 @@ export function NewDesign() {
 
               <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}><dl className="calculator-value-list">
                 <div><dt>Core width (calc)</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
-                <div><dt>Ordered width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt>Rounded core width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2 * 100} dp={1} suffix=" mm²" /></dd></div>
                 <div><dt>Flux density</dt><dd><AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" /></dd></div>
                 <div><dt>Core inner diameter</dt><dd><AnimatedNumber value={selected.geometry.coreIdMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Core outer diameter (adj)</dt><dd><AnimatedNumber value={selected.geometry.coreOdMm} dp={2} suffix=" mm" /></dd></div>
+                {selected.geometry.windingLayerPitchMm !== undefined && <div><dt>Winding layer pitch</dt><dd><AnimatedNumber value={selected.geometry.windingLayerPitchMm} dp={2} suffix=" mm" /></dd></div>}
                 <div><dt>Secondary turns</dt><dd><AnimatedNumber value={selected.geometry.turns} dp={0} suffix=" turns" /></dd></div>
                 <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
@@ -554,6 +548,7 @@ export function NewDesign() {
 
               <Card
                 title="Ranked options"
+                actions={<CoreWidthRounding onPendingChange={setRoundingPending} />}
                 subtitle={wireCombination ? 'Each grade ranked by cost for your wire combination.' : 'Each grade ranked by cheapest gauge. Infeasible rows stay visible with their reason.'}
               >
                 <OptionsTable
@@ -570,6 +565,7 @@ export function NewDesign() {
               <div className="workflow-heading"><span>•</span><div><h2>Winding analysis</h2><p>Layer-by-layer mean turn length for {selected.gradeLabel} · {selected.wireCombinationLabel || `SWG ${selected.swg}`}</p></div></div>
               <WindingAnalysis
                 designWireCombination={wireCombination}
+                layerPitchOverridesMm={layerPitchOverridesMm}
                 inputHost={windingInputHost}
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}
@@ -599,11 +595,11 @@ export function NewDesign() {
             <span className="workspace-bottom-rank">#{selected.rank ?? '—'}</span>
             <div><span>Selected</span><strong>{selected.gradeLabel}{selected.wireCombinationLabel ? ` · ${selected.wireCombinationLabel}` : ` · SWG ${selected.swg}`}</strong></div>
             <div><span>Flux B</span><strong className="num">{selected.bUsedT.toFixed(3)} T</strong></div>
-            <div><span>Core width</span><strong className="num">{selected.coreWidthMm.toFixed(2)} mm</strong></div>
+            <div><span>Rounded width</span><strong className="num">{selected.orderedWidthMm.toFixed(0)} mm</strong></div>
             <div><span>Feasible</span><strong className="num">{options.filter(o => o.isFeasible).length} / {options.length}</strong></div>
             <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
             {canCreate && (
-              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending} onClick={submitDesign}>
+              <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending} onClick={submitDesign}>
                 {save.isPending ? 'Saving…' : 'Save design & options'}
               </Button>
             )}

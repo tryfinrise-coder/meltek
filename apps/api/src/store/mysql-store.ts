@@ -1,3 +1,4 @@
+import { parseWindingConfiguration, serializeWindingConfiguration } from './winding-configuration.js';
 import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,7 +141,7 @@ export class MysqlStore implements Store {
       gauges: gauges.map((w) => ({
         swg: num(w.swg), diaMm: num(w.dia_mm), areaSqmm: num(w.area_sqmm),
         ohmPerM20c: num(w.ohm_per_m_20c), ohmPerM75c: numOrNull(w.ohm_per_m_75c),
-        gramPerM: num(w.gram_per_m), isAvailable: Boolean(w.is_available),
+        gramPerM: num(w.gram_per_m), layerPitchMm: numOrNull(w.layer_pitch_mm), isAvailable: Boolean(w.is_available),
       })),
       classes: classes.map((c) => ({
         code: c.code as string, percent: num(c.percent), perIS: Boolean(c.per_is),
@@ -216,12 +217,12 @@ export class MysqlStore implements Store {
 
   async saveGauge(g: WireGauge): Promise<void> {
     await this.pool.execute(
-      `INSERT INTO wire_gauge (swg, dia_mm, area_sqmm, ohm_per_m_20c, ohm_per_m_75c, gram_per_m, is_available)
-       VALUES (?,?,?,?,?,?,?)
+      `INSERT INTO wire_gauge (swg, dia_mm, area_sqmm, ohm_per_m_20c, ohm_per_m_75c, gram_per_m, is_available, layer_pitch_mm)
+       VALUES (?,?,?,?,?,?,?,?)
        ON DUPLICATE KEY UPDATE dia_mm = VALUES(dia_mm), area_sqmm = VALUES(area_sqmm),
          ohm_per_m_20c = VALUES(ohm_per_m_20c), ohm_per_m_75c = VALUES(ohm_per_m_75c),
-         gram_per_m = VALUES(gram_per_m), is_available = VALUES(is_available)`,
-      [g.swg, g.diaMm, g.areaSqmm, g.ohmPerM20c, g.ohmPerM75c, g.gramPerM, g.isAvailable ? 1 : 0],
+         gram_per_m = VALUES(gram_per_m), is_available = VALUES(is_available), layer_pitch_mm = VALUES(layer_pitch_mm)`,
+      [g.swg, g.diaMm, g.areaSqmm, g.ohmPerM20c, g.ohmPerM75c, g.gramPerM, g.isAvailable ? 1 : 0, g.layerPitchMm ?? null],
     );
   }
 
@@ -481,13 +482,13 @@ export class MysqlStore implements Store {
       `INSERT INTO design (id, design_no, revision, customer_id, customer_name, enquiry_no, po_no,
         prd_no, quantity, required_by, ct_type, primary_current, secondary_current, burden_va,
         accuracy_class, finished_id_mm, finished_od_mm, max_width_mm, insulation_type,
-        settings_snapshot, reference_snapshot, status, created_by, supersedes, engineering_spec)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        settings_snapshot, reference_snapshot, status, created_by, supersedes, engineering_spec, winding_configuration)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [d.id, d.designNo, d.revision, d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo,
         d.quantity, d.requiredBy, d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent,
         d.inputs.burdenVA, d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm,
         d.inputs.maxWidthMm, d.insulationType, JSON.stringify(d.settingsSnapshot),
-        JSON.stringify(d.referenceSnapshot), d.status, d.createdBy, d.supersedesId, JSON.stringify(d.inputs.engineering ?? null)],
+        JSON.stringify(d.referenceSnapshot), d.status, d.createdBy, d.supersedesId, JSON.stringify(d.inputs.engineering ?? null), serializeWindingConfiguration(d.inputs)],
     );
     return d;
   }
@@ -498,13 +499,13 @@ export class MysqlStore implements Store {
          quantity=?, required_by=?, ct_type=?, primary_current=?, secondary_current=?,
          burden_va=?, accuracy_class=?, finished_id_mm=?, finished_od_mm=?, max_width_mm=?,
          insulation_type=?, settings_snapshot=?, reference_snapshot=?, status=?,
-         selected_option_id=?, approved_by=?, approved_at=?, superseded_by=?, engineering_spec=?
+         selected_option_id=?, approved_by=?, approved_at=?, superseded_by=?, engineering_spec=?, winding_configuration=?
        WHERE id=?`,
       [d.customerId, d.customerName, d.enquiryNo, d.poNo, d.prdNo, d.quantity, d.requiredBy,
         d.inputs.ctType, d.inputs.primaryCurrent, d.inputs.secondaryCurrent, d.inputs.burdenVA,
         d.inputs.accuracyClass, d.inputs.finishedIdMm, d.inputs.finishedOdMm, d.inputs.maxWidthMm,
         d.insulationType, JSON.stringify(d.settingsSnapshot), JSON.stringify(d.referenceSnapshot),
-        d.status, d.selectedOptionId, d.approvedBy, dt(d.approvedAt), d.supersededById, JSON.stringify(d.inputs.engineering ?? null), d.id],
+        d.status, d.selectedOptionId, d.approvedBy, dt(d.approvedAt), d.supersededById, JSON.stringify(d.inputs.engineering ?? null), serializeWindingConfiguration(d.inputs), d.id],
     );
     return d;
   }
@@ -692,6 +693,7 @@ function toDesign(r: Record<string, unknown>): Design {
     requiredBy: r.required_by ? String(r.required_by).slice(0, 10) : null,
     insulationType: (r.insulation_type as string | null) ?? null,
     inputs: {
+      ...parseWindingConfiguration(r.winding_configuration),
       engineering: typeof r.engineering_spec === 'string' ? JSON.parse(r.engineering_spec) : r.engineering_spec ?? null,
       primaryCurrent: num(r.primary_current),
       secondaryCurrent: num(r.secondary_current),

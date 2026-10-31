@@ -1,6 +1,8 @@
+import { resolveLayerPitchMm } from './layerPitch.js';
 import { EngineError, MissingReferenceData, type DesignInputs, type ProcessSettings, type ReferenceData, type SolveResult } from './types.js';
 import type { EngineeringReport, EngineeringSpec } from './engineeringTypes.js';
 import { computeWindingAllowance } from './winding.js';
+import { roundToSlitWidth } from './slitWidth.js';
 import { positive, validateDesign } from './validate.js';
 
 /** Copper DC resistance correction; temperature constant is explicit and persisted. */
@@ -48,7 +50,8 @@ export function solveEngineering(inputs: DesignInputs, ref: ReferenceData, setti
   const coreCover = required(e.coreInsulation.thicknessMm, 'Installed core insulation per side', true);
   const outerCover = required(e.outerInsulation.thicknessMm, 'Installed outer insulation per side', true);
   const N = inputs.primaryCurrent / inputs.secondaryCurrent;
-  const winding = computeWindingAllowance({ turns: N, swg, wireDiaMm: wire.insulatedDiameterMm, bareDiaMm: gauge.diaMm, parallelStrands: e.parallelStrands, boreIdMm: inputs.finishedIdMm + 2 * outerCover, arrangement: e.strandArrangement }, { layerStackingFactorBySwg: { [swg]: wire.packingFactor }, interlayerThicknessMm: e.interlayerThicknessMm, minEpoxyThicknessMm: outerCover });
+  const layerPitch = resolveLayerPitchMm(gauge, wire.insulatedDiameterMm, inputs.layerPitchOverridesMm);
+  const winding = computeWindingAllowance({ ...(layerPitch === undefined ? {} : {layerPitchMm:layerPitch}), turns: N, swg, wireDiaMm: wire.insulatedDiameterMm, bareDiaMm: gauge.diaMm, parallelStrands: e.parallelStrands, boreIdMm: inputs.finishedIdMm + 2 * outerCover, arrangement: e.strandArrangement }, { layerStackingFactorBySwg: { [swg]: wire.packingFactor }, interlayerThicknessMm: e.interlayerThicknessMm, minEpoxyThicknessMm: outerCover });
   const perSide = coreCover + winding.windingBuildMm + outerCover;
   const coreId = inputs.finishedIdMm + 2 * perSide;
   const coreOd = inputs.finishedOdMm - 2 * perSide;
@@ -86,8 +89,10 @@ export function solveEngineering(inputs: DesignInputs, ref: ReferenceData, setti
     width = next;
   }
   const theoreticalWidth = width;
-  const stocked = [...ref.slitWidthsMm].filter(w => w > 0 && Number.isFinite(w)).sort((a,b) => a-b);
-  let ordered = stocked.find(w => w >= width) ?? Math.ceil(width / settings.slitStepMm) * settings.slitStepMm;
+  const stocked = [...ref.slitWidthsMm].filter(w => w > 0 && Number.isFinite(w) && (settings.coreWidthRoundingTolerancePercent === undefined || Math.abs(w / settings.slitStepMm - Math.round(w / settings.slitStepMm)) < 1e-8)).sort((a,b) => a-b);
+  let ordered = settings.coreWidthRoundingTolerancePercent === undefined
+    ? stocked.find(w => w >= width) ?? Math.ceil(width / settings.slitStepMm) * settings.slitStepMm
+    : roundToSlitWidth(width, ref, settings);
   // Revalidate after rounding: the longer winding changes both Rct and required volts.
   for (let pass = 0; pass < 500; pass++) {
     const needed = electrical(ordered).requiredWidth;
@@ -168,7 +173,7 @@ export function solveEngineering(inputs: DesignInputs, ref: ReferenceData, setti
   };
   for (const value of [el.r20,el.r75,el.rOp,el.volts,el.area,coreWeight,copperWeight,copperCost,materialCost,manufacturingCost]) if (value !== null && !Number.isFinite(value)) throw new EngineError('INVALID_INPUT', 'Engineering calculation overflowed. Check the input magnitudes.');
   const totalCost = e.costing.basis === 'manufacturing' ? manufacturingCost : materialCost;
-  const geometry = { turns: N, allowanceMm: 2 * perSide, windingBuildMm: winding.windingBuildMm, windingLayers: winding.layers, turnsPerLayer: winding.turnsPerLayer, coreIdMm: coreId, coreOdMm: coreOd, radialBuildMm: radialCm * 10, radialBuildCm: radialCm, mmlCm };
+  const geometry = { ...(winding.layerPitchMm === undefined ? {} : {windingLayerPitchMm:winding.layerPitchMm}), turns: N, allowanceMm: 2 * perSide, windingBuildMm: winding.windingBuildMm, windingLayers: winding.layers, turnsPerLayer: winding.turnsPerLayer, coreIdMm: coreId, coreOdMm: coreOd, radialBuildMm: radialCm * 10, radialBuildCm: radialCm, mmlCm };
   const rows: [string,string,number,string][] = [
     ['Core ID','finished ID + 2 × per-side insulation and winding build',coreId,'mm'],
     ['Core OD','finished OD − 2 × per-side insulation and winding build',coreOd,'mm'],

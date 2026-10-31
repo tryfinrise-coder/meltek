@@ -26,6 +26,8 @@ export interface DesignInputs {
   maxWidthMm?: number | null;
   /** When set, the optimizer uses this fixed wire combination instead of iterating gauges. */
   wireCombination?: WireCombinationEntry[] | null;
+  /** Per-design layer allowance (wire + air), in mm by SWG. Tape is separate. */
+  layerPitchOverridesMm?: Record<string, number> | null;
 }
 
 export interface ProcessSettings {
@@ -43,6 +45,8 @@ export interface ProcessSettings {
   convergenceTolerance: number; // 2e-5
   /** §12.7 — fallback rounding step when the stocked slit list is empty. */
   slitStepMm: number; // 5
+  /** Allowed excess above the lower slit step, as % of that lower width. Absent in historical snapshots. */
+  coreWidthRoundingTolerancePercent?: number;
   /** §12.4 — "+5 above 400 A". Ambiguous instruction; default OFF. */
   plusFiveAbove400A: boolean; // false
   /** Enamel insulation thickness added to wire diameter (total, not per side), mm. */
@@ -74,6 +78,8 @@ export interface SteelGrade {
 }
 
 export interface WireGauge {
+  /** null: automatically round insulated diameter up to 1 mm; absent: historical behaviour. */
+  layerPitchMm?: number | null;
   swg: number;
   diaMm: number;
   areaSqmm: number;
@@ -189,6 +195,7 @@ export interface CalcStep {
 }
 
 export interface Geometry {
+  windingLayerPitchMm?: number;
   turns: number;
   allowanceMm: number;
   windingBuildMm: number;

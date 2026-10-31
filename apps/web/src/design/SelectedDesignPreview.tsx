@@ -316,13 +316,13 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
   const wireCount = totalWireCount(wireEntries);
   const engineering = option.inputs.engineering;
   const coreCover = engineering?.coreInsulation.thicknessMm ?? coreInsulationMm / 2;
-  const windingBuildMm = option.engineering?.windingBuildMm ?? option.geometry.windingBuildMm;
+  const windingBuildMm = option.engineering?.windingBuildMm ?? option.geometry.windingBuildMm ?? 0;
   // Legacy cover settings are diameter allowances; engineering inputs are per side.
   const resinCover = engineering?.outerInsulation.thicknessMm
     ?? Math.max(0, option.geometry.allowanceMm / 2 - coreCover - windingBuildMm);
   const tapeThickness = engineering?.interlayerThicknessMm ?? interLayerTapeMm;
-  const windingLayers = option.engineering?.layers ?? option.geometry.windingLayers;
-  const turnsPerLayer = option.engineering?.turnsPerLayer ?? option.geometry.turnsPerLayer;
+  const windingLayers = option.engineering?.layers ?? option.geometry.windingLayers ?? 1;
+  const turnsPerLayer = option.engineering?.turnsPerLayer ?? option.geometry.turnsPerLayer ?? option.geometry.turns;
   const wireSignature = JSON.stringify(wireEntries);
 
   useEffect(() => {
@@ -543,7 +543,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
   </g>;
 
   // Winding build for cross-section bar
-  const windingBuild = option.geometry.windingBuildMm;
+  const windingBuild = option.geometry.windingBuildMm ?? 0;
 
   // Wire cross-section dots in the front view annulus
   const wireRadius = Math.min((ro - ri) * 0.12, 4);
@@ -613,7 +613,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
             const resinW = resinFrac * barW;
             const windW = windFrac * barW;
             const insW = insFrac * barW;
-            const layers = option.geometry.windingLayers;
+            const layers = option.geometry.windingLayers ?? 1;
             return <g fontFamily="system-ui, sans-serif">
               <text x={cx} y={cy - barH - 14} textAnchor="middle" fill="currentColor" fontSize="10" fontWeight="600">BORE CROSS-SECTION (one side) — Total allowance {mm(totalAllowance)} mm</text>
               {/* Finished ID label */}
@@ -657,7 +657,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
       {windingBuild > 0 && (
         <div className="flex flex-wrap items-center gap-4 px-4 pb-2 text-[11px] text-[var(--text-2)]">
           <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(88,152,184,0.3)', border: '1px dashed #5898b8' }}/> Resin cover ({mm(resinCoverMm)} mm)</span>
-          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(232,160,64,0.2)', border: '1px dashed #c08030' }}/> Winding ({option.geometry.windingLayers} layer{option.geometry.windingLayers > 1 ? 's' : ''}, {mm(windingBuild * 2)} mm dia)</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(232,160,64,0.2)', border: '1px dashed #c08030' }}/> Winding ({windingLayers} layer{windingLayers > 1 ? 's' : ''}, {mm(windingBuild * 2)} mm dia)</span>
           <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-5 rounded-sm" style={{ background: 'rgba(212,165,106,0.15)', border: '1px dashed #d4a56a' }}/> Core insulation ({mm(coreInsulationMm)} mm)</span>
         </div>
       )}
@@ -723,7 +723,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
           ))}
         </div>
       )}
-      <p className="px-4 pb-4 text-xs text-[var(--text-2)]">{turns} calculated secondary turns{option.geometry.windingLayers > 1 ? ` in ${option.geometry.windingLayers} layers (${option.geometry.turnsPerLayer} turns/layer)` : ''}.{wireCount > 1 ? ` ${wireCount} parallel wires shown in distinct colours.` : ''} Copper loops and lamination lines are representative; wire diameter and routing are not manufacturing geometry. STL contains the steel core only, in mm.</p>
+      <p className="px-4 pb-4 text-xs text-[var(--text-2)]">{turns} calculated secondary turns{windingLayers > 1 ? ` in ${windingLayers} layers (${turnsPerLayer} turns/layer)` : ''}.{wireCount > 1 ? ` ${wireCount} parallel wires shown in distinct colours.` : ''} Copper loops and lamination lines are representative; wire diameter and routing are not manufacturing geometry. STL contains the steel core only, in mm.</p>
     </Card>
   </div>;
 }

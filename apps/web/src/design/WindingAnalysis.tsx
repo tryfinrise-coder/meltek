@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import { Card } from '../shared/primitives';
 import { TextField, SelectField, FieldShell } from '../shared/fields';
 import { fadeUp } from '../shared/motion';
+import { useCurrency } from '../shared/currency';
 import { resolveLayerPitchMm, type WireGauge } from '@meltek/engine';
 
 const PI = Math.PI;
@@ -182,6 +183,7 @@ export function WindingAnalysis({
   inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
+  const { money, sym } = useCurrency();
   const designWireSignature = JSON.stringify(designWireCombination);
   const pitchSignature = JSON.stringify(layerPitchOverridesMm);
 
@@ -235,9 +237,9 @@ export function WindingAnalysis({
   );
   const rateInputs = (
           <div className="grid grid-cols-2 gap-4 px-5 py-4">
-            <TextField label="Core Rate" unit="₹/kg" type="number" value={s.coreRate}
+            <TextField label="Core Rate" unit={`${sym}/kg`} type="number" value={s.coreRate}
               onChange={e => setField('coreRate', e.target.value)} />
-            <TextField label="Copper Rate" unit="₹/kg" type="number" value={s.cuRate}
+            <TextField label="Copper Rate" unit={`${sym}/kg`} type="number" value={s.cuRate}
               onChange={e => setField('cuRate', e.target.value)} />
           </div>
 
@@ -492,12 +494,12 @@ export function WindingAnalysis({
           subtitle="Material cost using the entered steel and copper rates">
           {!inputHost && rateInputs}
           <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
-            <Row label="Core Cost" value={'₹ ' + fmt(coreWeightKg * s.coreRate)} />
-            <Row label="Copper Cost (Practical)" value={'₹ ' + fmt(result.totalCuPractical * s.cuRate)} />
+            <Row label="Core Cost" value={money(coreWeightKg * s.coreRate)} />
+            <Row label="Copper Cost (Practical)" value={money(result.totalCuPractical * s.cuRate)} />
           </div>
           <div className="border-t-2 border-[var(--line-strong)]">
             <Row label="Total Material Cost"
-              value={'₹ ' + fmt(coreWeightKg * s.coreRate + result.totalCuPractical * s.cuRate)} accent />
+              value={money(coreWeightKg * s.coreRate + result.totalCuPractical * s.cuRate)} accent />
           </div>
         </Card>
       </motion.div>

@@ -1,11 +1,13 @@
 import { useId } from 'react';
 import type { DesignInputs, RankedOption } from '@meltek/engine';
-import { AnimatedNumber, Badge } from '../shared/primitives';
+import { Badge } from '../shared/primitives';
+import { useCurrency } from '../shared/currency';
 
 export function DesignStudio({ inputs, best, options, quantity, family }: {
   inputs: DesignInputs | null; best: RankedOption | null; options: RankedOption[]; quantity: number; family: string;
 }) {
   const id = useId().replace(/:/g, '');
+  const { money } = useCurrency();
   const manufacturing = inputs?.engineering?.costing.basis === 'manufacturing';
   const feasible = options.filter(o => o.isFeasible);
   const next = feasible.find(o => o.rank === 2);
@@ -38,11 +40,11 @@ export function DesignStudio({ inputs, best, options, quantity, family }: {
     </div>
     <div className="studio-recommendation" aria-live="polite">
       <div className="eyebrow">Lowest feasible {manufacturing ? 'manufacturing' : 'material'} cost</div>
-      <div className="my-3 text-4xl font-semibold num"><AnimatedNumber value={best?.totalCost ?? null} prefix="₹" dp={2}/><span className="text-xs font-normal text-[var(--text-2)]"> / unit</span></div>
+      <div className="my-3 text-4xl font-semibold num">{money(best?.totalCost ?? null)}<span className="text-xs font-normal text-[var(--text-2)]"> / unit</span></div>
       <p className="text-sm">{best ? `${best.gradeLabel} · SWG ${best.swg}` : 'Awaiting a feasible specification'}</p>
       <div className="my-4 rule-fade"/>
-      <div className="flex justify-between gap-3 text-xs"><span>{manufacturing ? 'Manufacturing' : 'Material'} estimate · {quantity} units</span><strong className="num">{best?.totalCost != null ? `₹${(best.totalCost * quantity).toLocaleString('en-IN', { maximumFractionDigits: 2 })}` : '—'}</strong></div>
-      <p className="mt-3 text-xs text-[var(--text-2)]">{saving > 0 ? `₹${saving.toFixed(2)} less per unit than the next feasible option. ` : ''}{manufacturing ? 'Includes entered insulation, resin, labour, overhead and wastage; excludes tax.' : 'Excludes labour, resin, overhead and tax.'} Tooling checks depend on your reference data.</p>
+      <div className="flex justify-between gap-3 text-xs"><span>{manufacturing ? 'Manufacturing' : 'Material'} estimate · {quantity} units</span><strong className="num">{best?.totalCost != null ? money(best.totalCost * quantity) : '—'}</strong></div>
+      <p className="mt-3 text-xs text-[var(--text-2)]">{saving > 0 ? `${money(saving)} less per unit than the next feasible option. ` : ''}{manufacturing ? 'Includes entered insulation, resin, labour, overhead and wastage; excludes tax.' : 'Excludes labour, resin, overhead and tax.'} Tooling checks depend on your reference data.</p>
     </div>
   </section>;
 }

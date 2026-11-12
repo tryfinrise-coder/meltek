@@ -4,9 +4,9 @@ import type { RankedOption } from '@meltek/engine';
 import { Badge, ProvisionalMark } from '../shared/primitives';
 import { costTone } from '../shared/flowbite-theme';
 import { duration, ease } from '../shared/motion';
+import { useCurrency } from '../shared/currency';
 
 const n = (v: number, dp = 2) => (Number.isFinite(v) ? v.toFixed(dp) : '—');
-const money = (v: number | null) => (v === null ? '—' : `₹${v.toFixed(2)}`);
 
 export interface OptionRow extends RankedOption {
   id?: string;
@@ -30,6 +30,7 @@ export function OptionsTable({
   referenceFormat?: boolean;
 }) {
   const reduce = useReducedMotion();
+  const { money } = useCurrency();
   const feasible = options.filter((o) => o.isFeasible);
   const infeasible = options.filter((o) => !o.isFeasible);
   const shown = showAll ? [...feasible, ...infeasible] : feasible.slice(0, 12);

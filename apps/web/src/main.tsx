@@ -7,6 +7,7 @@ import {
   createRootRoute, createRoute, createRouter, Outlet, RouterProvider,
 } from '@tanstack/react-router';
 import { Shell } from './shared/Shell';
+import { CurrencyProvider } from './shared/currency';
 import { Dashboard } from './design/Dashboard';
 import { Button, Card, EmptyState, Skeleton } from './shared/primitives';
 import { AuthGate } from './auth/AuthGate';
@@ -56,7 +57,9 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={meltekTheme}>
         <AuthGate>
-          <RouterProvider router={router} />
+          <CurrencyProvider>
+            <RouterProvider router={router} />
+          </CurrencyProvider>
         </AuthGate>
       </ThemeProvider>
     </QueryClientProvider>

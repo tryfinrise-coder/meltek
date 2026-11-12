@@ -3,6 +3,7 @@ import { engineeringSpecSchema } from '@meltek/schema';
 import { useState } from 'react';
 import { Card, Button, Callout } from '../shared/primitives';
 import { TextField, SelectField } from '../shared/fields';
+import { useCurrency } from '../shared/currency';
 
 export function newEngineeringSpec(): EngineeringSpec {
   return { purpose: 'metering', standard: '', confirmed: false, frequencyHz: 50, roomTemperatureC: 20, operatingTemperatureC: 75, copperTemperatureConstant: 234.5, burdenPowerFactor: 1, leadResistanceOhm: 0, parallelStrands: 1, strandArrangement: 'side-by-side', selectedSwg: null,
@@ -16,6 +17,7 @@ function Numeric({ label, value, change }: { label: string; value: number | null
 
 export function EngineeringEditor({ value, onChange, reference }: { value: EngineeringSpec | null; onChange: (v: EngineeringSpec | null) => void; reference?: ReferenceData }) {
   const [importError, setImportError] = useState('');
+  const { sym } = useCurrency();
   const e = value;
   const patch = (p: Partial<EngineeringSpec>) => e && onChange({ ...e, ...p, confirmed: p.confirmed ?? false });
   const numeric = (label: string, key: keyof EngineeringSpec) => <Numeric key={key} label={label} value={e![key] as number | null} change={n => patch({ [key]: n })}/>;
@@ -74,7 +76,7 @@ export function EngineeringEditor({ value, onChange, reference }: { value: Engin
         </details>
         <details><summary className="cursor-pointer text-sm font-semibold">Costing basis and manufacturing costs</summary><div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
           <SelectField label="Rank by" value={e.costing.basis} onChange={ev=>patch({costing:{...e.costing,basis:ev.target.value as 'material'|'manufacturing'}})}><option value="material">Steel + copper, including wastage</option><option value="manufacturing">Complete entered manufacturing cost</option></SelectField>
-          {(['insulationPerUnit','resinPerUnit','labourPerUnit','overheadPerUnit','steelWastePercent','copperWastePercent'] as const).map(key=><Numeric key={key} label={{insulationPerUnit:'Insulation / unit (₹)',resinPerUnit:'Resin / unit (₹)',labourPerUnit:'Labour / unit (₹)',overheadPerUnit:'Overhead / unit (₹)',steelWastePercent:'Steel wastage (%)',copperWastePercent:'Copper wastage (%)'}[key]} value={e.costing[key]} change={n=>patch({costing:{...e.costing,[key]:n}})}/>)}</div></details>
+          {(['insulationPerUnit','resinPerUnit','labourPerUnit','overheadPerUnit','steelWastePercent','copperWastePercent'] as const).map(key=><Numeric key={key} label={{insulationPerUnit:`Insulation / unit (${sym})`,resinPerUnit:`Resin / unit (${sym})`,labourPerUnit:`Labour / unit (${sym})`,overheadPerUnit:`Overhead / unit (${sym})`,steelWastePercent:'Steel wastage (%)',copperWastePercent:'Copper wastage (%)'}[key]} value={e.costing[key]} change={n=>patch({costing:{...e.costing,[key]:n}})}/>)}</div></details>
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" aria-label="Confirm engineering inputs" checked={e.confirmed} onChange={ev=>patch({confirmed:ev.target.checked})}/>The responsible engineer has confirmed these inputs, the uniform-build model and the complete acceptance test matrix.</label>
         {valid && !valid.success && <Callout tone="warn" title="Engineering fields need attention">{valid.error.issues.slice(0,5).map(i=><p key={i.path.join('.')}>{i.path.join('.')}: {i.message}</p>)}</Callout>}
         <div className="flex flex-wrap items-center gap-3"><Button size="sm" onClick={()=>{ const a=document.createElement('a');const u=URL.createObjectURL(new Blob([JSON.stringify(e,null,2)],{type:'application/json'}));a.href=u;a.download='ct-engineering-spec.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000); }}>Export engineering inputs</Button>

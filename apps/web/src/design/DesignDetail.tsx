@@ -18,6 +18,7 @@ import {
 import { ConfirmDialog } from '../shared/ConfirmDialog';
 import { EditDesignDialog } from '../shared/EditDesignDialog';
 import { fadeUp } from '../shared/motion';
+import { useCurrency } from '../shared/currency';
 
 const SelectedDesignPreview = lazy(() => import('./SelectedDesignPreview'));
 
@@ -25,6 +26,7 @@ const SelectedDesignPreview = lazy(() => import('./SelectedDesignPreview'));
 export function DesignDetail() {
   const { id } = useParams({ from: '/designs/$id' });
   const reduce = useReducedMotion();
+  const { money } = useCurrency();
   const qc = useQueryClient();
   const reference = useReference();
   const [showAll, setShowAll] = useState(false);
@@ -222,7 +224,7 @@ export function DesignDetail() {
             {chosen.orderedWidthMm.toFixed(0)} mm
           </StatTile>
           <StatTile label="Material cost" tone="provisional" note={<ProvisionalMark />}>
-            {chosen.totalCost === null ? '—' : `₹${chosen.totalCost.toFixed(2)}`}
+            {money(chosen.totalCost)}
           </StatTile>
         </div>
       )}

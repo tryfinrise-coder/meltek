@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import type { RankedOption } from '@meltek/engine';
 import { Button, Card } from '../shared/primitives';
+import { useCurrency } from '../shared/currency';
 
 const mm = (n: number) => Number(n.toFixed(2)).toString();
 
@@ -45,7 +46,7 @@ function totalWireCount(entries: { swg: number; count: number }[]) {
 
 type ModelActions = { reset: () => void; rotate: (direction: number) => void; zoom: (factor: number) => void; view: (view: 'front' | 'side' | 'top') => void; snapshot: () => void };
 
-function openPrintSheet(option: RankedOption) {
+function openPrintSheet(option: RankedOption, money: (v: number | null) => string) {
   const g = option.geometry;
   const esc = (v: unknown) => String(v ?? '').replace(/[&<>"']/g, c =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
@@ -252,9 +253,9 @@ function openPrintSheet(option: RankedOption) {
     <div><span>Wire length</span>${n(option.wireLengthM, 3)} m</div>
     <div><span>Core weight</span>${n(option.coreWeightKg, 4)} kg <span class="tag">estimate</span></div>
     <div><span>Copper weight</span>${n(option.copperWeightKg, 4)} kg <span class="tag">estimate</span></div>
-    <div><span>Core cost</span>${option.coreCost === null ? '—' : `₹${n(option.coreCost, 2)}`} <span class="tag">estimate</span></div>
-    <div><span>Copper cost</span>₹${n(option.copperCost, 2)} <span class="tag">estimate</span></div>
-    <div><span>Total material</span>${option.totalCost === null ? '—' : `₹${n(option.totalCost, 2)}`} <span class="tag">estimate</span></div>
+    <div><span>Core cost</span>${money(option.coreCost)} <span class="tag">estimate</span></div>
+    <div><span>Copper cost</span>${money(option.copperCost)} <span class="tag">estimate</span></div>
+    <div><span>Total material</span>${money(option.totalCost)} <span class="tag">estimate</span></div>
     <div><span>Die</span>${esc(option.dieNo ?? 'not checked')}</div>
   </div>
 </section>
@@ -293,6 +294,7 @@ ${warnings}
 }
 
 export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreInsulationMm = 1, interLayerTapeMm = 0.1 }: { option: RankedOption; resinCoverMm?: number; coreInsulationMm?: number; interLayerTapeMm?: number }) {
+  const { money } = useCurrency();
   const container = useRef<HTMLDivElement>(null);
   const drawing = useRef<SVGSVGElement>(null);
   const actions = useRef<ModelActions | null>(null);
@@ -551,7 +553,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
 
   return <div className="design-views" data-selected-model={`${option.gradeCode}:${option.swg}`}>
     <Card title="Dimensioned diagram" subtitle={`${option.gradeLabel} · ${wireLabel}`} actions={<div className="flex gap-2">
-      <Button size="xs" onClick={() => openPrintSheet(option)}>Download PDF</Button>
+      <Button size="xs" onClick={() => openPrintSheet(option, money)}>Download PDF</Button>
       <Button size="xs" onClick={() => {
         if (!drawing.current) return;
         const clone = drawing.current.cloneNode(true) as SVGSVGElement;

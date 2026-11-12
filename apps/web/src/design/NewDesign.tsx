@@ -24,6 +24,7 @@ import {
   Skeleton,
 } from '../shared/primitives';
 import { SelectField, TextField } from '../shared/fields';
+import { useCurrency, CurrencyPicker } from '../shared/currency';
 import { duration, ease, fadeUp } from '../shared/motion';
 
 /** The form carries the order fields alongside the electrical spec (§11.1). */
@@ -70,6 +71,7 @@ function saveDraft(formValues: FormValues, wireMap: Record<number, number>, wire
 
 export function NewDesign() {
   const reduce = useReducedMotion();
+  const { money } = useCurrency();
   const setCalculatorStatus = useContext(CalculatorStatusContext);
   const navigate = useNavigate();
   const reference = useReference();
@@ -209,7 +211,7 @@ export function NewDesign() {
         <div><span>Current ratio</span><strong className="num">{values.primaryCurrent || '—'}<small> / {values.secondaryCurrent || '—'} A</small></strong></div>
         <div><span>Finished ID × OD</span><strong className="num">{values.finishedIdMm || '—'}<small> × </small>{values.finishedOdMm || '—'}<small> mm</small></strong></div>
         <div><span>Feasible / evaluated</span><strong className="num">{options.filter(o=>o.isFeasible).length}<small> / {options.length}</small></strong></div>
-        <div className="workspace-estimate"><span>Estimate / unit</span><strong className="num">{selected?.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
+        <div className="workspace-estimate"><span>Estimate / unit</span><strong className="num">{selected?.totalCost != null ? money(selected.totalCost) : '—'}</strong></div>
       </section>
       <nav className="workspace-view-switch" aria-label="Calculator workspace views">
         {[
@@ -534,7 +536,7 @@ export function NewDesign() {
                   : []),
               ]} />
 
-              <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}><dl className="calculator-value-list">
+              <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`} actions={<CurrencyPicker />}><dl className="calculator-value-list">
                 <div><dt>Core width (calc)</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Rounded core width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
                 <div><dt>Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2 * 100} dp={1} suffix=" mm²" /></dd></div>
@@ -545,7 +547,7 @@ export function NewDesign() {
                 <div><dt>Secondary turns</dt><dd><AnimatedNumber value={selected.geometry.turns} dp={0} suffix=" turns" /></dd></div>
                 <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
                 <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
-                <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd><AnimatedNumber value={selected.totalCost} dp={2} prefix="₹" /></dd></div>
+                <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd>{money(selected.totalCost)}</dd></div>
                 <div><dt>Resistance</dt><dd><AnimatedNumber value={selected.resistanceOhm} dp={5} suffix=" Ω" /></dd></div>
                 {(() => { const wbr = selected.geometry.radialBuildMm > 0 ? selected.coreWidthMm / selected.geometry.radialBuildMm : 0; return (
                   <div><dt>Width : Build-up</dt><dd className="num" style={wbr > 2 ? { color: 'var(--brand)' } : undefined}>{wbr > 0 ? `${wbr.toFixed(2)} : 1` : '—'}{wbr > 2 && <span style={{ marginLeft: 6, fontSize: 11 }} title="Width is more than twice the radial build">⚠</span>}</dd></div>
@@ -608,7 +610,7 @@ export function NewDesign() {
             <div><span>Flux B</span><strong className="num">{selected.bUsedT.toFixed(3)} T</strong></div>
             <div><span>Rounded width</span><strong className="num">{selected.orderedWidthMm.toFixed(0)} mm</strong></div>
             <div><span>Feasible</span><strong className="num">{options.filter(o => o.isFeasible).length} / {options.length}</strong></div>
-            <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? `₹${selected.totalCost.toLocaleString('en-IN', {maximumFractionDigits:2})}` : '—'}</strong></div>
+            <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? money(selected.totalCost) : '—'}</strong></div>
             {canCreate && (
               <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>
                 {save.isPending ? 'Saving…' : 'Save design & options'}

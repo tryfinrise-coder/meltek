@@ -136,7 +136,7 @@ export function computeWindingBuild(
       if (configuredPitch) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'The wire combination does not fit around the winding bore.');
       return null;
     }
-    const windingBuildMm = buildFor(fit.layers);
+    const windingBuildMm = buildFor(fit.spaceLayers);
     return { ...(configuredPitch ? {layerPitchMm:maxInsulatedDiaMm} : {}), ...fit, windingBuildMm, allowanceMm: windingBuildMm };
   }
   const insulatedDiaMm = gauge.diaMm + settings.wireInsulationMm;
@@ -479,7 +479,7 @@ function buildSteps(
       substituted: `${i.primaryCurrent} / ${i.secondaryCurrent}`, value: g.turns, unit: 'turns' },
     { step: 2, key: 'allowance', label: 'Allowance', formula: 'resin cover + core insulation + 2 × winding build',
       substituted: windingDesc, value: g.allowanceMm, unit: 'mm',
-      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Circumference measured on the core side of the winding: ${f(i.finishedIdMm, 1)} + ${f(resinCover, 1)} + 2 × ${f(windingBuild.windingBuildMm, 2)} = ${f(windingBuild.boreMm, 1)} mm (circumference ${f(Math.PI * windingBuild.boreMm, 1)} mm, packing factor ${i.windingPackingFactor ?? s.windingPackingFactor}). ${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(g.windingLayerPitchMm ?? gauge.diaMm + s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
+      note: `Resin cover ${f(resinCover, 1)} mm for ${Math.round(g.turns)} turns. Core insulation ${f(s.coreInsulationMm, 1)} mm. ${windingBuild ? `Circumference measured on the core side of the winding: ${f(i.finishedIdMm, 1)} + ${f(resinCover, 1)} + 2 × ${f(windingBuild.windingBuildMm, 2)} = ${f(windingBuild.boreMm, 1)} mm (circumference ${f(Math.PI * windingBuild.boreMm, 1)} mm, packing factor ${i.windingPackingFactor ?? s.windingPackingFactor}). ${windingBuild.spaceLayers > windingBuild.layers ? `Space for ${windingBuild.spaceLayers} layers is reserved because the turns do not fit at a smaller diameter; at this diameter they wind in ${windingBuild.layers}. ` : ''}${windingBuild.layers} layer${windingBuild.layers > 1 ? 's' : ''} of ${comboLabel || `SWG ${gauge.swg}`}, layer height ${f(g.windingLayerPitchMm ?? gauge.diaMm + s.wireInsulationMm, 2)} mm.` : 'Winding build could not be computed — wire may not fit through the bore.'}` },
     { step: 3, key: 'coreId', label: 'Core ID', formula: 'finished ID + allowance',
       substituted: `${i.finishedIdMm} + ${f(g.allowanceMm, 3)}`, value: g.coreIdMm, unit: 'mm' },
     { step: 4, key: 'coreOd', label: 'Core OD', formula: 'finished OD - allowance',

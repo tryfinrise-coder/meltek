@@ -29,19 +29,22 @@ export interface WindingResult {
   allowanceMm: number;
   /** Diameter the layer circumference was measured on (core side of the winding). */
   boreMm: number;
+  /** Layers of radial space reserved; exceeds `layers` when the wider diameter lets the turns fit in fewer. */
+  spaceLayers: number;
 }
 
 /**
  * Works method, confirmed by the client: the circumference is measured on the core side
  * of the winding (inner bore + both sides of the build), trying 1 layer, then 2, and so on
- * until the turns fit. Returns null when not even one turn fits.
+ * until the turns fit. `layers` is what is actually wound at that diameter; `spaceLayers` is
+ * the radial space reserved to reach it. Returns null when not even one turn fits.
  */
-export function fitLayers(turns: number, innerBoreMm: number, turnPitchMm: number, buildFor: (layers: number) => number): { layers: number; turnsPerLayer: number; boreMm: number } | null {
-  for (let layers = 1; ; layers++) {
-    const boreMm = innerBoreMm + 2 * buildFor(layers);
+export function fitLayers(turns: number, innerBoreMm: number, turnPitchMm: number, buildFor: (layers: number) => number): { layers: number; spaceLayers: number; turnsPerLayer: number; boreMm: number } | null {
+  for (let spaceLayers = 1; ; spaceLayers++) {
+    const boreMm = innerBoreMm + 2 * buildFor(spaceLayers);
     const turnsPerLayer = Math.floor(Math.PI * boreMm / turnPitchMm);
     if (turnsPerLayer < 1) return null;
-    if (layers * turnsPerLayer >= turns) return { layers, turnsPerLayer, boreMm };
+    if (spaceLayers * turnsPerLayer >= turns) return { layers: Math.ceil(turns / turnsPerLayer), spaceLayers, turnsPerLayer, boreMm };
   }
 }
 export function computeWindingAllowance(inputs: WindingInputs, ref: WindingReference): WindingResult {
@@ -61,6 +64,6 @@ export function computeWindingAllowance(inputs: WindingInputs, ref: WindingRefer
   const buildFor = (n: number) => n * layerPitch * (radial ? inputs.parallelStrands : 1) + (n - 1) * tape;
   const fit = fitLayers(inputs.turns, inputs.boreIdMm, pitch, buildFor);
   if (!fit) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
-  const windingBuildMm = buildFor(fit.layers);
+  const windingBuildMm = buildFor(fit.spaceLayers);
   return { ...(inputs.layerPitchMm === undefined ? {} : { layerPitchMm: layerPitch }), ...fit, windingBuildMm, allowanceMm: windingBuildMm + ref.minEpoxyThicknessMm };
 }

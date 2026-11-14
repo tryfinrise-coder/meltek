@@ -49,14 +49,15 @@ describe('per-wire total winding layer pitch',()=>{
   it.each(['side-by-side','radial-stack'] as const)('keeps tape separate from wire and air for %s strands',arrangement=>{
     const r=computeWindingAllowance({turns:400,swg:21,wireDiaMm:insulated,layerPitchMm:1,bareDiaMm:.813,parallelStrands:2,boreIdMm:44,arrangement},{layerStackingFactorBySwg:{21:.95},interlayerThicknessMm:.1,minEpoxyThicknessMm:1});
     const strands=arrangement==='radial-stack'?2:1;
-    expect(r.windingBuildMm).toBeCloseTo(r.layers*strands+(r.layers-1)*.1,10);
+    expect(r.spaceLayers).toBeGreaterThanOrEqual(r.layers);
+    expect(r.windingBuildMm).toBeCloseTo(r.spaceLayers*strands+(r.spaceLayers-1)*.1,10);
     expect(r.allowanceMm).toBeCloseTo(r.windingBuildMm+1,10);
   });
   it('uses the largest allocated pitch in mixed wire combinations',()=>{
     const entries=[{swg:21,count:2},{swg:22,count:1}];
     const result=computeWindingBuild(200,gauge,40,6,DEFAULT_SETTINGS,{entries,ref:reference},{'22':1.25})!;
     expect(result.layerPitchMm).toBe(1.25);
-    expect(result.windingBuildMm).toBeCloseTo(result.layers*1.25+(result.layers-1)*DEFAULT_SETTINGS.interLayerTapeMm,10);
+    expect(result.windingBuildMm).toBeCloseTo(result.spaceLayers*1.25+(result.spaceLayers-1)*DEFAULT_SETTINGS.interLayerTapeMm,10);
   });
   it('rejects a configured bundle that cannot fit instead of ignoring its winding build',()=>{
     expect(()=>computeWindingBuild(200,gauge,40,6,DEFAULT_SETTINGS,{entries:[{swg:21,count:1000}],ref:reference})).toThrow(/does not fit/);

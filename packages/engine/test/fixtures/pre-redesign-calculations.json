@@ -475,7 +475,7 @@
           "turns": 60,
           "allowanceMm": 9.052,
           "windingBuildMm": 2.026,
-          "windingLayers": 2,
+          "windingLayers": 1,
           "turnsPerLayer": 61,
           "coreIdMm": 49.052,
           "coreOdMm": 64.83471856671002,

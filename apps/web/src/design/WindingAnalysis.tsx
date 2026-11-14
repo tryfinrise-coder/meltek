@@ -76,6 +76,7 @@ interface CalcResult {
   afterInsulation: number;
   possibleID: number;
   numLayers: number;
+  spaceLayers: number;
   boreFillPct: number;
   windingFits: boolean;
   boreMm: number;
@@ -113,8 +114,8 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const turnPitch = cuSurfacePerTurn * s.spacingFactor;
   const buildFor = (n: number) => n * maxWireDia + (n - 1) * s.layerTape;
   const fit = (turnPitch > 0 ? fitLayers(turns, s.finishedID + s.resinCover, turnPitch, buildFor) : null)
-    ?? { layers: 1, turnsPerLayer: turns, boreMm: s.finishedID + s.resinCover + 2 * buildFor(1) };
-  const { boreMm, turnsPerLayer, layers: numLayers } = fit;
+    ?? { layers: 1, spaceLayers: 1, turnsPerLayer: turns, boreMm: s.finishedID + s.resinCover + 2 * buildFor(1) };
+  const { boreMm, turnsPerLayer, layers: numLayers, spaceLayers } = fit;
   const boreCirc = boreMm * PI;
   const layerThickness = maxWireDia + s.layerTape;
 
@@ -137,7 +138,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const practicalAvgMLT = turns > 0 ? totalWireLength / turns : 0;
   const actualAllowancePct = mltBase > 0 ? ((practicalAvgMLT / mltBase) - 1) * 100 : 0;
 
-  const windingBuildMm = buildFor(numLayers);
+  const windingBuildMm = buildFor(spaceLayers);
   // Possible ID = required core ID = finishedID + resinCover + coreInsulation + 2 × windingBuild
   const afterInsulation = s.finishedID + s.resinCover + s.coreInsulation;
   const possibleID = afterInsulation + 2 * windingBuildMm;
@@ -161,7 +162,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     mltBase, mltFlat, mltPractical: practicalAvgMLT,
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
-    totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers,
+    totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers, spaceLayers,
     boreFillPct, windingFits, boreMm, boreCirc, turnPitch, turnsPerLayer,
   };
 }
@@ -397,7 +398,7 @@ export function WindingAnalysis({
             <li>
               <span className="winding-calc-label">Winding diameter (core side)</span>
               <span className="winding-calc-formula">Finished ID + resin cover + 2 × winding build = {fmt(s.finishedID, 1)} + {fmt(s.resinCover, 1)} + 2 × {fmt(result.windingBuildMm, 2)} = <strong>{fmt(result.boreMm, 2)} mm</strong></span>
-              <span className="winding-calc-note">Measured on the core side of the winding, for {result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}. One layer is tried first; a layer is added only if the turns do not fit.</span>
+              <span className="winding-calc-note">Measured on the core side of the winding, with space for {result.spaceLayers} layer{result.spaceLayers !== 1 ? 's' : ''}. One layer of space is tried first; more is added only if the turns do not fit.</span>
             </li>
             <li>
               <span className="winding-calc-label">Bore circumference</span>
@@ -421,8 +422,8 @@ export function WindingAnalysis({
             </li>
             <li>
               <span className="winding-calc-label">Layers needed</span>
-              <span className="winding-calc-formula">{result.numLayers} × {result.turnsPerLayer} = {result.numLayers * result.turnsPerLayer} ≥ {result.turns} turns → <strong>{result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}</strong></span>
-              <span className="winding-calc-note">{result.numLayers === 1 ? `All ${result.turns} turns fit in a single layer.` : `With one layer fewer the winding diameter is smaller and the ${result.turns} turns do not fit, so space for ${result.numLayers} layers is reserved.`}</span>
+              <span className="winding-calc-formula">ceil({result.turns} ÷ {result.turnsPerLayer}) → <strong>{result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}</strong></span>
+              <span className="winding-calc-note">{result.numLayers === 1 ? `All ${result.turns} turns fit in a single layer.` : `${result.turns} turns need ${result.numLayers} layers because only ${result.turnsPerLayer} turns fit per layer.`}{result.spaceLayers > result.numLayers ? ` Space for ${result.spaceLayers} layers is reserved: at a smaller diameter the turns do not fit.` : ''}</span>
             </li>
           </ol>
         </div>

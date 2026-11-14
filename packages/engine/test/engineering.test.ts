@@ -20,14 +20,15 @@ describe('construction and electrical engineering',()=>{
  it('measures the layer circumference on the core side, trying one layer first',()=>{
   // 250/5 A, finished ID 40 + resin 4, bundle 1x21 + 2x22 + 1x23 = 2.845 mm copper, 1 mm layers.
   const build=(n:number)=>n;
-  expect(fitLayers(50,44,2.845,build)).toEqual({layers:1,turnsPerLayer:50,boreMm:46});
-  expect(fitLayers(50,44,2.845/.95,build)).toEqual({layers:2,turnsPerLayer:50,boreMm:48});
+  expect(fitLayers(50,44,2.845,build)).toEqual({layers:1,spaceLayers:1,turnsPerLayer:50,boreMm:46});
+  expect(fitLayers(50,44,2.845/.95,build)).toEqual({layers:1,spaceLayers:2,turnsPerLayer:50,boreMm:48});
   expect(fitLayers(50,0.1,2.845,()=>0)).toBeNull();
  });
  it('lets a design override the packing factor',()=>{
   const i:DesignInputs={primaryCurrent:250,secondaryCurrent:5,burdenVA:5,accuracyClass:'0.5S',finishedIdMm:40,finishedOdMm:75,ctType:'ring',wireCombination:[{swg:21,count:1},{swg:22,count:2},{swg:23,count:1}]};
-  expect(solve(i,reference(),DEFAULT_SETTINGS,'M-4',21).geometry.windingLayers).toBe(2);
-  expect(solve({...i,windingPackingFactor:1},reference(),DEFAULT_SETTINGS,'M-4',21).geometry.windingLayers).toBe(1);
+  const saved=solve(i,reference(),DEFAULT_SETTINGS,'M-4',21).geometry, tight=solve({...i,windingPackingFactor:1},reference(),DEFAULT_SETTINGS,'M-4',21).geometry;
+  expect([saved.windingLayers,tight.windingLayers]).toEqual([1,1]);
+  expect(tight.windingBuildMm).toBeLessThan(saved.windingBuildMm!);
   expect(()=>solve({...i,windingPackingFactor:1.2},reference(),DEFAULT_SETTINGS,'M-4',21)).toThrow(/Packing factor/);
  });
  it('does not silently substitute a packing factor for an unknown gauge',()=>{

@@ -614,5 +614,5 @@ function DiffTag({ diff, suffix }: { diff: number; suffix: string }) {
   );
 }
 function WindingMetric({ label, value, unit, hint }: { label: string; value: string; unit?: string; hint?: ReactNode }) {
-  return <div className="winding-metric"><dt>{label}{hint && <Hint label={label}>{hint}</Hint>}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
+  return <div className="winding-metric"><dt>{label}{hint && <Hint label={label}>{hint}<br/><br/><strong>This design:</strong> {value}{unit && ` ${unit}`}</Hint>}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
 }

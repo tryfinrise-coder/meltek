@@ -188,38 +188,52 @@ function Chain({ result, reduce }: { result: SolveResult; reduce: boolean }) {
 function Convergence({ result }: { result: SolveResult }) {
   const first = result.iterations[0];
   const last = result.iterations.at(-1);
+  const is = result.inputs.secondaryCurrent;
+  const burden = result.burdenVoltage;
+  const turns = result.geometry.turns;
+  const flux = result.bUsedT.toFixed(4);
+  // Each example uses pass 1 of this design, so the popup numbers match the first table row.
+  const eg = (node: ReactNode) => first ? <><br/><br/><strong>This design, pass 1:</strong> {node}</> : null;
   return (
     <div className="p-4">
       <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <div className="flex items-center">
           <h3 className="text-[14px] font-semibold">How the core size settles</h3>
           <Hint label="How the core size settles">
-            The calculation feeds back on itself: a wider core needs longer wire, longer wire has more resistance, and more resistance needs a wider core again. So the engine repeats the same steps until the answer stops moving.
-            <br/><br/><strong>Each pass (one row of the table):</strong>
-            <ol className="mt-1 list-decimal pl-5">
-              <li><em>V in</em> → core area: A = V ÷ (4.44 × f × N × B)</li>
-              <li>Area → core width: width = area ÷ radial build</li>
-              <li>Width → wire length: mean turn length × turns</li>
-              <li>Wire length → resistance <em>R</em></li>
-              <li><em>V drop</em> = secondary current × R</li>
-              <li><em>V out</em> = burden voltage + V drop</li>
-            </ol>
-            <br/><em>V out</em> becomes the next row's <em>V in</em>. <strong>Δ</strong> is how much the voltage moved since the previous pass.
-            {first && <><br/><br/><strong>This design:</strong> pass 1 starts at {first.vIn.toFixed(5)} V (burden only), finds a wire drop of {first.vDrop.toFixed(5)} V, and hands {first.vNext.toFixed(5)} V to pass 2.{last && <> By pass {last.pass} the change is only {last.delta.toExponential(2)} V.</>}</>}
-            <br/><br/><strong>When it stops:</strong> when Δ falls below the settling tolerance (about 0.00002 V). That is why the number of passes differs between designs: typically 5–9. High turns, thin wire or a large ratio give a stronger feedback loop and need more passes.
-            <br/><br/>"Not converged" means the pass limit was reached while the answer was still moving, so the inputs need review.
+            The core must be big enough for the burden <strong>and</strong> for the voltage lost in its own winding wire. But the wire length depends on the core size, so both cannot be found in one step. The calculator makes a first estimate, checks it, and repeats until the answer stops changing.
+            {first && <>
+              <br/><br/><strong>Pass 1 of this design, step by step:</strong>
+              <ol className="mt-1 list-decimal pl-5">
+                <li>Start voltage = burden ÷ secondary current = {result.inputs.burdenVA} VA ÷ {is} A = <strong>{first.vIn.toFixed(5)} V</strong> (no wire loss counted yet)</li>
+                <li>Core area needed = V ÷ (4.44 × f × N × B), with N = {turns} turns and B = {flux} T → <strong>{first.areaCm2.toFixed(4)} cm²</strong></li>
+                <li>Core width = area ÷ radial build = {first.areaCm2.toFixed(4)} ÷ {(first.areaCm2 / first.widthCm).toFixed(3)} cm → <strong>{(first.widthCm * 10).toFixed(2)} mm</strong></li>
+                <li>Wire needed to wind that core: <strong>{first.lengthM.toFixed(3)} m</strong>, which has a resistance of <strong>{first.resistanceOhm.toFixed(5)} Ω</strong></li>
+                <li>Voltage lost in the wire = {is} A × {first.resistanceOhm.toFixed(5)} Ω = <strong>{first.vDrop.toFixed(5)} V</strong></li>
+                <li>New total = {burden.toFixed(5)} + {first.vDrop.toFixed(5)} = <strong>{first.vNext.toFixed(5)} V</strong>. This becomes the start voltage of pass 2.</li>
+              </ol>
+              <br/><strong>How it decides to stop:</strong> after every pass it checks how much the total voltage changed. A change smaller than about 0.00002 V means another pass would give the same core, so it stops.
+              <ul className="mt-1 pl-1">
+                {result.iterations.map(it => (
+                  <li key={it.pass}>Pass {it.pass}: changed by {it.delta.toFixed(7)} V → {result.converged && it === last ? <strong>small enough, stop</strong> : 'still changing, repeat'}</li>
+                ))}
+              </ul>
+              <br/><strong>Result:</strong> {result.converged
+                ? <>the core is sized for {result.vTotal.toFixed(5)} V, of which {result.vDrop.toFixed(5)} V is lost in the wire. It took {result.passes} passes.</>
+                : <>the pass limit was reached while the answer was still changing, so the inputs need review.</>}
+            </>}
+            <br/><br/>Designs with many turns, thin wire or a large ratio lose more voltage in the wire, so they need more passes (typically 5–9).
           </Hint>
         </div>
-        <p className="text-[12px] text-[var(--text-3)]">Repeats until two passes agree. Tap any <strong>?</strong> for the formula behind a value.</p>
+        <p className="text-[12px] text-[var(--text-3)]">Repeats until two passes agree. Tap any <strong>?</strong> for the formula with this design's numbers.</p>
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Passes" hint={<>Number of iterations the solver needed to settle on a stable core size.<br/><br/><strong>Typical:</strong> 5–9 passes. Higher counts indicate strong feedback between wire resistance and core area — common with high turns or thin wire.</>}>{result.passes}</StatTile>
-        <StatTile label="Converged" hint={<>Whether the calculation reached a stable answer.<br/><br/><strong>Yes</strong> = the difference (Δ) between two successive passes dropped below the settling tolerance.<br/><strong>No</strong> = the pass limit was reached while the answer was still shifting. Try raising the iteration limit under Reference data → Settings.</>}>
+        <StatTile label="Passes" hint={<>How many times the calculation was repeated before the core size stopped changing.<br/><br/><strong>This design:</strong> {result.passes} passes{last && <>; the last change was only {last.delta.toFixed(7)} V</>}.<br/><br/><strong>Typical:</strong> 5–9. More passes means the wire loss has a stronger effect on the core size, which is common with many turns or thin wire.</>}>{result.passes}</StatTile>
+        <StatTile label="Converged" hint={<>Whether the calculation reached a stable answer.<br/><br/><strong>Yes</strong> = the change between two passes fell below about 0.00002 V.<br/><strong>No</strong> = the pass limit was reached while the answer was still changing. Raise the iteration limit under Reference data → Settings, or check the inputs.{last && <><br/><br/><strong>This design:</strong> last change {last.delta.toFixed(7)} V → {result.converged ? 'converged' : 'not converged'}.</>}</>}>
           {result.converged ? <span style={{ color: 'var(--ok)' }}>yes</span> : <span style={{ color: 'var(--warn)' }}>no</span>}
         </StatTile>
-        <StatTile label="Final V" hint={<>The settled total secondary voltage after convergence.<br/><br/><strong>Formula:</strong> burden voltage + wire voltage drop.<br/><br/>This is the voltage the core cross-sectional area is sized for. A larger wire drop means the core must be bigger to compensate for the resistance loss.</>}>{result.vTotal.toFixed(5)}</StatTile>
-        <StatTile label="Wire drop" hint={<>Voltage lost across the secondary winding resistance at rated current.<br/><br/><strong>Formula:</strong> secondary current × winding resistance.<br/><br/>A larger drop means the core must carry more flux to compensate, requiring a bigger cross-sectional area. Thinner wire or more turns increases this value.</>}>{result.vDrop.toFixed(5)} V</StatTile>
+        <StatTile label="Final V" hint={<>The settled total secondary voltage. The core area is sized for this voltage.<br/><br/><strong>Formula:</strong> burden voltage + wire voltage drop.<br/><br/><strong>This design:</strong> {burden.toFixed(5)} + {result.vDrop.toFixed(5)} = {result.vTotal.toFixed(5)} V.</>}>{result.vTotal.toFixed(5)}</StatTile>
+        <StatTile label="Wire drop" hint={<>Voltage lost in the secondary winding wire at rated current. The core has to be larger to make up for it.<br/><br/><strong>Formula:</strong> secondary current × winding resistance.<br/><br/><strong>This design:</strong> {is} A × {result.resistanceOhm.toFixed(5)} Ω = {result.vDrop.toFixed(5)} V.</>}>{result.vDrop.toFixed(5)} V</StatTile>
       </div>
 
       <div className="overflow-x-auto">
@@ -227,15 +241,15 @@ function Convergence({ result }: { result: SolveResult }) {
           <thead>
             <tr className="border-b border-[var(--line-strong)]">
               {([
-                ['Pass', <>Iteration number — each pass refines the core size by recalculating area, width, wire and resistance.</>],
-                ['V in', <>Voltage fed into this pass.<br/><br/><strong>Pass 1</strong> starts with the burden voltage alone. Later passes include the wire voltage drop from the previous pass.</>],
-                ['Area cm²', <>Core cross-sectional area calculated from V in.<br/><br/><strong>Formula:</strong> A = V / (4.44 × f × N × B).</>],
-                ['Width mm', <>Core strip width derived from the area.<br/><br/><strong>Formula:</strong> width = area ÷ radial build.</>],
-                ['Wire m', <>Total secondary wire length for this core size.<br/><br/><strong>Formula:</strong> mean turn length × number of turns.</>],
-                ['R Ω', <>Winding DC resistance at 20 °C.<br/><br/><strong>Formula:</strong> resistivity × wire length ÷ wire cross-section.</>],
-                ['V drop', <>Voltage drop across the winding.<br/><br/><strong>Formula:</strong> secondary current × resistance.</>],
-                ['V out', <>New total voltage that feeds into the next pass.<br/><br/><strong>Formula:</strong> burden voltage + V drop.<br/><br/>This becomes "V in" for the next row.</>],
-                ['Δ', <>Delta — how much V changed from the previous pass.<br/><br/>When Δ falls below the settling tolerance (typically 0.00002 V), the calculation has <strong>converged</strong> and stops.</>],
+                ['Pass', <>One repeat of the calculation. Each pass recalculates the area, width, wire length and resistance from the latest voltage.{eg(<>one row of this table is one pass; this design needed {result.passes}.</>)}</>],
+                ['V in', <>Voltage this pass starts from.<br/><br/>Pass 1 starts with the burden voltage alone. Every later pass starts from the previous row's V out.{eg(<>{result.inputs.burdenVA} VA ÷ {is} A = {first!.vIn.toFixed(5)} V.</>)}</>],
+                ['Area cm²', <>Core cross-sectional area needed for V in.<br/><br/><strong>Formula:</strong> A = V ÷ (4.44 × f × N × B).{eg(<>V = {first!.vIn.toFixed(5)}, N = {turns}, B = {flux} T → {first!.areaCm2.toFixed(4)} cm².</>)}</>],
+                ['Width mm', <>Core strip width for that area.<br/><br/><strong>Formula:</strong> width = area ÷ radial build.{eg(<>{first!.areaCm2.toFixed(4)} cm² ÷ {(first!.areaCm2 / first!.widthCm).toFixed(3)} cm = {(first!.widthCm * 10).toFixed(2)} mm.</>)}</>],
+                ['Wire m', <>Total secondary wire length for a core of this width.<br/><br/><strong>Formula:</strong> mean turn length × number of turns, plus leads.{eg(<>{turns} turns around a {(first!.widthCm * 10).toFixed(2)} mm wide core need {first!.lengthM.toFixed(3)} m.</>)}</>],
+                ['R Ω', <>Winding DC resistance at 20 °C.<br/><br/><strong>Formula:</strong> wire length × resistance per metre of the chosen wire.{eg(<>{first!.lengthM.toFixed(3)} m × {(first!.resistanceOhm / first!.lengthM).toFixed(5)} Ω/m = {first!.resistanceOhm.toFixed(5)} Ω.</>)}</>],
+                ['V drop', <>Voltage lost in the winding wire.<br/><br/><strong>Formula:</strong> secondary current × resistance.{eg(<>{is} A × {first!.resistanceOhm.toFixed(5)} Ω = {first!.vDrop.toFixed(5)} V.</>)}</>],
+                ['V out', <>New total voltage. It becomes V in of the next row.<br/><br/><strong>Formula:</strong> burden voltage + V drop.{eg(<>{burden.toFixed(5)} + {first!.vDrop.toFixed(5)} = {first!.vNext.toFixed(5)} V.</>)}</>],
+                ['Δ', <>Delta: how much the total voltage changed in this pass (V out − V in). When it falls below about 0.00002 V the calculation stops.{eg(<>{first!.vNext.toFixed(5)} − {first!.vIn.toFixed(5)} = {first!.delta.toFixed(5)} V, so it repeats.{last && last !== first && <> By pass {last.pass} the change is {last.delta.toFixed(7)} V.</>}</>)}</>],
               ] as [string, ReactNode][]).map(([h, tip]) => (
                 <th key={h as string} className="label px-2 py-2 text-right font-semibold">{h}<Hint label={h as string}>{tip}</Hint></th>
               ))}

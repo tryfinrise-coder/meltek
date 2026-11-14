@@ -14,6 +14,10 @@ export function validateDesign(inputs: DesignInputs, settings: ProcessSettings):
     positive(pitch, `SWG ${swg} layer pitch`);
   }
   if (inputs.maxWidthMm != null) positive(inputs.maxWidthMm, 'Maximum width');
+  if (inputs.windingPackingFactor != null) {
+    positive(inputs.windingPackingFactor, 'Packing factor');
+    if (inputs.windingPackingFactor > 1) throw new EngineError('INVALID_INPUT', 'Packing factor cannot exceed 1.');
+  }
   for (const [key, value] of Object.entries(settings)) {
     if (typeof value === 'number') positive(value, key, ['resinCoverMm', 'leadWireMm', 'wireInsulationMm', 'interLayerTapeMm', 'windingPackingFactor', 'coreInsulationMm', 'coreWidthRoundingTolerancePercent'].includes(key));
   }

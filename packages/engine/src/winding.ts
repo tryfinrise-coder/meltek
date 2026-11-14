@@ -27,6 +27,22 @@ export interface WindingResult {
   windingBuildMm: number;
   /** Radial allowance on ONE side, not a diameter allowance. */
   allowanceMm: number;
+  /** Diameter the layer circumference was measured on (core side of the winding). */
+  boreMm: number;
+}
+
+/**
+ * Works method, confirmed by the client: the circumference is measured on the core side
+ * of the winding (inner bore + both sides of the build), trying 1 layer, then 2, and so on
+ * until the turns fit. Returns null when not even one turn fits.
+ */
+export function fitLayers(turns: number, innerBoreMm: number, turnPitchMm: number, buildFor: (layers: number) => number): { layers: number; turnsPerLayer: number; boreMm: number } | null {
+  for (let layers = 1; ; layers++) {
+    const boreMm = innerBoreMm + 2 * buildFor(layers);
+    const turnsPerLayer = Math.floor(Math.PI * boreMm / turnPitchMm);
+    if (turnsPerLayer < 1) return null;
+    if (layers * turnsPerLayer >= turns) return { layers, turnsPerLayer, boreMm };
+  }
 }
 export function computeWindingAllowance(inputs: WindingInputs, ref: WindingReference): WindingResult {
   const factor = inputs.swg == null ? undefined : ref.layerStackingFactorBySwg?.[inputs.swg];
@@ -39,11 +55,12 @@ export function computeWindingAllowance(inputs: WindingInputs, ref: WindingRefer
   if (factor > 1 || !Number.isInteger(inputs.turns) || !Number.isInteger(inputs.parallelStrands)) throw new EngineError('INVALID_INPUT', 'Packing must be at most 1; turns and strands must be integers.');
   const radial = inputs.arrangement === 'radial-stack';
   const pitch = inputs.bareDiaMm * (radial ? 1 : inputs.parallelStrands) / factor;
-  const turnsPerLayer = Math.floor(Math.PI * inputs.boreIdMm / pitch);
-  if (turnsPerLayer < 1) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
-  const layers = Math.ceil(inputs.turns / turnsPerLayer);
   const layerPitch = inputs.layerPitchMm ?? inputs.wireDiaMm;
   if (!Number.isFinite(layerPitch) || layerPitch + 1e-9 < inputs.wireDiaMm) throw new EngineError('INVALID_INPUT', 'Layer pitch cannot be smaller than the insulated wire diameter.');
-  const windingBuildMm = layers * layerPitch * (radial ? inputs.parallelStrands : 1) + (layers - 1) * ref.interlayerThicknessMm;
-  return { ...(inputs.layerPitchMm === undefined ? {} : { layerPitchMm: layerPitch }), turnsPerLayer, layers, windingBuildMm, allowanceMm: windingBuildMm + ref.minEpoxyThicknessMm };
+  const tape = ref.interlayerThicknessMm;
+  const buildFor = (n: number) => n * layerPitch * (radial ? inputs.parallelStrands : 1) + (n - 1) * tape;
+  const fit = fitLayers(inputs.turns, inputs.boreIdMm, pitch, buildFor);
+  if (!fit) throw new EngineError('GEOMETRY_IMPOSSIBLE', 'No complete turn bundle fits around the winding bore.');
+  const windingBuildMm = buildFor(fit.layers);
+  return { ...(inputs.layerPitchMm === undefined ? {} : { layerPitchMm: layerPitch }), ...fit, windingBuildMm, allowanceMm: windingBuildMm + ref.minEpoxyThicknessMm };
 }

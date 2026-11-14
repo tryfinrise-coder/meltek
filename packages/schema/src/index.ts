@@ -29,6 +29,7 @@ export const designInputsSchema = z
     maxWidthMm: z.number().positive().nullable().optional(),
     wireCombination: z.array(wireCombinationEntrySchema).nullable().optional(),
     layerPitchOverridesMm: z.record(z.string().regex(/^[1-9]\d*$/), z.number().finite().positive()).nullable().optional(),
+    windingPackingFactor: z.number().positive().max(1, 'Packing factor cannot exceed 1.').nullable().optional(),
   })
   .refine((v) => v.finishedOdMm > v.finishedIdMm, {
     message: 'Finished OD must be larger than finished ID.',

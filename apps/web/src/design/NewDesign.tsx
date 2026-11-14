@@ -7,7 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
-import { type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
+import { resinCoverForTurns, type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
 import { EngineeringEditor } from './EngineeringEditor';
 import { LayerPitchField } from './LayerPitchField';
 import { CoreWidthRounding } from './CoreWidthRounding';
@@ -58,15 +58,15 @@ const DEFAULTS: FormValues = {
 
 const STORAGE_KEY = 'meltek-design-draft';
 
-function loadDraft(): { form: Partial<FormValues>; wireMap: Record<number, number>; wireComboEnabled?: boolean; layerPitchOverridesMm?: Record<string, number> } | null {
+function loadDraft(): { form: Partial<FormValues>; wireMap: Record<number, number>; wireComboEnabled?: boolean; layerPitchOverridesMm?: Record<string, number>; packingFactor?: number } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
 }
 
-function saveDraft(formValues: FormValues, wireMap: Record<number, number>, wireComboEnabled: boolean, layerPitchOverridesMm: Record<string, number>) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap, wireComboEnabled, layerPitchOverridesMm })); } catch {}
+function saveDraft(formValues: FormValues, wireMap: Record<number, number>, wireComboEnabled: boolean, layerPitchOverridesMm: Record<string, number>, packingFactor?: number) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor })); } catch {}
 }
 
 export function NewDesign() {
@@ -103,6 +103,7 @@ export function NewDesign() {
   const [wireComboEnabled, setWireComboEnabled] = useState(() => wireModeFromDraft(draft));
   const [wireMap, setWireMap] = useState<Record<number, number>>(draft?.wireMap ?? {});
   const [layerPitchOverridesMm, setLayerPitchOverridesMm] = useState<Record<string, number>>(draft?.layerPitchOverridesMm ?? {});
+  const [packingFactor, setPackingFactor] = useState<number | undefined>(draft?.packingFactor);
   const setLayerPitch = (swg: number, pitch: number | undefined) => setLayerPitchOverridesMm(previous => {
     const next={...previous}; if(pitch===undefined) delete next[String(swg)]; else next[String(swg)]=pitch; return next;
   });
@@ -115,7 +116,7 @@ export function NewDesign() {
   const values = form.watch();
 
   // Auto-save form + wireMap to localStorage on every change.
-  useEffect(() => { saveDraft(values, wireMap, wireComboEnabled, layerPitchOverridesMm); }, [values, wireMap, wireComboEnabled, layerPitchOverridesMm]);
+  useEffect(() => { saveDraft(values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor); }, [values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor]);
 
   const wireCombination: WireCombinationEntry[] | null = useMemo(() => {
     return wireCombinationFromMap(wireComboEnabled, wireMap);
@@ -127,9 +128,9 @@ export function NewDesign() {
 
   /** Valid electrical spec → live engine run, in the browser, on every keystroke (§3.1). */
   const inputs: DesignInputs | null = useMemo(() => {
-    return createCalculatorInputs(values, engineering, wireCombination, layerPitchOverridesMm);
+    return createCalculatorInputs(values, engineering, wireCombination, layerPitchOverridesMm, packingFactor);
   }, [values.primaryCurrent, values.secondaryCurrent, values.burdenVA, values.accuracyClass,
-    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination, layerPitchOverridesMm]);
+    values.finishedIdMm, values.finishedOdMm, values.ctType, values.maxWidthMm, engineering, wireCombination, layerPitchOverridesMm, packingFactor]);
 
   const { result, error } = useCalculator(inputs, reference.data);
 
@@ -363,6 +364,14 @@ export function NewDesign() {
                   })}
                 </div>
                 {Object.keys(layerPitchOverridesMm).length > 0 && <button type="button" className="mt-3 text-[12px] text-[var(--brand)] underline underline-offset-4" onClick={()=>setLayerPitchOverridesMm({})}>Reset layer pitches to saved defaults</button>}
+                <label className="mt-3 flex flex-wrap items-center gap-2 text-[13px]">
+                  <span>Packing factor<Hint label="Packing factor">How much of the circumference is really filled with copper. Wires never sit perfectly touching: there is enamel and small gaps.<br/><br/><strong>Formula:</strong> turn pitch = copper width of one turn ÷ packing factor.<br/>Turns per layer = circumference ÷ turn pitch.<br/><br/><strong>1.00</strong> assumes the wires touch all the way round (most turns per layer). <strong>0.95</strong> leaves 5% spare room. A lower value can add a winding layer.<br/><br/>The circumference is measured on the core side of the winding: finished ID + resin cover + 2 × winding build.<br/><br/>Blank uses the saved process setting. A value entered here applies to this design and is saved with it.</Hint></span>
+                  <input type="number" aria-label="Packing factor" min={0.5} max={1} step={0.01}
+                    value={packingFactor ?? ''} placeholder={String(reference.data?.settings.windingPackingFactor ?? '')}
+                    onChange={e => { const n = Number(e.target.value); setPackingFactor(e.target.value !== '' && n > 0 && n <= 1 ? n : undefined); }}
+                    className="w-20 rounded border border-[var(--line)] bg-[var(--surface-1)] px-2 py-1 text-center text-[13px]" />
+                  <span className="text-[12px] text-[var(--text-3)]">0–1 · blank = saved setting</span>
+                </label>
                 <p className="mt-3 text-[12px] text-[var(--text-3)]">Layer pitch includes the wire and air allowance. Blank uses the saved per-wire default shown in grey; automatic defaults round the insulated diameter up to 1 mm. Tape is added separately. For mixed gauges, the largest layer pitch is used. Overrides apply to this design and are saved with it.</p>
                 {wireCombination && (
                   <div className="mt-3 rounded bg-[var(--surface-2)] px-3 py-2 text-[13px]">
@@ -583,7 +592,8 @@ export function NewDesign() {
                 reduce={Boolean(reduce)}
                 gauges={reference.data?.gauges ?? []}
                 finishedIdMm={selected.inputs.finishedIdMm}
-                resinCoverMm={reference.data?.settings.resinCoverMm ?? 4}
+                resinCoverMm={resinCoverForTurns(selected.geometry.turns, reference.data?.settings.resinCoverMm ?? 4)}
+                packingFactor={[selected.inputs.windingPackingFactor, reference.data?.settings.windingPackingFactor].find(v => v != null && v > 0 && v <= 1) ?? 0.95}
                 coreIdMm={selected.geometry.coreIdMm}
                 coreOdMm={selected.geometry.coreOdMm}
                 coreWidthMm={selected.orderedWidthMm}

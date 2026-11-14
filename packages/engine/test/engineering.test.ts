@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { solve, optimise, computeWindingAllowance, resistanceAtTemperature, DEFAULT_SETTINGS as LIVE_DEFAULT_SETTINGS, seedReferenceData, type DesignInputs, type EngineeringSpec } from '../src/index.js';
+import { solve, optimise, computeWindingAllowance, fitLayers, resistanceAtTemperature, DEFAULT_SETTINGS as LIVE_DEFAULT_SETTINGS, seedReferenceData, type DesignInputs, type EngineeringSpec } from '../src/index.js';
 
 // Preserve the established baseline; tolerance rounding is tested separately.
 const DEFAULT_SETTINGS = { ...LIVE_DEFAULT_SETTINGS };
@@ -14,8 +14,21 @@ const change=(p:Partial<EngineeringSpec>)=>{const i=make();Object.assign(i.engin
 describe('construction and electrical engineering',()=>{
  it('indexes packing factors by SWG and rounds turn capacity down',()=>{
   const r=computeWindingAllowance({turns:100,swg:17,wireDiaMm:1.5,bareDiaMm:1.42,parallelStrands:1,boreIdMm:42},{layerStackingFactorBySwg:{17:0.9},interlayerThicknessMm:0.1,minEpoxyThicknessMm:1});
-  expect(r.turnsPerLayer).toBe(Math.floor(Math.PI*42/(1.42/.9)));
+  expect(r.turnsPerLayer).toBe(Math.floor(Math.PI*(42+2*3.1)/(1.42/.9)));
   expect(r.layers).toBe(2);expect(r.windingBuildMm).toBeCloseTo(3.1);
+ });
+ it('measures the layer circumference on the core side, trying one layer first',()=>{
+  // 250/5 A, finished ID 40 + resin 4, bundle 1x21 + 2x22 + 1x23 = 2.845 mm copper, 1 mm layers.
+  const build=(n:number)=>n;
+  expect(fitLayers(50,44,2.845,build)).toEqual({layers:1,turnsPerLayer:50,boreMm:46});
+  expect(fitLayers(50,44,2.845/.95,build)).toEqual({layers:2,turnsPerLayer:50,boreMm:48});
+  expect(fitLayers(50,0.1,2.845,()=>0)).toBeNull();
+ });
+ it('lets a design override the packing factor',()=>{
+  const i:DesignInputs={primaryCurrent:250,secondaryCurrent:5,burdenVA:5,accuracyClass:'0.5S',finishedIdMm:40,finishedOdMm:75,ctType:'ring',wireCombination:[{swg:21,count:1},{swg:22,count:2},{swg:23,count:1}]};
+  expect(solve(i,reference(),DEFAULT_SETTINGS,'M-4',21).geometry.windingLayers).toBe(2);
+  expect(solve({...i,windingPackingFactor:1},reference(),DEFAULT_SETTINGS,'M-4',21).geometry.windingLayers).toBe(1);
+  expect(()=>solve({...i,windingPackingFactor:1.2},reference(),DEFAULT_SETTINGS,'M-4',21)).toThrow(/Packing factor/);
  });
  it('does not silently substitute a packing factor for an unknown gauge',()=>{
   expect(()=>computeWindingAllowance({turns:60,swg:18,wireDiaMm:1.5,bareDiaMm:1.42,parallelStrands:1,boreIdMm:42},{layerStackingFactorBySwg:{17:0.9},interlayerThicknessMm:0.1,minEpoxyThicknessMm:1})).toThrow(/packing/);

@@ -43,6 +43,7 @@ export interface StoredDesignInputs {
   maxWidthMm: number | null;
   wireCombination?: { swg: number; count: number }[] | null;
   layerPitchOverridesMm?: Record<string, number> | null;
+  windingPackingFactor?: number | null;
 }
 
 export interface Design {

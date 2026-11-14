@@ -89,8 +89,8 @@ describe('per-wire total winding layer pitch',()=>{
     const request=calculateRequestSchema.parse(JSON.parse(JSON.stringify({inputs:adapted})));
     expect(request.inputs.layerPitchOverridesMm).toEqual({'21':1.4});
     const serialized=serializeWindingConfiguration(adapted as StoredDesignInputs);
-    for(const value of [serialized,JSON.parse(serialized)])expect(parseWindingConfiguration(value)).toEqual({wireCombination:combo,layerPitchOverridesMm:{'21':1.4}});
-    expect(parseWindingConfiguration(null)).toEqual({wireCombination:null,layerPitchOverridesMm:null});
+    for(const value of [serialized,JSON.parse(serialized)])expect(parseWindingConfiguration(value)).toEqual({wireCombination:combo,layerPitchOverridesMm:{'21':1.4},windingPackingFactor:null});
+    expect(parseWindingConfiguration(null)).toEqual({wireCombination:null,layerPitchOverridesMm:null,windingPackingFactor:null});
     expect(gaugeUpsertSchema.parse(gauge).layerPitchMm).toBeNull();
   });
   it('persists per-gauge defaults, calculation overrides and frozen reference snapshots across restarts',async()=>{

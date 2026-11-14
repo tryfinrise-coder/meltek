@@ -28,6 +28,8 @@ export interface DesignInputs {
   wireCombination?: WireCombinationEntry[] | null;
   /** Per-design layer allowance (wire + air), in mm by SWG. Tape is separate. */
   layerPitchOverridesMm?: Record<string, number> | null;
+  /** Per-design packing factor (0 < f <= 1); blank uses the process setting. */
+  windingPackingFactor?: number | null;
 }
 
 export interface ProcessSettings {

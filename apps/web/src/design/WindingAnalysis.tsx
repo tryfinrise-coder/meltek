@@ -5,7 +5,7 @@ import { Card, Hint } from '../shared/primitives';
 import { TextField, SelectField, FieldShell } from '../shared/fields';
 import { fadeUp } from '../shared/motion';
 import { useCurrency } from '../shared/currency';
-import { resolveLayerPitchMm, type WireGauge } from '@meltek/engine';
+import { fitLayers, resolveLayerPitchMm, type WireGauge } from '@meltek/engine';
 
 const PI = Math.PI;
 const CU_DENSITY = 8.89;
@@ -109,12 +109,13 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     maxWireDia = Math.max(0,...gauges.filter(g=>(s.wireMap[g.swg] ?? 0)>0).map(g=>resolveLayerPitchMm(g,g.diaMm+s.insThickness,s.layerPitchOverridesMm) ?? g.diaMm+s.insThickness));
   } catch { return null; }
 
-  // Bore = finished ID + resin cover (winding wraps around the resin)
-  const boreMm = s.finishedID + s.resinCover;
-  const boreCirc = boreMm * PI;
+  // Same works method as the engine: circumference measured on the core side of the winding.
   const turnPitch = cuSurfacePerTurn * s.spacingFactor;
-  const turnsPerLayer = turnPitch > 0 ? Math.max(1, Math.floor(boreCirc / turnPitch)) : turns;
-  const numLayers = Math.ceil(turns / turnsPerLayer);
+  const buildFor = (n: number) => n * maxWireDia + (n - 1) * s.layerTape;
+  const fit = (turnPitch > 0 ? fitLayers(turns, s.finishedID + s.resinCover, turnPitch, buildFor) : null)
+    ?? { layers: 1, turnsPerLayer: turns, boreMm: s.finishedID + s.resinCover + 2 * buildFor(1) };
+  const { boreMm, turnsPerLayer, layers: numLayers } = fit;
+  const boreCirc = boreMm * PI;
   const layerThickness = maxWireDia + s.layerTape;
 
   const layers: LayerRow[] = [];
@@ -136,7 +137,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
   const practicalAvgMLT = turns > 0 ? totalWireLength / turns : 0;
   const actualAllowancePct = mltBase > 0 ? ((practicalAvgMLT / mltBase) - 1) * 100 : 0;
 
-  const windingBuildMm = numLayers * maxWireDia + (numLayers > 1 ? (numLayers - 1) * s.layerTape : 0);
+  const windingBuildMm = buildFor(numLayers);
   // Possible ID = required core ID = finishedID + resinCover + coreInsulation + 2 × windingBuild
   const afterInsulation = s.finishedID + s.resinCover + s.coreInsulation;
   const possibleID = afterInsulation + 2 * windingBuildMm;
@@ -175,6 +176,8 @@ interface WindingAnalysisProps {
   gauges: WireGauge[];
   finishedIdMm: number;
   resinCoverMm: number;
+  /** Packing factor the design calculation used, so this panel starts from the same spacing. */
+  packingFactor: number;
   coreIdMm: number;
   coreOdMm: number;
   coreWidthMm: number;
@@ -184,7 +187,7 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, packingFactor, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
   const { money, sym } = useCurrency();
@@ -208,6 +211,7 @@ export function WindingAnalysis({
         layerPitchOverridesMm,
         finishedID: finishedIdMm,
         resinCover: resinCoverMm,
+        spacingFactor: 1 / packingFactor,
         coreID: coreIdMm,
         coreOD: coreOdMm,
         coreWidth: coreWidthMm,
@@ -215,7 +219,7 @@ export function WindingAnalysis({
         wireMap,
       },
     });
-  }, [finishedIdMm, resinCoverMm, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature, pitchSignature]);
+  }, [finishedIdMm, resinCoverMm, packingFactor, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature, pitchSignature]);
 
   const result = useMemo(() => calculate(s, gauges), [s, gauges]);
 
@@ -345,6 +349,7 @@ export function WindingAnalysis({
               hint="How tightly the wire is wound"
               value={String(s.spacingFactor)}
               onChange={e => setField('spacingFactor', e.target.value)}>
+              <option value={String(1 / packingFactor)}>As design (packing {packingFactor})</option>
               <option value="1.05">Tight (×1.05)</option>
               <option value="1.10">Normal (×1.10)</option>
               <option value="1.20">Loose / Hand (×1.20)</option>
@@ -390,9 +395,9 @@ export function WindingAnalysis({
           <h3>How the number of layers is determined</h3>
           <ol>
             <li>
-              <span className="winding-calc-label">Winding bore diameter</span>
-              <span className="winding-calc-formula">Finished ID + resin cover = {fmt(s.finishedID, 1)} + {fmt(s.resinCover, 1)} = <strong>{fmt(result.boreMm, 2)} mm</strong></span>
-              <span className="winding-calc-note">The winding wraps around the resin-coated bore, not the bare core.</span>
+              <span className="winding-calc-label">Winding diameter (core side)</span>
+              <span className="winding-calc-formula">Finished ID + resin cover + 2 × winding build = {fmt(s.finishedID, 1)} + {fmt(s.resinCover, 1)} + 2 × {fmt(result.windingBuildMm, 2)} = <strong>{fmt(result.boreMm, 2)} mm</strong></span>
+              <span className="winding-calc-note">Measured on the core side of the winding, for {result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}. One layer is tried first; a layer is added only if the turns do not fit.</span>
             </li>
             <li>
               <span className="winding-calc-label">Bore circumference</span>
@@ -416,8 +421,8 @@ export function WindingAnalysis({
             </li>
             <li>
               <span className="winding-calc-label">Layers needed</span>
-              <span className="winding-calc-formula">ceil({result.turns} ÷ {result.turnsPerLayer}) = <strong>{result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}</strong></span>
-              <span className="winding-calc-note">{result.numLayers === 1 ? `All ${result.turns} turns fit in a single layer.` : `${result.turns} turns need ${result.numLayers} layers because only ${result.turnsPerLayer} turns fit per layer.`}</span>
+              <span className="winding-calc-formula">{result.numLayers} × {result.turnsPerLayer} = {result.numLayers * result.turnsPerLayer} ≥ {result.turns} turns → <strong>{result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}</strong></span>
+              <span className="winding-calc-note">{result.numLayers === 1 ? `All ${result.turns} turns fit in a single layer.` : `With one layer fewer the winding diameter is smaller and the ${result.turns} turns do not fit, so space for ${result.numLayers} layers is reserved.`}</span>
             </li>
           </ol>
         </div>

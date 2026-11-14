@@ -186,26 +186,31 @@ function Chain({ result, reduce }: { result: SolveResult; reduce: boolean }) {
 }
 
 function Convergence({ result }: { result: SolveResult }) {
+  const first = result.iterations[0];
+  const last = result.iterations.at(-1);
   return (
     <div className="p-4">
-      <p className="measure mb-3 text-[13px] text-[var(--text-2)]">
-        The calculation feeds back on itself: a wider core needs longer wire, longer wire has
-        more resistance, and more resistance needs a wider core again. Each pass recalculates
-        the core area, width, wire length, resistance and voltage drop, feeding the new total
-        voltage back into the next pass. It stops when two successive passes agree within the
-        settling tolerance (Δ ≈ 0) — typically 5–9 passes. Fewer passes means the design settles
-        quickly; many passes or "not converged" means the inputs are near a boundary and may need
-        review.
-      </p>
-
-      <div className="measure mb-3 rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-[12px] text-[var(--text-2)]">
-        <strong className="text-[var(--text)]">How to read this table:</strong> Each row is one
-        pass. <em>V in</em> is the voltage fed in; the engine computes core area, width, wire
-        length and resistance from it, then calculates the <em>V drop</em> across that wire.
-        <em>V out</em> = burden voltage + V drop — this becomes the next row's <em>V in</em>.
-        <strong>Δ</strong> (delta) is how much V changed between this pass and the last — when Δ
-        drops below {result.iterations.length > 0 ? '0.00002 V' : 'the tolerance'}, the answer has converged. A design that takes more passes
-        has a stronger feedback loop (high turns, thin wire, or a large CT ratio).
+      <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="flex items-center">
+          <h3 className="text-[14px] font-semibold">How the core size settles</h3>
+          <Hint label="How the core size settles">
+            The calculation feeds back on itself: a wider core needs longer wire, longer wire has more resistance, and more resistance needs a wider core again. So the engine repeats the same steps until the answer stops moving.
+            <br/><br/><strong>Each pass (one row of the table):</strong>
+            <ol className="mt-1 list-decimal pl-5">
+              <li><em>V in</em> → core area: A = V ÷ (4.44 × f × N × B)</li>
+              <li>Area → core width: width = area ÷ radial build</li>
+              <li>Width → wire length: mean turn length × turns</li>
+              <li>Wire length → resistance <em>R</em></li>
+              <li><em>V drop</em> = secondary current × R</li>
+              <li><em>V out</em> = burden voltage + V drop</li>
+            </ol>
+            <br/><em>V out</em> becomes the next row's <em>V in</em>. <strong>Δ</strong> is how much the voltage moved since the previous pass.
+            {first && <><br/><br/><strong>This design:</strong> pass 1 starts at {first.vIn.toFixed(5)} V (burden only), finds a wire drop of {first.vDrop.toFixed(5)} V, and hands {first.vNext.toFixed(5)} V to pass 2.{last && <> By pass {last.pass} the change is only {last.delta.toExponential(2)} V.</>}</>}
+            <br/><br/><strong>When it stops:</strong> when Δ falls below the settling tolerance (about 0.00002 V). That is why the number of passes differs between designs: typically 5–9. High turns, thin wire or a large ratio give a stronger feedback loop and need more passes.
+            <br/><br/>"Not converged" means the pass limit was reached while the answer was still moving, so the inputs need review.
+          </Hint>
+        </div>
+        <p className="text-[12px] text-[var(--text-3)]">Repeats until two passes agree. Tap any <strong>?</strong> for the formula behind a value.</p>
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">

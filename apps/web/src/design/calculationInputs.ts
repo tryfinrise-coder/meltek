@@ -18,6 +18,7 @@ export function createCalculatorInputs(
   engineering: EngineeringSpec | null,
   wireCombination: WireCombinationEntry[] | null,
   layerPitchOverridesMm?: Record<string, number> | null,
+  windingPackingFactor?: number | null,
 ): DesignInputs | null {
   const parsed = designInputsSchema.safeParse({
     engineering,
@@ -31,6 +32,7 @@ export function createCalculatorInputs(
     maxWidthMm: values.maxWidthMm === '' ? null : Number(values.maxWidthMm),
     wireCombination,
     ...(layerPitchOverridesMm == null ? {} : {layerPitchOverridesMm}),
+    ...(windingPackingFactor == null ? {} : {windingPackingFactor}),
   });
   return parsed.success ? parsed.data as DesignInputs : null;
 }

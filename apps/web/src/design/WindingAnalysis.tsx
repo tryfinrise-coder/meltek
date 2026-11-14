@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { motion } from 'motion/react';
-import { Card } from '../shared/primitives';
+import { Card, Hint } from '../shared/primitives';
 import { TextField, SelectField, FieldShell } from '../shared/fields';
 import { fadeUp } from '../shared/motion';
 import { useCurrency } from '../shared/currency';
@@ -382,9 +382,9 @@ export function WindingAnalysis({
       {inputHost ? createPortal(windingInputs, inputHost) : windingInputs}
       {inputHost && <Card className="winding-construction" title="Winding construction results" subtitle="Wire requirements, radial build and layer geometry" actions={<span className={`winding-fit-status ${result.windingFits ? 'is-fit' : 'needs-review'}`}>{result.windingFits ? 'Radial build fits' : 'Review radial build'}</span>}>
         <div className="winding-highlights">
-          <div><span title="Number of concentric wire layers wound around the core. More layers = thicker winding build, smaller bore opening.">Winding layers</span><strong className="num">{result.layers.length}</strong></div>
-          <div><span title="Total length of wire needed for the secondary winding, including practical additions for lead-out and wastage.">Total wire required</span><strong className="num">{fmt(result.practicalWireLength / 1000, 3)} <small>m</small></strong></div>
-          <div><span title="Radial thickness of the completed winding on one side of the core — all layers plus inter-layer insulation. Reduces the bore opening from each side.">Build per side</span><strong className="num">{fmt(result.windingBuildMm, 2)} <small>mm</small></strong></div>
+          <div><span>Winding layers<Hint label="Winding layers">Number of concentric wire layers wound around the core.<br/><br/>More layers = thicker winding build = smaller bore opening. The layer count is determined by how many turns fit in one layer around the bore circumference — see the step-by-step breakdown below.</Hint></span><strong className="num">{result.layers.length}</strong></div>
+          <div><span>Total wire required<Hint label="Total wire required">Total length of wire needed for the secondary winding, including practical additions for lead-out connections and wastage.<br/><br/>Each layer has a different mean turn length (MLT) because outer layers wrap further from the core centre.</Hint></span><strong className="num">{fmt(result.practicalWireLength / 1000, 3)} <small>m</small></strong></div>
+          <div><span>Build per side<Hint label="Build per side">Radial thickness of the completed winding on one side of the core — all wire layers plus inter-layer insulation tape.<br/><br/><strong>Formula:</strong> (layers × wire dia) + ((layers − 1) × tape thickness).<br/><br/>This reduces the bore opening from each side, so total bore reduction = 2 × build per side.</Hint></span><strong className="num">{fmt(result.windingBuildMm, 2)} <small>mm</small></strong></div>
         </div>
         <div className="winding-layer-calc">
           <h3>How the number of layers is determined</h3>
@@ -424,16 +424,16 @@ export function WindingAnalysis({
         {!result.windingFits && <p className="winding-fit-warning">Required core ID exceeds core OD. Reduce wire count or use a thinner gauge.</p>}
         <div className="winding-result-groups">
           <section><h3>Conductor & turn length</h3><dl>
-            <WindingMetric label="Total copper area" value={fmt(result.totalCuArea, 3)} unit="mm²" title="Combined cross-sectional area of all parallel wires in the secondary winding. More area = lower resistance, but a bulkier winding." />
-            <WindingMetric label="Copper surface per turn" value={fmt(result.cuSurfacePerTurn, 3)} unit="mm" title="Outer perimeter of one turn's wire bundle. Used to estimate insulation coverage and heat dissipation." />
-            <WindingMetric label="Turns in first layer" value={String(result.layers[0]?.turns ?? '—')} title="How many turns fit in the first (innermost) winding layer based on the available bore circumference and wire diameter." />
-            <WindingMetric label="Theoretical MLT" value={fmt(result.mltBase, 1)} unit="mm" title="Mean Length per Turn — the average circumference of one turn based on core dimensions alone, without practical additions." />
-            <WindingMetric label="Average practical MLT" value={fmt(result.mltPractical, 1)} unit="mm" title="Actual average wire length per turn, accounting for insulation build-up across layers. Used to calculate total wire length and copper weight." />
+            <WindingMetric label="Total copper area" value={fmt(result.totalCuArea, 3)} unit="mm²" hint={<>Combined cross-sectional area of all parallel wires in the secondary winding.<br/><br/>More area = lower resistance, but a bulkier winding that takes more bore space.</>} />
+            <WindingMetric label="Copper surface per turn" value={fmt(result.cuSurfacePerTurn, 3)} unit="mm" hint={<>Sum of bare wire diameters across all parallel strands in one turn. This is the width one turn occupies when laid side by side.<br/><br/>Used in the layer calculation to determine how many turns fit around the bore.</>} />
+            <WindingMetric label="Turns in first layer" value={String(result.layers[0]?.turns ?? '—')} hint={<>How many turns fit in the first (innermost) winding layer.<br/><br/><strong>Formula:</strong> floor(bore circumference ÷ turn pitch).<br/><br/>If total turns exceed this number, additional layers are needed.</>} />
+            <WindingMetric label="Theoretical MLT" value={fmt(result.mltBase, 1)} unit="mm" hint={<>Mean Length per Turn — the average path length of one turn based on core dimensions alone.<br/><br/><strong>Formula:</strong> (OD − ID) + 2 × width.<br/><br/>This is the baseline before accounting for winding build-up across layers.</>} />
+            <WindingMetric label="Average practical MLT" value={fmt(result.mltPractical, 1)} unit="mm" hint={<>Actual average wire length per turn, accounting for the fact that outer layers wrap further from the core centre.<br/><br/>Used to calculate total wire length and copper weight. The practical MLT is always longer than the theoretical MLT.</>} />
           </dl></section>
           <section><h3>Bore & winding geometry</h3><dl>
-            <WindingMetric label="ID after resin + insulation" value={fmt(result.afterInsulation, 1)} unit="mm" title="Remaining inner opening after the winding, resin coating and outer insulation are applied. Must be ≥ finished ID requirement." />
-            <WindingMetric label="Required core ID" value={fmt(result.possibleID, 1)} unit="mm" title="Minimum bare core inner diameter needed so that the finished CT (after winding + insulation) still meets the specified finished ID." />
-            <WindingMetric label="Last-layer bore fill" value={fmt(result.boreFillPct, 1)} unit="%" title="Percentage of the innermost winding layer's available circumference occupied by wire. Above 95% means the layer is nearly full — adding more turns may need a new layer." />
+            <WindingMetric label="ID after resin + insulation" value={fmt(result.afterInsulation, 1)} unit="mm" hint={<>The inner opening after adding resin cover and core insulation to the finished ID, but <strong>before</strong> the winding.<br/><br/><strong>Formula:</strong> finished ID + resin cover + core insulation.<br/><br/>This is the bore diameter the winding wraps around.</>} />
+            <WindingMetric label="Required core ID" value={fmt(result.possibleID, 1)} unit="mm" hint={<>Minimum bare core inner diameter needed so that the finished CT (after winding + insulation) meets the specified finished ID.<br/><br/><strong>Formula:</strong> ID after insulation + 2 × winding build.<br/><br/>The actual core ID from the design must be ≥ this value.</>} />
+            <WindingMetric label="Last-layer bore fill" value={fmt(result.boreFillPct, 1)} unit="%" hint={<>Percentage of the innermost winding layer's circumference occupied by wire.<br/><br/><strong>Above 95%</strong> means the layer is nearly full — adding more turns would require a new layer.<br/><br/>A low fill percentage means there is room to add more turns on the same layer if the design changes.</>} />
           </dl>
             <div className="winding-fill-track" role="meter" aria-label="Last-layer bore fill" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, result.boreFillPct))} aria-valuetext={`${fmt(result.boreFillPct, 1)} percent`}><span style={{width: `${Math.min(100, Math.max(0, result.boreFillPct))}%`, background: result.boreFillPct > 95 ? 'var(--warn)' : 'var(--brand)'}} /></div>
             <p className="winding-fill-note">Circumference occupied by the final winding layer.</p>
@@ -607,6 +607,6 @@ function DiffTag({ diff, suffix }: { diff: number; suffix: string }) {
     </span>
   );
 }
-function WindingMetric({ label, value, unit, title }: { label: string; value: string; unit?: string; title?: string }) {
-  return <div className="winding-metric"><dt title={title}>{label}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
+function WindingMetric({ label, value, unit, hint }: { label: string; value: string; unit?: string; hint?: ReactNode }) {
+  return <div className="winding-metric"><dt>{label}{hint && <Hint label={label}>{hint}</Hint>}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
 }

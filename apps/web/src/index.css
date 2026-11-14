@@ -592,3 +592,20 @@ body {
 .winding-wire-breakdown thead th { color: var(--text-2); font-size: 12px; background: var(--surface-2); }
 @media (max-width: 1200px) { .winding-result-groups { grid-template-columns: minmax(0, 1fr); } .winding-result-groups > section + section { border-left: 0; border-top: 1px solid var(--line); } }
 @media (max-width: 600px) { .winding-highlights { grid-template-columns: minmax(0, 1fr); gap: 18px; } .winding-highlights > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; } .calculator-page .winding-highlights strong { margin-top: 0; font-size: 22px; } .winding-metric { flex-wrap: wrap; gap: 4px 12px; } }
+
+/* ─── Hint icon + dialog ─── */
+.hint-btn { all: unset; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; font-weight: 700; line-height: 1; color: var(--text-3); background: var(--surface-3); cursor: pointer; vertical-align: middle; margin-left: 5px; flex-shrink: 0; transition: background 0.15s, color 0.15s; }
+.hint-btn:hover { background: var(--brand); color: #fff; }
+.hint-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.hint-dialog { border: 0; padding: 0; background: transparent; max-width: min(480px, calc(100vw - 32px)); width: 100%; border-radius: 12px; }
+.hint-dialog::backdrop { background: rgba(0,0,0,0.45); }
+.hint-dialog[open] { animation: hint-in 0.2s ease; }
+.hint-dialog-inner { background: var(--surface-1); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden; }
+.hint-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+.hint-dialog-header h3 { font: 600 15px/1.4 var(--font-body); margin: 0; color: var(--text); }
+.hint-dialog-close { all: unset; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; font-size: 14px; color: var(--text-3); cursor: pointer; transition: background 0.15s; }
+.hint-dialog-close:hover { background: var(--surface-3); color: var(--text); }
+.hint-dialog-body { padding: 20px; font: 400 14px/1.7 var(--font-body); color: var(--text-2); }
+.hint-dialog-body strong { color: var(--text); font-weight: 600; }
+.hint-dialog-body code { font-family: 'Inter', monospace; font-size: 13px; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; }
+@keyframes hint-in { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }

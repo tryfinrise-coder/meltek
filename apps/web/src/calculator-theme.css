@@ -105,13 +105,7 @@
 .calculator-page .card > header p { font-size: 12.5px; color: var(--text-3); }
 .calculator-page .calculator-value-list { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(100%,200px),1fr)); }
 .calculator-page .calculator-value-list > div { display: flex; flex-direction: column; align-items: start; justify-content: start; gap: 6px; min-width: 0; padding: 16px 20px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: none; }
-.calculator-page .calculator-value-list dt { font-size: 12.5px; color: var(--text-3); cursor: help; }
-.calculator-page .calculator-value-list dt[title]::after { content: ' ⓘ'; font-size: 10px; opacity: 0.45; vertical-align: super; }
-.calculator-page .winding-metric dt[title] { cursor: help; }
-.calculator-page .winding-metric dt[title]::after { content: ' ⓘ'; font-size: 10px; opacity: 0.45; vertical-align: super; }
-.calculator-page .winding-highlights span[title] { cursor: help; }
-.calculator-page .winding-highlights span[title]::after { content: ' ⓘ'; font-size: 9px; opacity: 0.4; vertical-align: super; }
-.calculator-page .data-table th[title] { cursor: help; }
+.calculator-page .calculator-value-list dt { font-size: 12.5px; color: var(--text-3); }
 .calculator-page .calculator-value-list dd { font: 500 18px/1.4 'Inter',sans-serif; text-align: left; }
 .calculator-page .calculator-value-list > div:last-child { grid-column: auto; padding: 16px 20px; border-left: 0; background: none; }
 .calculator-page .calculator-value-list > div:last-child dd { font-size: 18px; color: var(--brand); }

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { SolveResult } from '@meltek/engine';
-import { Callout } from '../shared/primitives';
+import { Callout, Hint } from '../shared/primitives';
 import { exportCalcChain } from './exportCalcChain';
 import { useCurrency } from '../shared/currency';
 const n = (v: number | null, unit='') => v == null ? 'Not available' : `${v.toFixed(3)} ${unit}`;
@@ -34,7 +34,7 @@ export function EngineeringResults({result, gradeLabel}:{result:SolveResult; gra
   ];
   return <div className="flex flex-col gap-4 p-4"><div className="flex justify-end"><button type="button" onClick={handleExport} className="rounded-md border border-[var(--line)] px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-2)]" title="Download calculation as Excel">Download Excel</button></div><Callout tone={r.issues.length?'warn':'info'} title={r.issues.length?'Engineering screening needs attention':'Configured screening checks passed'}>Sinusoidal steady-state estimates. Protection composite error is excitation-based; knee voltage uses supplied characterised knee flux. These results do not establish standard compliance or transient fault performance. R75 source: {r.resistance75Source}.</Callout>
     {r.issues.length>0 && <ul className="list-disc pl-5 text-sm">{r.issues.map(i=><li key={i}>{i}</li>)}</ul>}
-    <dl className="grid grid-cols-1 gap-3 md:grid-cols-3">{rows.map(([label,v,u,tip])=><div key={label} className="rounded-md border border-[var(--line)] p-3"><dt className="text-xs text-[var(--text-2)]" style={{cursor:'help'}} title={tip}>{label} <span style={{fontSize:10,opacity:0.45,verticalAlign:'super'}}>ⓘ</span></dt><dd className="mt-1 num text-sm">{u === '¤' ? money(v) : n(v,u)}</dd></div>)}</dl>
+    <dl className="grid grid-cols-1 gap-3 md:grid-cols-3">{rows.map(([label,v,u,tip])=><div key={label} className="rounded-md border border-[var(--line)] p-3"><dt className="text-xs text-[var(--text-2)]">{label}<Hint label={label}>{tip}</Hint></dt><dd className="mt-1 num text-sm">{u === '¤' ? money(v) : n(v,u)}</dd></div>)}</dl>
     {!!r.checks.length && <div className="overflow-x-auto"><table className="data-table w-full text-xs"><thead><tr>{['Current %','Burden %','Ratio error %','Phase minutes','Screening'].map(h=><th className="p-2 text-left" key={h}>{h}</th>)}</tr></thead><tbody>{r.checks.map((p,i)=><tr key={i}><td className="p-2">{p.currentPercent}</td><td>{p.burdenPercent}</td><td>{n(p.ratioErrorPercent)}</td><td>{n(p.phaseMinutes)}</td><td>{p.passed===null?'Missing curve data':p.passed?'Pass':'Fail'}</td></tr>)}</tbody></table></div>}
     <div className="overflow-x-auto"><table className="data-table w-full text-xs"><thead><tr><th className="p-2">Calculation</th><th>Formula</th><th>Result</th></tr></thead><tbody>{result.steps.map(s=><tr key={s.key}><td className="p-2">{s.label}</td><td>{s.formula}</td><td className="p-2 num">{typeof s.value==='number'?n(s.value,s.unit):s.value}</td></tr>)}</tbody></table></div>
   </div>;

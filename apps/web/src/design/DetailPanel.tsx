@@ -1,8 +1,8 @@
 import { EngineeringResults } from './EngineeringResults';
 import { motion, useReducedMotion } from 'motion/react';
-import { lazy, Suspense, useCallback, useId, useState } from 'react';
+import { lazy, Suspense, useCallback, useId, useState, type ReactNode } from 'react';
 import type { SolveResult, SteelGrade } from '@meltek/engine';
-import { Badge, Callout, ProvisionalMark, Skeleton, StatTile } from '../shared/primitives';
+import { Badge, Callout, Hint, ProvisionalMark, Skeleton, StatTile } from '../shared/primitives';
 import { duration, ease, stagger } from '../shared/motion';
 import { exportCalcChain } from './exportCalcChain';
 
@@ -209,12 +209,12 @@ function Convergence({ result }: { result: SolveResult }) {
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Passes" title="Number of iterations the solver needed to settle on a stable core size. Typical: 5–9. Higher counts indicate strong feedback between wire resistance and core area.">{result.passes}</StatTile>
-        <StatTile label="Converged" title="Whether the calculation reached a stable answer. 'yes' = Δ dropped below the tolerance; 'no' = the pass limit was reached while the answer was still shifting.">
+        <StatTile label="Passes" hint={<>Number of iterations the solver needed to settle on a stable core size.<br/><br/><strong>Typical:</strong> 5–9 passes. Higher counts indicate strong feedback between wire resistance and core area — common with high turns or thin wire.</>}>{result.passes}</StatTile>
+        <StatTile label="Converged" hint={<>Whether the calculation reached a stable answer.<br/><br/><strong>Yes</strong> = the difference (Δ) between two successive passes dropped below the settling tolerance.<br/><strong>No</strong> = the pass limit was reached while the answer was still shifting. Try raising the iteration limit under Reference data → Settings.</>}>
           {result.converged ? <span style={{ color: 'var(--ok)' }}>yes</span> : <span style={{ color: 'var(--warn)' }}>no</span>}
         </StatTile>
-        <StatTile label="Final V" title="The settled total secondary voltage: burden voltage + wire voltage drop. This is the voltage the core area is sized for.">{result.vTotal.toFixed(5)}</StatTile>
-        <StatTile label="Wire drop" title="Voltage lost across the secondary winding resistance at rated current. Formula: secondary current × winding resistance. A larger drop means the core must be bigger to compensate.">{result.vDrop.toFixed(5)} V</StatTile>
+        <StatTile label="Final V" hint={<>The settled total secondary voltage after convergence.<br/><br/><strong>Formula:</strong> burden voltage + wire voltage drop.<br/><br/>This is the voltage the core cross-sectional area is sized for. A larger wire drop means the core must be bigger to compensate for the resistance loss.</>}>{result.vTotal.toFixed(5)}</StatTile>
+        <StatTile label="Wire drop" hint={<>Voltage lost across the secondary winding resistance at rated current.<br/><br/><strong>Formula:</strong> secondary current × winding resistance.<br/><br/>A larger drop means the core must carry more flux to compensate, requiring a bigger cross-sectional area. Thinner wire or more turns increases this value.</>}>{result.vDrop.toFixed(5)} V</StatTile>
       </div>
 
       <div className="overflow-x-auto">
@@ -222,17 +222,17 @@ function Convergence({ result }: { result: SolveResult }) {
           <thead>
             <tr className="border-b border-[var(--line-strong)]">
               {([
-                ['Pass', 'Iteration number — each pass refines the core size.'],
-                ['V in', 'Voltage fed into this pass. Pass 1 starts with the burden voltage alone; later passes include the wire drop from the previous pass.'],
-                ['Area cm²', 'Core cross-sectional area calculated from V in using the transformer equation: A = V / (4.44 × f × N × B).'],
-                ['Width mm', 'Core strip width derived from the area: width = area ÷ radial build.'],
-                ['Wire m', 'Total secondary wire length for this core size, based on mean turn length × turns.'],
-                ['R Ω', 'Winding resistance calculated from the wire length and cross-section at 20 °C.'],
-                ['V drop', 'Voltage drop across the winding: secondary current × resistance.'],
-                ['V out', 'New total voltage = burden voltage + V drop. This becomes V in for the next pass.'],
-                ['Δ', 'Delta — how much V changed from the previous pass. When Δ falls below the settling tolerance, the calculation has converged.'],
-              ] as [string, string][]).map(([h, tip]) => (
-                <th key={h} className="label px-2 py-2 text-right font-semibold" title={tip} style={{ cursor: 'help' }}>{h}</th>
+                ['Pass', <>Iteration number — each pass refines the core size by recalculating area, width, wire and resistance.</>],
+                ['V in', <>Voltage fed into this pass.<br/><br/><strong>Pass 1</strong> starts with the burden voltage alone. Later passes include the wire voltage drop from the previous pass.</>],
+                ['Area cm²', <>Core cross-sectional area calculated from V in.<br/><br/><strong>Formula:</strong> A = V / (4.44 × f × N × B).</>],
+                ['Width mm', <>Core strip width derived from the area.<br/><br/><strong>Formula:</strong> width = area ÷ radial build.</>],
+                ['Wire m', <>Total secondary wire length for this core size.<br/><br/><strong>Formula:</strong> mean turn length × number of turns.</>],
+                ['R Ω', <>Winding DC resistance at 20 °C.<br/><br/><strong>Formula:</strong> resistivity × wire length ÷ wire cross-section.</>],
+                ['V drop', <>Voltage drop across the winding.<br/><br/><strong>Formula:</strong> secondary current × resistance.</>],
+                ['V out', <>New total voltage that feeds into the next pass.<br/><br/><strong>Formula:</strong> burden voltage + V drop.<br/><br/>This becomes "V in" for the next row.</>],
+                ['Δ', <>Delta — how much V changed from the previous pass.<br/><br/>When Δ falls below the settling tolerance (typically 0.00002 V), the calculation has <strong>converged</strong> and stops.</>],
+              ] as [string, ReactNode][]).map(([h, tip]) => (
+                <th key={h as string} className="label px-2 py-2 text-right font-semibold">{h}<Hint label={h as string}>{tip}</Hint></th>
               ))}
             </tr>
           </thead>

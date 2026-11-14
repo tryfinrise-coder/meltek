@@ -1,6 +1,6 @@
 import { Button as FbButton, Tooltip } from 'flowbite-react';
 import { useReducedMotion } from 'motion/react';
-import { useEffect, useRef, useState, type ReactNode, type AriaAttributes } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode, type AriaAttributes } from 'react';
 import { duration } from './motion';
 
 /* ─────────────────────────── buttons ─────────────────────────── */
@@ -179,8 +179,8 @@ export function AnimatedNumber({
  * it marks which quantity is provisional without tinting the number itself.
  */
 export function StatTile({
-  label, children, note, tone, title,
-}: { label: string; children: ReactNode; note?: ReactNode; tone?: 'brand' | 'provisional'; title?: string }) {
+  label, children, note, tone, hint,
+}: { label: string; children: ReactNode; note?: ReactNode; tone?: 'brand' | 'provisional'; hint?: ReactNode }) {
   const accent = tone === 'brand' ? 'var(--brand)' : tone === 'provisional' ? 'var(--provisional)' : 'var(--line-strong)';
   return (
     <div
@@ -192,7 +192,7 @@ export function StatTile({
       }}
     >
       <span aria-hidden className="absolute inset-y-0 left-0 w-[2px]" style={{ background: accent }} />
-      <div className="label" title={title} style={title ? { cursor: 'help' } : undefined}>{label}{title && <span style={{ fontSize: 10, opacity: 0.45, verticalAlign: 'super', marginLeft: 2 }}>ⓘ</span>}</div>
+      <div className="label">{label}{hint && <Hint label={label}>{hint}</Hint>}</div>
       <div
         className="mt-1.5 font-[family-name:var(--font-display)] text-[23px] font-bold num leading-none tracking-[-0.02em]"
         style={tone === 'provisional' ? { color: 'var(--provisional)' } : tone === 'brand' ? { color: 'var(--brand)' } : undefined}
@@ -260,5 +260,27 @@ export function Skeleton({ className = 'h-4 w-full' }: { className?: string }) {
         animation: reduce ? undefined : 'meltek-shimmer 1.4s linear infinite',
       }}
     />
+  );
+}
+
+/* ─────────────────────────── hint icon ─────────────────────────── */
+
+export function Hint({ label, children }: { label: string; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const open = useCallback(() => ref.current?.showModal(), []);
+  const close = useCallback(() => ref.current?.close(), []);
+  return (
+    <>
+      <button type="button" className="hint-btn" onClick={open} aria-label={`What is ${label}?`}>?</button>
+      <dialog ref={ref} className="hint-dialog" onClick={e => { if (e.target === ref.current) close(); }}>
+        <div className="hint-dialog-inner">
+          <div className="hint-dialog-header">
+            <h3>{label}</h3>
+            <button type="button" className="hint-dialog-close" onClick={close} aria-label="Close">✕</button>
+          </div>
+          <div className="hint-dialog-body">{children}</div>
+        </div>
+      </dialog>
+    </>
   );
 }

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { calculateCoreTests, CORE_TEST_TURNS, mergeCoreTestPoints, type SolveResult, type SteelGrade } from '@meltek/engine';
 import { usePermission } from '../auth/session';
 import { api, type ReferenceResponse } from '../shared/api';
-import { Button, Card } from '../shared/primitives';
+import { Button, Card, Hint } from '../shared/primitives';
 
 export function CoreTestResults({ result, grade, frequencyHz, onPendingChange }: {
   result: SolveResult;
@@ -54,9 +54,9 @@ export function CoreTestResults({ result, grade, frequencyHz, onPendingChange }:
     <div className="max-w-full overflow-x-auto">
       <table className="data-table w-full text-[13px]">
         <thead><tr>
-          <th className="label" title="Test point as a percentage of rated flux density (B₁₀₀). Standard points: 120%, 100%, 20%, 5%; 1% appears for class 0.5S.">Point</th><th className="label text-right" title="Magnetic flux density at this test point, in Tesla. Calculated as the percentage × B₁₀₀.">Flux (T)</th><th className="label" title="Magnetising force in Ampere-Turns per centimetre at this flux density, from the material's B–H curve. Enter or edit values here.">AT/cm</th>
-          {CORE_TEST_TURNS.map(turns => <th key={`v${turns}`} className="label text-right whitespace-nowrap" title={`Test voltage for ${turns} secondary turns. Formula: 4.44 × frequency × B × N × Area (cm²). This is the voltage applied during the CT accuracy test.`}>V · {turns} turns</th>)}
-          {CORE_TEST_TURNS.map(turns => <th key={`i${turns}`} className="label text-right whitespace-nowrap" title={`Maximum magnetising current at ${turns} turns. Formula: (AT/cm × Mean Magnetic Length) ÷ N. The CT must handle this current without saturating.`}>I max · {turns} turns (A)</th>)}
+          <th className="label">Point<Hint label="Point">Test point as a percentage of rated flux density (B₁₀₀).<br/><br/>Standard points: 120%, 100%, 20%, 5%. The 1% point appears only for class 0.5S.</Hint></th><th className="label text-right">Flux (T)<Hint label="Flux">Magnetic flux density at this test point, in Tesla.<br/><br/><strong>Formula:</strong> percentage × B₁₀₀.</Hint></th><th className="label">AT/cm<Hint label="AT/cm">Magnetising force in Ampere-Turns per centimetre at this flux density, from the material's B–H curve.<br/><br/>Enter or edit values here.</Hint></th>
+          {CORE_TEST_TURNS.map(turns => <th key={`v${turns}`} className="label text-right whitespace-nowrap">V · {turns} turns<Hint label={`V · ${turns} turns`}>Test voltage for {turns} secondary turns.<br/><br/><strong>Formula:</strong> 4.44 × frequency × B × N × Area (cm²).<br/><br/>This is the voltage applied during the CT accuracy test.</Hint></th>)}
+          {CORE_TEST_TURNS.map(turns => <th key={`i${turns}`} className="label text-right whitespace-nowrap">I max · {turns} turns (A)<Hint label={`I max · ${turns} turns`}>Maximum magnetising current at {turns} turns.<br/><br/><strong>Formula:</strong> (AT/cm × Mean Magnetic Length) ÷ N.<br/><br/>The CT must handle this current without saturating.</Hint></th>)}
         </tr></thead>
         <tbody>{report.points.map(point => {
           const raw = draft[String(point.fluxT)];

@@ -190,25 +190,49 @@ function Convergence({ result }: { result: SolveResult }) {
     <div className="p-4">
       <p className="measure mb-3 text-[13px] text-[var(--text-2)]">
         The calculation feeds back on itself: a wider core needs longer wire, longer wire has
-        more resistance, and more resistance needs a wider core again. It repeats until the
-        figure stops moving rather than stopping after a set number of passes.
+        more resistance, and more resistance needs a wider core again. Each pass recalculates
+        the core area, width, wire length, resistance and voltage drop, feeding the new total
+        voltage back into the next pass. It stops when two successive passes agree within the
+        settling tolerance (Δ ≈ 0) — typically 5–9 passes. Fewer passes means the design settles
+        quickly; many passes or "not converged" means the inputs are near a boundary and may need
+        review.
       </p>
 
+      <div className="measure mb-3 rounded-md border border-[var(--line)] bg-[var(--surface-2)] px-4 py-3 text-[12px] text-[var(--text-2)]">
+        <strong className="text-[var(--text)]">How to read this table:</strong> Each row is one
+        pass. <em>V in</em> is the voltage fed in; the engine computes core area, width, wire
+        length and resistance from it, then calculates the <em>V drop</em> across that wire.
+        <em>V out</em> = burden voltage + V drop — this becomes the next row's <em>V in</em>.
+        <strong>Δ</strong> (delta) is how much V changed between this pass and the last — when Δ
+        drops below {result.iterations.length > 0 ? '0.00002 V' : 'the tolerance'}, the answer has converged. A design that takes more passes
+        has a stronger feedback loop (high turns, thin wire, or a large CT ratio).
+      </div>
+
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Passes">{result.passes}</StatTile>
-        <StatTile label="Converged">
+        <StatTile label="Passes" title="Number of iterations the solver needed to settle on a stable core size. Typical: 5–9. Higher counts indicate strong feedback between wire resistance and core area.">{result.passes}</StatTile>
+        <StatTile label="Converged" title="Whether the calculation reached a stable answer. 'yes' = Δ dropped below the tolerance; 'no' = the pass limit was reached while the answer was still shifting.">
           {result.converged ? <span style={{ color: 'var(--ok)' }}>yes</span> : <span style={{ color: 'var(--warn)' }}>no</span>}
         </StatTile>
-        <StatTile label="Final V">{result.vTotal.toFixed(5)}</StatTile>
-        <StatTile label="Wire drop">{result.vDrop.toFixed(5)} V</StatTile>
+        <StatTile label="Final V" title="The settled total secondary voltage: burden voltage + wire voltage drop. This is the voltage the core area is sized for.">{result.vTotal.toFixed(5)}</StatTile>
+        <StatTile label="Wire drop" title="Voltage lost across the secondary winding resistance at rated current. Formula: secondary current × winding resistance. A larger drop means the core must be bigger to compensate.">{result.vDrop.toFixed(5)} V</StatTile>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full text-[12px] mono">
           <thead>
             <tr className="border-b border-[var(--line-strong)]">
-              {['Pass', 'V in', 'Area cm²', 'Width mm', 'Wire m', 'R Ω', 'V drop', 'V out', 'Δ'].map((h) => (
-                <th key={h} className="label px-2 py-2 text-right font-semibold">{h}</th>
+              {([
+                ['Pass', 'Iteration number — each pass refines the core size.'],
+                ['V in', 'Voltage fed into this pass. Pass 1 starts with the burden voltage alone; later passes include the wire drop from the previous pass.'],
+                ['Area cm²', 'Core cross-sectional area calculated from V in using the transformer equation: A = V / (4.44 × f × N × B).'],
+                ['Width mm', 'Core strip width derived from the area: width = area ÷ radial build.'],
+                ['Wire m', 'Total secondary wire length for this core size, based on mean turn length × turns.'],
+                ['R Ω', 'Winding resistance calculated from the wire length and cross-section at 20 °C.'],
+                ['V drop', 'Voltage drop across the winding: secondary current × resistance.'],
+                ['V out', 'New total voltage = burden voltage + V drop. This becomes V in for the next pass.'],
+                ['Δ', 'Delta — how much V changed from the previous pass. When Δ falls below the settling tolerance, the calculation has converged.'],
+              ] as [string, string][]).map(([h, tip]) => (
+                <th key={h} className="label px-2 py-2 text-right font-semibold" title={tip} style={{ cursor: 'help' }}>{h}</th>
               ))}
             </tr>
           </thead>

@@ -78,6 +78,10 @@ interface CalcResult {
   numLayers: number;
   boreFillPct: number;
   windingFits: boolean;
+  boreMm: number;
+  boreCirc: number;
+  turnPitch: number;
+  turnsPerLayer: number;
 }
 
 function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
@@ -157,7 +161,7 @@ function calculate(s: State, gauges: WireGauge[]): CalcResult | null {
     actualAllowancePct, flatWireLength, practicalWireLength: totalWithLead,
     layers, copperByGauge, totalCuPractical, totalCuFlat,
     totalCuArea, cuSurfacePerTurn, windingBuildMm, afterInsulation, possibleID, numLayers,
-    boreFillPct, windingFits,
+    boreFillPct, windingFits, boreMm, boreCirc, turnPitch, turnsPerLayer,
   };
 }
 
@@ -378,23 +382,58 @@ export function WindingAnalysis({
       {inputHost ? createPortal(windingInputs, inputHost) : windingInputs}
       {inputHost && <Card className="winding-construction" title="Winding construction results" subtitle="Wire requirements, radial build and layer geometry" actions={<span className={`winding-fit-status ${result.windingFits ? 'is-fit' : 'needs-review'}`}>{result.windingFits ? 'Radial build fits' : 'Review radial build'}</span>}>
         <div className="winding-highlights">
-          <div><span>Winding layers</span><strong className="num">{result.layers.length}</strong></div>
-          <div><span>Total wire required</span><strong className="num">{fmt(result.practicalWireLength / 1000, 3)} <small>m</small></strong></div>
-          <div><span>Build per side</span><strong className="num">{fmt(result.windingBuildMm, 2)} <small>mm</small></strong></div>
+          <div><span title="Number of concentric wire layers wound around the core. More layers = thicker winding build, smaller bore opening.">Winding layers</span><strong className="num">{result.layers.length}</strong></div>
+          <div><span title="Total length of wire needed for the secondary winding, including practical additions for lead-out and wastage.">Total wire required</span><strong className="num">{fmt(result.practicalWireLength / 1000, 3)} <small>m</small></strong></div>
+          <div><span title="Radial thickness of the completed winding on one side of the core — all layers plus inter-layer insulation. Reduces the bore opening from each side.">Build per side</span><strong className="num">{fmt(result.windingBuildMm, 2)} <small>mm</small></strong></div>
+        </div>
+        <div className="winding-layer-calc">
+          <h3>How the number of layers is determined</h3>
+          <ol>
+            <li>
+              <span className="winding-calc-label">Winding bore diameter</span>
+              <span className="winding-calc-formula">Finished ID + resin cover = {fmt(s.finishedID, 1)} + {fmt(s.resinCover, 1)} = <strong>{fmt(result.boreMm, 2)} mm</strong></span>
+              <span className="winding-calc-note">The winding wraps around the resin-coated bore, not the bare core.</span>
+            </li>
+            <li>
+              <span className="winding-calc-label">Bore circumference</span>
+              <span className="winding-calc-formula">π × {fmt(result.boreMm, 2)} = <strong>{fmt(result.boreCirc, 2)} mm</strong></span>
+              <span className="winding-calc-note">Available length around the bore for placing turns side by side.</span>
+            </li>
+            <li>
+              <span className="winding-calc-label">Copper surface per turn</span>
+              <span className="winding-calc-formula">{result.copperByGauge.map(c => `${c.count} × ${fmt(c.dia, 3)}`).join(' + ')} = <strong>{fmt(result.cuSurfacePerTurn, 3)} mm</strong></span>
+              <span className="winding-calc-note">Sum of bare wire diameters across all parallel strands in one turn.</span>
+            </li>
+            <li>
+              <span className="winding-calc-label">Turn pitch (with spacing)</span>
+              <span className="winding-calc-formula">{fmt(result.cuSurfacePerTurn, 3)} × {fmt(s.spacingFactor, 2)} = <strong>{fmt(result.turnPitch, 3)} mm</strong></span>
+              <span className="winding-calc-note">Space each turn occupies, including a {((s.spacingFactor - 1) * 100).toFixed(0)}% gap for winding irregularity.</span>
+            </li>
+            <li>
+              <span className="winding-calc-label">Turns per layer</span>
+              <span className="winding-calc-formula">floor({fmt(result.boreCirc, 2)} ÷ {fmt(result.turnPitch, 3)}) = <strong>{result.turnsPerLayer}</strong></span>
+              <span className="winding-calc-note">Maximum whole turns that fit in one layer around the bore.</span>
+            </li>
+            <li>
+              <span className="winding-calc-label">Layers needed</span>
+              <span className="winding-calc-formula">ceil({result.turns} ÷ {result.turnsPerLayer}) = <strong>{result.numLayers} layer{result.numLayers !== 1 ? 's' : ''}</strong></span>
+              <span className="winding-calc-note">{result.numLayers === 1 ? `All ${result.turns} turns fit in a single layer.` : `${result.turns} turns need ${result.numLayers} layers because only ${result.turnsPerLayer} turns fit per layer.`}</span>
+            </li>
+          </ol>
         </div>
         {!result.windingFits && <p className="winding-fit-warning">Required core ID exceeds core OD. Reduce wire count or use a thinner gauge.</p>}
         <div className="winding-result-groups">
           <section><h3>Conductor & turn length</h3><dl>
-            <WindingMetric label="Total copper area" value={fmt(result.totalCuArea, 3)} unit="mm²" />
-            <WindingMetric label="Copper surface per turn" value={fmt(result.cuSurfacePerTurn, 3)} unit="mm" />
-            <WindingMetric label="Turns in first layer" value={String(result.layers[0]?.turns ?? '—')} />
-            <WindingMetric label="Theoretical MLT" value={fmt(result.mltBase, 1)} unit="mm" />
-            <WindingMetric label="Average practical MLT" value={fmt(result.mltPractical, 1)} unit="mm" />
+            <WindingMetric label="Total copper area" value={fmt(result.totalCuArea, 3)} unit="mm²" title="Combined cross-sectional area of all parallel wires in the secondary winding. More area = lower resistance, but a bulkier winding." />
+            <WindingMetric label="Copper surface per turn" value={fmt(result.cuSurfacePerTurn, 3)} unit="mm" title="Outer perimeter of one turn's wire bundle. Used to estimate insulation coverage and heat dissipation." />
+            <WindingMetric label="Turns in first layer" value={String(result.layers[0]?.turns ?? '—')} title="How many turns fit in the first (innermost) winding layer based on the available bore circumference and wire diameter." />
+            <WindingMetric label="Theoretical MLT" value={fmt(result.mltBase, 1)} unit="mm" title="Mean Length per Turn — the average circumference of one turn based on core dimensions alone, without practical additions." />
+            <WindingMetric label="Average practical MLT" value={fmt(result.mltPractical, 1)} unit="mm" title="Actual average wire length per turn, accounting for insulation build-up across layers. Used to calculate total wire length and copper weight." />
           </dl></section>
           <section><h3>Bore & winding geometry</h3><dl>
-            <WindingMetric label="ID after resin + insulation" value={fmt(result.afterInsulation, 1)} unit="mm" />
-            <WindingMetric label="Required core ID" value={fmt(result.possibleID, 1)} unit="mm" />
-            <WindingMetric label="Last-layer bore fill" value={fmt(result.boreFillPct, 1)} unit="%" />
+            <WindingMetric label="ID after resin + insulation" value={fmt(result.afterInsulation, 1)} unit="mm" title="Remaining inner opening after the winding, resin coating and outer insulation are applied. Must be ≥ finished ID requirement." />
+            <WindingMetric label="Required core ID" value={fmt(result.possibleID, 1)} unit="mm" title="Minimum bare core inner diameter needed so that the finished CT (after winding + insulation) still meets the specified finished ID." />
+            <WindingMetric label="Last-layer bore fill" value={fmt(result.boreFillPct, 1)} unit="%" title="Percentage of the innermost winding layer's available circumference occupied by wire. Above 95% means the layer is nearly full — adding more turns may need a new layer." />
           </dl>
             <div className="winding-fill-track" role="meter" aria-label="Last-layer bore fill" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, Math.max(0, result.boreFillPct))} aria-valuetext={`${fmt(result.boreFillPct, 1)} percent`}><span style={{width: `${Math.min(100, Math.max(0, result.boreFillPct))}%`, background: result.boreFillPct > 95 ? 'var(--warn)' : 'var(--brand)'}} /></div>
             <p className="winding-fill-note">Circumference occupied by the final winding layer.</p>
@@ -568,6 +607,6 @@ function DiffTag({ diff, suffix }: { diff: number; suffix: string }) {
     </span>
   );
 }
-function WindingMetric({ label, value, unit }: { label: string; value: string; unit?: string }) {
-  return <div className="winding-metric"><dt>{label}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
+function WindingMetric({ label, value, unit, title }: { label: string; value: string; unit?: string; title?: string }) {
+  return <div className="winding-metric"><dt title={title}>{label}</dt><dd className="num">{value}{unit && <span> {unit}</span>}</dd></div>;
 }

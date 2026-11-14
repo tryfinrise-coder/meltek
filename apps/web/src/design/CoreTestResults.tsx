@@ -54,9 +54,9 @@ export function CoreTestResults({ result, grade, frequencyHz, onPendingChange }:
     <div className="max-w-full overflow-x-auto">
       <table className="data-table w-full text-[13px]">
         <thead><tr>
-          <th className="label">Point</th><th className="label text-right">Flux (T)</th><th className="label">AT/cm</th>
-          {CORE_TEST_TURNS.map(turns => <th key={`v${turns}`} className="label text-right whitespace-nowrap">V · {turns} turns</th>)}
-          {CORE_TEST_TURNS.map(turns => <th key={`i${turns}`} className="label text-right whitespace-nowrap">I max · {turns} turns (A)</th>)}
+          <th className="label" title="Test point as a percentage of rated flux density (B₁₀₀). Standard points: 120%, 100%, 20%, 5%; 1% appears for class 0.5S.">Point</th><th className="label text-right" title="Magnetic flux density at this test point, in Tesla. Calculated as the percentage × B₁₀₀.">Flux (T)</th><th className="label" title="Magnetising force in Ampere-Turns per centimetre at this flux density, from the material's B–H curve. Enter or edit values here.">AT/cm</th>
+          {CORE_TEST_TURNS.map(turns => <th key={`v${turns}`} className="label text-right whitespace-nowrap" title={`Test voltage for ${turns} secondary turns. Formula: 4.44 × frequency × B × N × Area (cm²). This is the voltage applied during the CT accuracy test.`}>V · {turns} turns</th>)}
+          {CORE_TEST_TURNS.map(turns => <th key={`i${turns}`} className="label text-right whitespace-nowrap" title={`Maximum magnetising current at ${turns} turns. Formula: (AT/cm × Mean Magnetic Length) ÷ N. The CT must handle this current without saturating.`}>I max · {turns} turns (A)</th>)}
         </tr></thead>
         <tbody>{report.points.map(point => {
           const raw = draft[String(point.fluxT)];

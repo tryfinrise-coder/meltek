@@ -537,20 +537,20 @@ export function NewDesign() {
               ]} />
 
               <Card title="Selected design · key values" subtitle={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`} actions={<CurrencyPicker />}><dl className="calculator-value-list">
-                <div><dt>Core width (calc)</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
-                <div><dt>Rounded core width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
-                <div><dt>Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2 * 100} dp={1} suffix=" mm²" /></dd></div>
-                <div><dt>Flux density</dt><dd><AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" /></dd></div>
-                <div><dt>Core inner diameter</dt><dd><AnimatedNumber value={selected.geometry.coreIdMm} dp={2} suffix=" mm" /></dd></div>
-                <div><dt>Core outer diameter (adj)</dt><dd><AnimatedNumber value={selected.geometry.coreOdMm} dp={2} suffix=" mm" /></dd></div>
-                {selected.geometry.windingLayerPitchMm !== undefined && <div><dt>Winding layer pitch</dt><dd><AnimatedNumber value={selected.geometry.windingLayerPitchMm} dp={2} suffix=" mm" /></dd></div>}
-                <div><dt>Secondary turns</dt><dd><AnimatedNumber value={selected.geometry.turns} dp={0} suffix=" turns" /></dd></div>
-                <div><dt>Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
-                <div><dt>Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
-                <div><dt>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd>{money(selected.totalCost)}</dd></div>
-                <div><dt>Resistance</dt><dd><AnimatedNumber value={selected.resistanceOhm} dp={5} suffix=" Ω" /></dd></div>
+                <div><dt title="Exact core strip width calculated from the required cross-sectional area and the radial build (OD − ID) / 2. Formula: Area ÷ radial build.">Core width (calc)</dt><dd><AnimatedNumber value={selected.coreWidthMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt title="Core width rounded up to the nearest available slit width from your steel stock. This is the width you actually order.">Rounded core width</dt><dd><AnimatedNumber value={selected.orderedWidthMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt title="Effective iron cross-section of the core after applying the stacking factor. Determines how much magnetic flux the core can carry. Formula: radial build × ordered width × stacking factor.">Cross-sectional area</dt><dd><AnimatedNumber value={selected.finalAreaCm2 * 100} dp={1} suffix=" mm²" /></dd></div>
+                <div><dt title="Operating magnetic flux density in Tesla. Derived from the burden, current and turns using the CT design equation. A lower value means less core saturation and better accuracy.">Flux density</dt><dd><AnimatedNumber value={selected.bUsedT} dp={4} suffix=" T" /></dd></div>
+                <div><dt title="Inner diameter of the bare steel core ring before winding. The primary conductor passes through this opening.">Core inner diameter</dt><dd><AnimatedNumber value={selected.geometry.coreIdMm} dp={2} suffix=" mm" /></dd></div>
+                <div><dt title="Outer diameter of the core after adjusting for the ordered (rounded) width. Formula: core ID + 2 × radial build.">Core outer diameter (adj)</dt><dd><AnimatedNumber value={selected.geometry.coreOdMm} dp={2} suffix=" mm" /></dd></div>
+                {selected.geometry.windingLayerPitchMm !== undefined && <div><dt title="Centre-to-centre distance between adjacent winding layers, including wire diameter and inter-layer insulation.">Winding layer pitch</dt><dd><AnimatedNumber value={selected.geometry.windingLayerPitchMm} dp={2} suffix=" mm" /></dd></div>}
+                <div><dt title="Number of turns on the secondary winding. Equals the CT ratio (primary current ÷ secondary current). More turns = better accuracy but more copper.">Secondary turns</dt><dd><AnimatedNumber value={selected.geometry.turns} dp={0} suffix=" turns" /></dd></div>
+                <div><dt title="Weight of the steel core ring. Formula: core volume × steel density (≈ 7.65 g/cm³). Used for material costing.">Steel weight</dt><dd><AnimatedNumber value={selected.coreWeightKg} dp={4} suffix=" kg" /></dd></div>
+                <div><dt title="Weight of the secondary copper winding. Formula: total wire length × wire cross-section × copper density (≈ 8.89 g/cm³). Used for material costing.">Copper weight</dt><dd><AnimatedNumber value={selected.copperWeightKg} dp={4} suffix=" kg" /></dd></div>
+                <div><dt title={engineering?.costing.basis === 'manufacturing' ? 'Total manufacturing cost per unit including steel, copper, insulation, resin, labour, overhead and wastage.' : 'Raw material cost per unit: steel weight × steel rate + copper weight × copper rate.'}>{engineering?.costing.basis === 'manufacturing' ? 'Manufacturing cost' : 'Material cost'}</dt><dd>{money(selected.totalCost)}</dd></div>
+                <div><dt title="DC resistance of the secondary winding at 20 °C. Formula: copper resistivity × total wire length ÷ wire cross-section. Higher resistance increases burden on the CT.">Resistance</dt><dd><AnimatedNumber value={selected.resistanceOhm} dp={5} suffix=" Ω" /></dd></div>
                 {(() => { const wbr = selected.geometry.radialBuildMm > 0 ? selected.coreWidthMm / selected.geometry.radialBuildMm : 0; return (
-                  <div><dt>Width : Build-up</dt><dd className="num" style={wbr > 2 ? { color: 'var(--brand)' } : undefined}>{wbr > 0 ? `${wbr.toFixed(2)} : 1` : '—'}{wbr > 2 && <span style={{ marginLeft: 6, fontSize: 11 }} title="Width is more than twice the radial build">⚠</span>}</dd></div>
+                  <div><dt title="Ratio of core strip width to radial build (wall thickness). Values above 2 may indicate a tall, narrow core that is harder to wind. Ideally close to 1.">Width : Build-up</dt><dd className="num" style={wbr > 2 ? { color: 'var(--brand)' } : undefined}>{wbr > 0 ? `${wbr.toFixed(2)} : 1` : '—'}{wbr > 2 && <span style={{ marginLeft: 6, fontSize: 11 }} title="Width is more than twice the radial build">⚠</span>}</dd></div>
                 ); })()}
               </dl></Card>
 

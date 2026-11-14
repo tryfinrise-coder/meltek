@@ -573,6 +573,16 @@ body {
 .winding-fill-track { height: 7px; overflow: hidden; background: var(--surface-3); border-radius: 6px; margin-top: 20px; }
 .winding-fill-track > span { display: block; height: 100%; border-radius: inherit; }
 .winding-fill-note { color: var(--text-2); font-size: 13px; line-height: 1.7; margin-top: 10px; }
+.winding-layer-calc { padding: 20px 22px; border-bottom: 1px solid var(--line); }
+.winding-layer-calc > h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-2); margin-bottom: 16px; }
+.winding-layer-calc ol { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.winding-layer-calc li { counter-increment: step; position: relative; padding: 10px 0 10px 32px; border-bottom: 1px solid var(--line); }
+.winding-layer-calc li:last-child { border-bottom: 0; }
+.winding-layer-calc li::before { content: counter(step); position: absolute; left: 0; top: 12px; font-size: 11px; font-weight: 700; color: var(--text-3); width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--surface-3); }
+.winding-calc-label { display: block; font-size: 13px; font-weight: 500; color: var(--text); }
+.winding-calc-formula { display: block; font-size: 13px; font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; color: var(--text-2); margin-top: 2px; }
+.winding-calc-formula strong { color: var(--brand); font-weight: 600; }
+.winding-calc-note { display: block; font-size: 12px; color: var(--text-3); font-style: italic; margin-top: 2px; }
 .winding-fit-warning { padding: 16px 22px; color: var(--warn); border-bottom: 1px solid var(--line); font-size: 14px; }
 .winding-wire-breakdown { padding: 20px 22px; border-top: 1px solid var(--line); }
 .winding-wire-breakdown table { width: 100%; font-size: 14px; }

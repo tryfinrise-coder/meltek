@@ -179,8 +179,8 @@ export function AnimatedNumber({
  * it marks which quantity is provisional without tinting the number itself.
  */
 export function StatTile({
-  label, children, note, tone,
-}: { label: string; children: ReactNode; note?: ReactNode; tone?: 'brand' | 'provisional' }) {
+  label, children, note, tone, title,
+}: { label: string; children: ReactNode; note?: ReactNode; tone?: 'brand' | 'provisional'; title?: string }) {
   const accent = tone === 'brand' ? 'var(--brand)' : tone === 'provisional' ? 'var(--provisional)' : 'var(--line-strong)';
   return (
     <div
@@ -192,7 +192,7 @@ export function StatTile({
       }}
     >
       <span aria-hidden className="absolute inset-y-0 left-0 w-[2px]" style={{ background: accent }} />
-      <div className="label">{label}</div>
+      <div className="label" title={title} style={title ? { cursor: 'help' } : undefined}>{label}{title && <span style={{ fontSize: 10, opacity: 0.45, verticalAlign: 'super', marginLeft: 2 }}>ⓘ</span>}</div>
       <div
         className="mt-1.5 font-[family-name:var(--font-display)] text-[23px] font-bold num leading-none tracking-[-0.02em]"
         style={tone === 'provisional' ? { color: 'var(--provisional)' } : tone === 'brand' ? { color: 'var(--brand)' } : undefined}

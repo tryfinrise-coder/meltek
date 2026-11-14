@@ -373,7 +373,7 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
     };
     if (covers) {
       if (tapeVisible && coreCover > 0) addCover(coreCover, coreCover, 0xf4e9bb, .22, 1);
-      if (resinVisible && resinCover > 0) addCover(coreCover + windingBuildMm + resinCover, resinCover, 0x72a9f8, .13, Math.max(1, windingLayers) * 2 + 2);
+      if (resinVisible && resinCover > 0) addCover(coreCover + windingBuildMm + resinCover, resinCover, 0x72a9f8, .42,Math.max(1, windingLayers) * 2 + 2);
     }
     const steel = new THREE.MeshStandardMaterial({ color: 0x75b7b4, metalness: .55, roughness: .3, clippingPlanes, side: THREE.DoubleSide });
     const steelMesh = new THREE.Mesh(coreGeometry(inner, outer, width), steel);
@@ -421,10 +421,11 @@ export default function SelectedDesignPreview({ option, resinCoverMm = 4, coreIn
             const mat = new THREE.MeshStandardMaterial({ color: baseColor, metalness: .65, roughness: .27, transparent: layerAlpha < 1, opacity: layerAlpha, clippingPlanes });
             const strandRadius = baseRadius * 0.7;
             for (let w = 0; w < entry.count; w++) {
-              const radialOffset = (wireIdx / wireCount - 0.5) * baseRadius * 2.2;
+              // Kept within the layer's own slot so strands never cut into the steel or out through the resin.
+              const radialOffset = (wireIdx / wireCount - 0.5) * baseRadius * 1.1;
               for (let n = 0; n < count; n++) {
                 const angle = (n + (layer % 2) * .5 + wireIdx / wireCount * .6) / count * Math.PI * 2;
-                const ri = riLayer + radialOffset;
+                const ri = riLayer - radialOffset;
                 const ro = roLayer + radialOffset;
                 const point = (r: number, z: number) => new THREE.Vector3(Math.cos(angle) * r, Math.sin(angle) * r, z);
                 const curve = new THREE.CatmullRomCurve3([

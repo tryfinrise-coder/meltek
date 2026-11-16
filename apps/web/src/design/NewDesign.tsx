@@ -599,6 +599,9 @@ export function NewDesign() {
                 finishedIdMm={selected.inputs.finishedIdMm}
                 resinCoverMm={resinCoverForTurns(selected.geometry.turns, reference.data?.settings.resinCoverMm ?? 4)}
                 packingFactor={[selected.inputs.windingPackingFactor, reference.data?.settings.windingPackingFactor].find(v => v != null && v > 0 && v <= 1) ?? 0.95}
+                coreRatePerKg={grade?.ratePerKg ?? null}
+                copperRatePerKg={reference.data?.copperRatePerKg ?? null}
+                designCost={selected.totalCost}
                 coreIdMm={selected.geometry.coreIdMm}
                 coreOdMm={selected.geometry.coreOdMm}
                 coreWidthMm={selected.orderedWidthMm}

@@ -179,6 +179,11 @@ interface WindingAnalysisProps {
   resinCoverMm: number;
   /** Packing factor the design calculation used, so this panel starts from the same spacing. */
   packingFactor: number;
+  /** Saved rates the design costing uses; null when the grade has no rate on record. */
+  coreRatePerKg: number | null;
+  copperRatePerKg: number | null;
+  /** The design's official material cost, shown beside this panel's check figure. */
+  designCost: number | null;
   coreIdMm: number;
   coreOdMm: number;
   coreWidthMm: number;
@@ -188,7 +193,7 @@ interface WindingAnalysisProps {
 }
 
 export function WindingAnalysis({
-  inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, packingFactor, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
+  inputHost, designWireCombination, layerPitchOverridesMm, reduce, gauges, finishedIdMm, resinCoverMm, packingFactor, coreRatePerKg, copperRatePerKg, designCost, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, coreWeightKg,
 }: WindingAnalysisProps) {
   const [s, dispatch] = useReducer(reducer, initial);
   const { money, sym } = useCurrency();
@@ -213,6 +218,8 @@ export function WindingAnalysis({
         finishedID: finishedIdMm,
         resinCover: resinCoverMm,
         spacingFactor: 1 / packingFactor,
+        ...(coreRatePerKg == null ? {} : { coreRate: coreRatePerKg }),
+        ...(copperRatePerKg == null ? {} : { cuRate: copperRatePerKg }),
         coreID: coreIdMm,
         coreOD: coreOdMm,
         coreWidth: coreWidthMm,
@@ -220,7 +227,7 @@ export function WindingAnalysis({
         wireMap,
       },
     });
-  }, [finishedIdMm, resinCoverMm, packingFactor, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature, pitchSignature]);
+  }, [finishedIdMm, resinCoverMm, packingFactor, coreRatePerKg, copperRatePerKg, coreIdMm, coreOdMm, coreWidthMm, turns, selectedSwg, designWireSignature, pitchSignature]);
 
   const result = useMemo(() => calculate(s, gauges), [s, gauges]);
 
@@ -535,17 +542,19 @@ export function WindingAnalysis({
 
       {/* ━━━ Cost ━━━ */}
       <motion.div variants={fadeUp(reduce)}>
-        <Card eyebrow="Material cost" title="Practical Cost Estimate"
-          subtitle="Material cost using the entered steel and copper rates">
+        <Card eyebrow="Cost check" title="Layer-by-layer cost check"
+          subtitle="A cross-check only. The design estimate is the official figure used for saving and quoting.">
           {!inputHost && rateInputs}
           <div className="divide-y divide-[var(--line)] border-t border-[var(--line)]">
             <Row label="Core Cost" value={money(coreWeightKg * s.coreRate)} />
-            <Row label="Copper Cost (Practical)" value={money(result.totalCuPractical * s.cuRate)} />
+            <Row label="Copper Cost (layer by layer)" value={money(result.totalCuPractical * s.cuRate)} />
+            <Row label="Check total" value={money(coreWeightKg * s.coreRate + result.totalCuPractical * s.cuRate)} />
           </div>
-          <div className="border-t-2 border-[var(--line-strong)]">
-            <Row label="Total Material Cost"
-              value={money(coreWeightKg * s.coreRate + result.totalCuPractical * s.cuRate)} accent />
-          </div>
+          {designCost != null && <div className="border-t-2 border-[var(--line-strong)]">
+            <Row label="Design estimate (official)" value={money(designCost)} accent />
+            <Row label="Difference" value={money(coreWeightKg * s.coreRate + result.totalCuPractical * s.cuRate - designCost)} />
+            <p className="px-5 pb-3 text-[12px] text-[var(--text-3)]">The check weighs the copper layer by layer; the design estimate uses one average turn length. A small difference is expected. A large one means the rates above were changed from the saved rates ({coreRatePerKg ?? '—'} steel, {copperRatePerKg ?? '—'} copper per kg).</p>
+          </div>}
         </Card>
       </motion.div>
 

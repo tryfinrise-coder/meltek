@@ -30,7 +30,7 @@ export function CoreWidthRounding({ onPendingChange }: { onPendingChange?: (pend
       {canEdit && <Button size="sm" disabled={!valid || percent === active || save.isPending} onClick={() => save.mutate(percent)}>{save.isPending ? 'Applying…' : 'Apply'}</Button>}
     </div>
     <p>{step} mm steps · percentage above the lower width.</p>
-    <details className="core-rounding-help"><summary>How rounding works</summary><p>The percentage is measured from the lower {step} mm multiple. At 1%: 10.1 → 10 mm, 11 → 15 mm, 14.8 → 15 mm. Saved designs retain their recorded settings. Engineering checks may require a larger width.{!canEdit && ' A reference-data manager can change this value.'}</p></details>
+    <details className="core-rounding-help"><summary>How rounding works</summary><p>The percentage is measured from the lower {step} mm multiple. At 1%: 10.1 → 10 mm, 11 → 15 mm, 14.8 → 15 mm. Inside the tolerance, the step whose width : build-up ratio is nearer 2 : 1 is chosen. Saved designs retain their recorded settings. Engineering checks may require a larger width.{!canEdit && ' A reference-data manager can change this value.'}</p></details>
     {save.isError && <p role="alert" className="core-rounding-error">{save.error.message}</p>}
     {save.isSuccess && <span role="status" className="sr-only">Rounding tolerance applied. Widths, weights and costs recalculated.</span>}
   </div>;

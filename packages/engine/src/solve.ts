@@ -355,7 +355,7 @@ export function solve(
   const coreWidthMm = widthCm * 10;
 
   /* Steps 13-14 - rounding, weight and cost. PROVISIONAL (§5.9). */
-  const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings);
+  const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings, geometry.radialBuildMm);
 
   // Snapshot the original geometry before OD adjustment for the calc chain.
   const origOdMm = geometry.coreOdMm;
@@ -514,7 +514,7 @@ function buildSteps(
       note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
       substituted: `${f(r.coreAreaCm2, 4)} / ${f(orig.origRadialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
-    { step: 14, key: 'orderedWidth', label: 'Rounded core width', formula: s.coreWidthRoundingTolerancePercent === undefined ? 'nearest stocked slit width to core width' : `round to ${s.slitStepMm} mm steps; allow ${s.coreWidthRoundingTolerancePercent}% above the lower width`,
+    { step: 14, key: 'orderedWidth', label: 'Rounded core width', formula: s.coreWidthRoundingTolerancePercent === undefined ? 'nearest stocked slit width to core width' : `round to ${s.slitStepMm} mm steps; allow ${s.coreWidthRoundingTolerancePercent}% above the lower width, then prefer the step with width : build-up nearer 2 : 1`,
       substituted: s.coreWidthRoundingTolerancePercent !== undefined
         ? `${f(r.coreWidthMm)} mm → ${f(r.orderedWidthMm, 0)} mm; tolerance ${s.coreWidthRoundingTolerancePercent}% of lower step${ref.slitWidthsMm.length ? '; stocked step widths checked' : ''}`
         : ref.slitWidthsMm.length

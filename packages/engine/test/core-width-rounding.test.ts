@@ -21,6 +21,12 @@ describe('configurable core-width rounding', () => {
   it.each([[10,10],[10.0001,15],[14.8,15],[15,15]])('zero tolerance always rounds up: %s → %s', (width, expected) => {
     expect(roundToSlitWidth(width,reference,settings(0))).toBe(expected);
   });
+  it('inside the tolerance, takes the step whose width : build-up is nearer 2 : 1', () => {
+    expect(roundToSlitWidth(20.55,reference,settings(5),6.5)).toBe(20);   // 2.99 vs 4.68
+    expect(roundToSlitWidth(20.55,reference,settings(1),6.5)).toBe(25);   // outside tolerance: never rounds down
+    expect(roundToSlitWidth(10.05,reference,settings(1),20)).toBe(15);    // 0.50 vs 1.12
+    expect(roundToSlitWidth(10,reference,settings(1),20)).toBe(10);       // exact step stays
+  });
   it('respects eligible stocked multiples of the configured step', () => {
     const stock={...reference,slitWidthsMm:[13,20,25,40]};
     expect(roundToSlitWidth(11,stock,settings())).toBe(20);

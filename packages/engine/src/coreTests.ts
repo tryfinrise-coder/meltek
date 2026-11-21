@@ -39,6 +39,19 @@ export function calculateCoreTests(input: CoreTestInputs) {
   };
 }
 
+export const MIN_SATURATION_FACTOR = 2.5;
+
+/**
+ * Saturation voltage ÷ working voltage. Turns and area cancel, so it equals saturation flux ÷ working flux.
+ * shortcut: saturation flux is the highest flux on the grade's own B–H curve, add a per-grade field if mills quote a different figure.
+ */
+export function saturationFactor(input: { curve: readonly BhPoint[]; turns: number; areaCm2: number; workingVoltageV: number; frequencyHz: number }) {
+  const saturationFluxT = Math.max(0, ...input.curve.filter(point => point.hAtCm !== null).map(point => point.teslaT));
+  if (!(saturationFluxT > 0) || !(input.workingVoltageV > 0)) return null;
+  const saturationVoltageV = transformerConstant(input.frequencyHz) * input.turns * saturationFluxT * input.areaCm2;
+  return { saturationFluxT, saturationVoltageV, factor: saturationVoltageV / input.workingVoltageV };
+}
+
 /** Add evaluated/manufacturer points, retaining all other material data. */
 export function mergeCoreTestPoints(curve: readonly BhPoint[], additions: readonly BhPoint[]): BhPoint[] {
   const points = new Map(curve.map(point => [point.teslaT, { ...point }]));

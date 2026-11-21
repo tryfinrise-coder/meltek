@@ -113,3 +113,14 @@ describe('core test voltages and evaluated AT/cm data',()=>{
     }finally{await store.close();await unlink(file).catch(()=>undefined);}
   });
 });
+
+describe('saturation factor', () => {
+  it('matches the worked 1000/5 A example: 0.0222 x 200 x 1.9 x 1.33 / 3.85 = 2.9', async () => {
+    const { saturationFactor } = await import('../src/index.js');
+    const r = saturationFactor({ curve: [{ teslaT: 1.9, hAtCm: 0.9 }, { teslaT: 1.95, hAtCm: null }], turns: 200, areaCm2: 1.33, workingVoltageV: 3.85, frequencyHz: 50 })!;
+    expect(r.saturationFluxT).toBe(1.9);
+    expect(r.saturationVoltageV).toBeCloseTo(11.22, 2);
+    expect(r.factor).toBeCloseTo(2.91, 2);
+    expect(saturationFactor({ curve: [], turns: 200, areaCm2: 1.33, workingVoltageV: 3.85, frequencyHz: 50 })).toBeNull();
+  });
+});

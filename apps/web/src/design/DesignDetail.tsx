@@ -16,7 +16,6 @@ import {
   Badge, Button, Callout, Card, EmptyState, ProvisionalMark, Skeleton, StatTile,
 } from '../shared/primitives';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
-import { EditDesignDialog } from '../shared/EditDesignDialog';
 import { fadeUp } from '../shared/motion';
 import { useCurrency } from '../shared/currency';
 
@@ -42,7 +41,6 @@ export function DesignDetail() {
   const canDelete = usePermission('designs.delete');
   const canCreate = usePermission('designs.create');
   const me = useCurrentUser();
-  const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState<null | 'delete' | 'archive'>(null);
 
   const q = useQuery({ queryKey: ['design', id], queryFn: () => api.design(id) });
@@ -134,7 +132,7 @@ export function DesignDetail() {
                 <Button size="sm">Calculation sheet</Button>
               </a>
               {!locked && canEdit && (
-                <Button size="sm" onClick={() => setEditing(true)}>
+                <Button size="sm" onClick={() => void navigate({ to: '/design/new', search: { edit: design.id } })}>
                   <HiPencil className="mr-1.5 h-4 w-4" aria-hidden /> Edit
                 </Button>
               )}
@@ -343,7 +341,6 @@ export function DesignDetail() {
         ← Back to the register
       </Link>
 
-      <EditDesignDialog design={design} open={editing} onClose={() => setEditing(false)} />
 
       <ConfirmDialog
         open={confirming === 'archive'}

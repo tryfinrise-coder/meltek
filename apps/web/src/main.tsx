@@ -34,7 +34,7 @@ const rootRoute = createRootRoute({
 const routes = [
   createRoute({ getParentRoute: () => rootRoute, path: '/', component: Dashboard }),
   createRoute({ getParentRoute: () => rootRoute, path: '/calculator', component: NewDesign }),
-  createRoute({ getParentRoute: () => rootRoute, path: '/design/new', component: NewDesign }),
+  createRoute({ getParentRoute: () => rootRoute, path: '/design/new', validateSearch: (search: Record<string, unknown>): { edit?: string } => (typeof search.edit === 'string' ? { edit: search.edit } : {}), component: NewDesign }),
   createRoute({ getParentRoute: () => rootRoute, path: '/register', component: Register }),
   createRoute({ getParentRoute: () => rootRoute, path: '/designs/$id', component: DesignDetail }),
   createRoute({ getParentRoute: () => rootRoute, path: '/admin', validateSearch: validateAdminSearch, component: Admin }),

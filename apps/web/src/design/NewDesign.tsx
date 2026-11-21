@@ -3,8 +3,8 @@ import { accuracyClassLabel } from './accuracyClasses';
 import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { z } from 'zod';
 import { resinCoverForTurns, type DesignInputs, type EngineeringSpec, type WireCombinationEntry } from '@meltek/engine';
@@ -14,7 +14,7 @@ import { CoreWidthRounding } from './CoreWidthRounding';
 import { CoreTestResults } from './CoreTestResults';
 import { WindingAnalysis } from './WindingAnalysis';
 import { createCalculatorInputs, wireCombinationFromMap, wireModeFromDraft } from './calculationInputs';
-import { api, ApiError } from '../shared/api';
+import { api, ApiError, type Design } from '../shared/api';
 import { useCalculator, useDetail, useReference } from './useCalculator';
 import { usePermission } from '../auth/session';
 import { OptionsTable, type OptionRow } from './OptionsTable';
@@ -69,15 +69,44 @@ function saveDraft(formValues: FormValues, wireMap: Record<number, number>, wire
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ form: formValues, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor })); } catch {}
 }
 
+/** A saved design in the same shape as a local draft, so editing reuses the calculator as it is. */
+function draftFromDesign(design: Design): NonNullable<ReturnType<typeof loadDraft>> {
+  const i = design.inputs;
+  return {
+    form: {
+      customerName: design.customerName, enquiryNo: design.enquiryNo ?? '', poNo: design.poNo ?? '', prdNo: design.prdNo ?? '',
+      quantity: design.quantity ?? '', requiredBy: design.requiredBy ?? '', insulationType: design.insulationType ?? '',
+      primaryCurrent: i.primaryCurrent, secondaryCurrent: i.secondaryCurrent, burdenVA: i.burdenVA, accuracyClass: i.accuracyClass,
+      finishedIdMm: i.finishedIdMm, finishedOdMm: i.finishedOdMm, maxWidthMm: i.maxWidthMm ?? '', ctType: i.ctType,
+    } as Partial<FormValues>,
+    wireMap: Object.fromEntries((i.wireCombination ?? []).map(w => [w.swg, w.count])),
+    wireComboEnabled: Boolean(i.wireCombination?.length),
+    layerPitchOverridesMm: i.layerPitchOverridesMm ?? {},
+    ...(i.windingPackingFactor == null ? {} : { packingFactor: i.windingPackingFactor }),
+  };
+}
+
+/** `/design/new` opens a blank calculator; `/design/new?edit=<id>` opens a saved design in it. */
 export function NewDesign() {
+  const { edit } = useSearch({ strict: false }) as { edit?: string };
+  const q = useQuery({ queryKey: ['design', edit], queryFn: () => api.design(edit!), enabled: Boolean(edit) });
+  if (!edit) return <Calculator />;
+  if (q.isLoading) return <Card><div className="p-6">Loading design…</div></Card>;
+  if (!q.data) return <Card><EmptyState title="This design could not be opened">Go back to the design list and try again.</EmptyState></Card>;
+  const chosen = q.data.options.find(o => o.id === q.data.design.selectedOptionId);
+  return <Calculator key={edit} editing={q.data.design} editingKey={chosen ? `${chosen.gradeCode}:${chosen.swg}` : null} />;
+}
+
+function Calculator({ editing, editingKey }: { editing?: Design; editingKey?: string | null }) {
+  const qc = useQueryClient();
   const reduce = useReducedMotion();
   const { money } = useCurrency();
   const setCalculatorStatus = useContext(CalculatorStatusContext);
   const navigate = useNavigate();
   const reference = useReference();
-  const canCreate = usePermission('designs.create');
+  const canCreate = usePermission(editing ? 'designs.edit' : 'designs.create');
   const canSelect = usePermission('designs.select');
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(editingKey ?? null);
   const [showAll, setShowAll] = useState(false);
   const [roundingPending, setRoundingPending] = useState(false);
   const [testDataPending, setTestDataPending] = useState(false);
@@ -97,9 +126,9 @@ export function NewDesign() {
     return () => { window.removeEventListener('scroll', updateSection); cancelAnimationFrame(frame); };
   }, []);
   const [windingInputHost, setWindingInputHost] = useState<HTMLDivElement | null>(null);
-  const [engineering, setEngineering] = useState<EngineeringSpec | null>(null);
+  const [engineering, setEngineering] = useState<EngineeringSpec | null>(editing?.inputs.engineering ?? null);
 
-  const draft = useMemo(() => loadDraft(), []);
+  const draft = useMemo(() => editing ? draftFromDesign(editing) : loadDraft(), []);
   const [wireComboEnabled, setWireComboEnabled] = useState(() => wireModeFromDraft(draft));
   const [wireMap, setWireMap] = useState<Record<number, number>>(draft?.wireMap ?? {});
   const [layerPitchOverridesMm, setLayerPitchOverridesMm] = useState<Record<string, number>>(draft?.layerPitchOverridesMm ?? {});
@@ -116,7 +145,8 @@ export function NewDesign() {
   const values = form.watch();
 
   // Auto-save form + wireMap to localStorage on every change.
-  useEffect(() => { saveDraft(values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor); }, [values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor]);
+  // An edit must not overwrite the unsaved new-design draft.
+  useEffect(() => { if (!editing) saveDraft(values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor); }, [values, wireMap, wireComboEnabled, layerPitchOverridesMm, packingFactor]);
 
   const wireCombination: WireCombinationEntry[] | null = useMemo(() => {
     return wireCombinationFromMap(wireComboEnabled, wireMap);
@@ -169,7 +199,7 @@ export function NewDesign() {
 
   const save = useMutation({
     mutationFn: async (v: FormValues) => {
-      const design = await api.createDesign({
+      const body = {
         customerName: v.customerName,
         enquiryNo: v.enquiryNo || null,
         poNo: v.poNo || null,
@@ -178,14 +208,19 @@ export function NewDesign() {
         requiredBy: v.requiredBy || null,
         insulationType: v.insulationType || null,
         inputs,
-      });
+      };
+      const design = editing ? await api.patchDesign(editing.id, body) : await api.createDesign(body);
       const calculated = await api.calculateDesign(design.id);
       const choice = calculated.options.find(o => `${o.gradeCode}:${o.swg}` === selectedKey && o.isFeasible)
         ?? calculated.options.find(o => o.rank === 1);
       if (choice && canSelect) await api.selectOption(design.id, choice.id);
       return design;
     },
-    onSuccess: (design) => navigate({ to: '/designs/$id', params: { id: design.id } }),
+    onSuccess: (design) => {
+      void qc.invalidateQueries({ queryKey: ['design', design.id] });
+      void qc.invalidateQueries({ queryKey: ['designs'] });
+      return navigate({ to: '/designs/$id', params: { id: design.id } });
+    },
   });
 
   const submitDesign = form.handleSubmit((v) => save.mutate(v), (errors) => {
@@ -205,12 +240,12 @@ export function NewDesign() {
     <div className="calculator-page workspace-redesign reference-calculator flex flex-col gap-6" data-view={activeSection}>
       <header className="workspace-hero">
         <div className="workspace-hero-copy"><div className="workspace-hero-subtitle">LT current transformer · Ring type</div>
-        <h1>New design</h1>
+        <h1>{editing ? `Edit ${editing.designNo}` : 'New design'}</h1>
         <p>Enter the specification, follow each calculation step, then compare the ranked core and winding options before saving.</p>
         </div>
         <div className="workspace-hero-actions">
-          <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setWireComboEnabled(false); setLayerPitchOverridesMm({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>
-          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : 'Save design & options'}</button>}
+          {editing ? <button type="button" className="btn-outline" onClick={() => navigate({ to: '/designs/$id', params: { id: editing.id } })}>Cancel</button> : <button type="button" className="btn-outline" onClick={() => { form.reset(DEFAULTS); setWireMap({}); setWireComboEnabled(false); setLayerPitchOverridesMm({}); setEngineering(null); try { localStorage.removeItem(STORAGE_KEY); } catch {} }}>Reset draft</button>}
+          {canCreate && <button type="button" className="btn-primary" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>{save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Save design & options'}</button>}
         </div>
       </header>
       <section className="workspace-overview" aria-label="Design at a glance">
@@ -631,7 +666,7 @@ export function NewDesign() {
             <div className="workspace-dock-action"><div className="workspace-bottom-estimate"><span>Estimate / unit</span><strong className="num">{selected.totalCost != null ? money(selected.totalCost) : '—'}</strong></div>
             {canCreate && (
               <Button type="button" variant="primary" className="workspace-bottom-save" disabled={!inputs || !result || (!best && !engineering) || save.isPending || roundingPending || testDataPending} onClick={submitDesign}>
-                {save.isPending ? 'Saving…' : 'Save design & options'}
+                {save.isPending ? 'Saving…' : editing ? 'Save changes' : 'Save design & options'}
               </Button>
             )}
             </div>

@@ -1,13 +1,10 @@
-import { useCallback } from 'react';
 import type { SolveResult } from '@meltek/engine';
 import { Callout, Hint } from '../shared/primitives';
-import { exportCalcChain } from './exportCalcChain';
 import { useCurrency } from '../shared/currency';
 const n = (v: number | null, unit='') => v == null ? 'Not available' : `${v.toFixed(3)} ${unit}`;
-export function EngineeringResults({result, gradeLabel}:{result:SolveResult; gradeLabel: string}) {
+export function EngineeringResults({result, onExport: handleExport}:{result:SolveResult; onExport: () => void}) {
   const r=result.engineering!;
   const { money } = useCurrency();
-  const handleExport = useCallback(() => exportCalcChain(result, gradeLabel), [result, gradeLabel]);
   const rows: [string,number|null,string,string][] = [
     ['Winding layers',r.layers,'','Number of concentric winding layers around the core.'],
     ['Turns per layer',r.turnsPerLayer,'','Secondary turns divided equally across the winding layers.'],

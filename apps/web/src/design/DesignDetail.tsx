@@ -6,7 +6,7 @@ import {
   HiArchive, HiDocumentDuplicate, HiDotsVertical, HiPencil, HiRefresh, HiTrash, HiUpload,
 } from 'react-icons/hi';
 import { motion, useReducedMotion } from 'motion/react';
-import type { DesignInputs } from '@meltek/engine';
+import { MIN_SATURATION_FACTOR, saturationFactor, type DesignInputs } from '@meltek/engine';
 import { api, ApiError, type StoredOptionDto } from '../shared/api';
 import { useDetail, useReference } from './useCalculator';
 import { useCurrentUser, usePermission } from '../auth/session';
@@ -224,6 +224,17 @@ export function DesignDetail() {
           <StatTile label="Material cost" tone="provisional" note={<ProvisionalMark />}>
             {money(chosen.totalCost)}
           </StatTile>
+          {(() => {
+            const sat = grade ? saturationFactor({ curve: grade.curve, turns: chosen.geometry.turns, areaCm2: chosen.finalAreaCm2, workingVoltageV: chosen.vTotal, frequencyHz: calculationReference?.settings.frequencyHz ?? 50 }) : null;
+            if (!sat) return null;
+            const low = sat.factor < MIN_SATURATION_FACTOR;
+            return (
+              <StatTile label="Saturation factor" tone={low ? 'brand' : undefined} note={low ? `Below the minimum of ${MIN_SATURATION_FACTOR}` : `Passes (minimum ${MIN_SATURATION_FACTOR})`}
+                hint={<>How much voltage the core can take before it saturates, compared with the voltage it works at. It must be at least <strong>{MIN_SATURATION_FACTOR}</strong>.<br/><br/><strong>Saturation voltage:</strong> 4.44 × frequency × turns × saturation flux × core area. The saturation flux is the highest point on this grade's B–H curve.<br/><br/><strong>This design:</strong> {chosen.geometry.turns} turns × {sat.saturationFluxT} T × {chosen.finalAreaCm2.toFixed(4)} cm² gives {sat.saturationVoltageV.toFixed(2)} V. Then {sat.saturationVoltageV.toFixed(2)} V ÷ {chosen.vTotal.toFixed(2)} V = {sat.factor.toFixed(2)}.</>}>
+                {sat.factor.toFixed(2)}
+              </StatTile>
+            );
+          })()}
         </div>
       )}
 
@@ -268,7 +279,7 @@ export function DesignDetail() {
           title={`${chosen?.gradeLabel} · ${chosen?.wireCombinationLabel || `SWG ${chosen?.swg}`}`}
           subtitle="The full chain, as calculated. Every number traces back to the inputs above."
         >
-          <DetailPanel result={detail} grade={grade} gradeLabel={chosen?.gradeLabel} />
+          <DetailPanel result={detail} grade={grade} gradeLabel={chosen?.gradeLabel} frequencyHz={calculationReference?.settings.frequencyHz ?? 50} />
         </Card>
       )}
 

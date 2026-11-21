@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import type { SolveResult } from '@meltek/engine';
+import { MIN_SATURATION_FACTOR, saturationFactor, type SolveResult, type SteelGrade } from '@meltek/engine';
 
 const SECTIONS: { title: string; keys: string[] }[] = [
   { title: 'GEOMETRY & INPUTS', keys: ['turns', 'allowance', 'coreId', 'coreOd', 'radialBuild'] },
@@ -7,7 +7,32 @@ const SECTIONS: { title: string; keys: string[] }[] = [
   { title: 'COSTING ESTIMATES', keys: ['orderedWidth', 'coreWeight', 'copperWeight', 'cost'] },
 ];
 
-export function exportCalcChain(result: SolveResult, gradeLabel: string) {
+/** Plain-language meaning of each calculation step, shown beside the numbers. */
+const MEANING: Record<string, string> = {
+  turns: 'Turns on the secondary winding. One primary turn carries the full primary current, so turns = primary ÷ secondary current.',
+  allowance: 'Space taken on the diameter by core insulation, the winding layers and the resin cover. It is removed from the finished size to find the bare core.',
+  coreId: 'Inner diameter of the bare steel core: finished ID plus the allowance.',
+  coreOd: 'Outer diameter of the bare steel core before width rounding: finished OD minus the allowance.',
+  radialBuild: 'Wall thickness of the steel ring: half the difference between core OD and core ID.',
+  burdenVoltage: 'Voltage the CT must deliver to the connected burden at rated secondary current: VA ÷ secondary current.',
+  atLoss: 'Ampere-turns the core is allowed to use for magnetising. It is the accuracy class error limit applied to the primary ampere-turns.',
+  mml: 'Mean magnetic length: the average path the flux travels round the ring, through the middle of the wall.',
+  h: 'Magnetising force available per centimetre of path: AT loss ÷ mean magnetic length.',
+  bRaw: 'Flux density the steel reaches at that magnetising force, read from the grade B–H curve.',
+  bUsed: 'Flux density the core is sized for. If the curve value is above the trigger, the lower ceiling value is used to keep the core well away from saturation.',
+  area: 'Steel cross-section needed to produce the total voltage at the flux density used. Repeated until the voltage stops changing (see the Convergence sheet).',
+  width: 'Exact strip width that gives the required area with the available wall thickness: area ÷ radial build.',
+  orderedWidth: 'Strip is bought in fixed steps. The width goes down to the lower step only when it is within the tolerance; inside the tolerance the step with width : build-up nearer 2 : 1 is taken. Otherwise it goes up. The core OD is then adjusted so the area stays the same.',
+  coreWeight: 'Weight of steel: area × mean magnetic length × steel density × stacking factor.',
+  copperWeight: 'Weight of the secondary wire: wire length × weight per metre of the gauge.',
+  cost: 'Steel weight × steel rate plus copper weight × copper rate. Labour, resin and overheads are not included.',
+};
+
+export function exportCalcChain(result: SolveResult, gradeLabel: string, grade?: SteelGrade, frequencyHz = 50) {
+  const sat = grade ? saturationFactor({ curve: grade.curve, turns: result.geometry.turns, areaCm2: result.finalAreaCm2, workingVoltageV: result.vTotal, frequencyHz }) : null;
+  const satVerdict = sat ? (sat.factor >= MIN_SATURATION_FACTOR ? 'Pass' : 'Below minimum') : 'Not available';
+  const k = sat ? sat.saturationVoltageV / (result.geometry.turns * sat.saturationFluxT * result.finalAreaCm2) : 0;
+  const ratio = result.geometry.radialBuildMm > 0 ? result.orderedWidthMm / result.geometry.radialBuildMm : 0;
   const wb = XLSX.utils.book_new();
 
   // ─── Sheet 1: Calculation Chain ───
@@ -28,7 +53,7 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
 
   for (const sec of grouped) {
     chainRows.push([sec.title]);
-    chainRows.push(['Step', 'Calculation', 'Formula', 'Substituted', 'Value', 'Unit', 'Notes']);
+    chainRows.push(['Step', 'Calculation', 'Formula', 'Substituted', 'Value', 'Unit', 'Notes', 'What it means']);
     for (const s of sec.steps) {
       chainRows.push([
         s.step,
@@ -38,10 +63,28 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
         typeof s.value === 'number' ? s.value : s.value,
         s.unit,
         s.note ?? '',
+        MEANING[s.key] ?? '',
       ]);
     }
     chainRows.push([]);
   }
+
+  chainRows.push(['CHECKS ON THE FINAL CORE']);
+  chainRows.push(['Step', 'Calculation', 'Formula', 'Substituted', 'Value', 'Unit', 'Notes', 'What it means']);
+  chainRows.push(['A', 'Width : build-up', 'rounded core width ÷ radial build after rounding',
+    `${result.orderedWidthMm} / ${result.geometry.radialBuildMm.toFixed(2)}`, ratio, ': 1', ratio > 2 ? 'Above 2 : 1 — tall, thin core.' : '',
+    'Shape of the steel cross-section. About 2 : 1 is the target; a much higher value is a tall, thin ring that is harder to wind evenly.']);
+  if (sat) {
+    chainRows.push(['B', 'Saturation voltage', '4.44 × f × N × B saturation × area',
+      `${Number(k.toPrecision(4))} x ${result.geometry.turns} x ${sat.saturationFluxT} x ${result.finalAreaCm2.toFixed(4)}`, sat.saturationVoltageV, 'V',
+      `B saturation = ${sat.saturationFluxT} T, the highest point on the ${gradeLabel} B–H curve.`,
+      'Voltage at which the finished core would be fully saturated.']);
+    chainRows.push(['C', 'Saturation factor', 'saturation voltage ÷ final working voltage',
+      `${sat.saturationVoltageV.toFixed(2)} / ${result.vTotal.toFixed(2)}`, sat.factor, '',
+      `${satVerdict}. Minimum ${MIN_SATURATION_FACTOR}.`,
+      `Headroom between the working voltage and saturation. Turns and area cancel, so it equals B saturation ÷ B used (${sat.saturationFluxT} ÷ ${result.bUsedT.toFixed(4)}). It must be at least ${MIN_SATURATION_FACTOR}.`]);
+  }
+  chainRows.push([]);
 
   const wsChain = XLSX.utils.aoa_to_sheet(chainRows);
   wsChain['!cols'] = [
@@ -52,6 +95,7 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
     { wch: 16 },  // Value
     { wch: 10 },  // Unit
     { wch: 50 },  // Notes
+    { wch: 90 },  // What it means
   ];
   XLSX.utils.book_append_sheet(wb, wsChain, 'Calculation Chain');
 
@@ -116,26 +160,32 @@ export function exportCalcChain(result: SolveResult, gradeLabel: string) {
     ['Secondary Turns', result.geometry.turns, '', 'Total number of secondary winding turns (= primary current ÷ secondary current).'],
     [],
     ['PHYSICAL PROPERTIES'],
-    ['Ordered Width', result.orderedWidthMm, 'mm', 'Slit width rounded up to the nearest standard strip width for ordering.'],
+    ['Core Width (calculated)', result.coreWidthMm, 'mm', 'Exact strip width from the calculation, before rounding to a standard strip width.'],
+    ['Ordered Width', result.orderedWidthMm, 'mm', 'Calculated width rounded to a standard strip step. The core OD is adjusted so the steel area stays the same.'],
+    ['Width : Build-up', ratio, ': 1', 'Ordered width ÷ radial build. About 2 : 1 is the target; much higher means a tall, thin core.'],
     ['Core Area', result.finalAreaCm2 * 100, 'mm²', 'Net iron cross-sectional area after stacking factor — the area carrying flux.'],
     ['Core Volume', result.coreVolumeCm3, 'cm³', 'Volume of steel in the wound core, used for weight calculation.'],
-    ['Core Weight', result.coreWeightKg, 'kg', 'Weight of the steel core = volume × steel density.'],
+    ['Core Weight', result.coreWeightKg, 'kg', 'Weight of the steel core = volume × steel density × stacking factor.'],
     ['Copper Weight', result.copperWeightKg, 'kg', 'Weight of the secondary copper winding.'],
     ['Wire Length', result.wireLengthM, 'm', 'Total length of secondary wire across all strands.'],
     ['Resistance', result.resistanceOhm, 'Ω', 'DC winding resistance at 20 °C reference temperature.'],
     [],
     ['ELECTRICAL'],
     ['Burden Voltage', result.burdenVoltage, 'V', 'Voltage the CT must develop across the rated burden at rated secondary current.'],
-    ['AT Loss', result.atLoss, 'AT', 'Magnetising force × mean magnetic path length — the excitation the core demands.'],
+    ['AT Loss', result.atLoss, 'AT', 'Ampere-turns the accuracy class allows the core to use for magnetising.'],
     ['H', result.h, 'AT/cm', 'Magnetising force per centimetre at the working flux density, from the B–H curve.'],
-    ['B (raw)', result.bRawT, 'T', 'Flux density calculated directly from the transformer equation before any ceiling is applied.'],
+    ['B (raw)', result.bRawT, 'T', 'Flux density read from the grade B–H curve at the available magnetising force, before any ceiling is applied.'],
     ['B (used)', result.bUsedT, 'T', 'Actual flux density used — equals B(raw) unless a flux ceiling was applied.'],
     ['Flux Ceiling Applied', result.wasCapped ? 'Yes' : 'No', '', 'Whether the raw flux exceeded the material\'s ceiling and was capped.'],
+    ['Final Working Voltage', result.vTotal, 'V', 'Burden voltage plus the voltage dropped in the winding resistance. The core is sized for this voltage.'],
+    ['Saturation Voltage', sat ? sat.saturationVoltageV : 'N/A', 'V', sat ? `Voltage at which the core saturates: 4.44 × frequency × turns × ${sat.saturationFluxT} T × core area.` : 'Needs the B–H curve of the grade.'],
+    ['Saturation Factor', sat ? sat.factor : 'N/A', '', `Saturation voltage ÷ final working voltage. Must be at least ${MIN_SATURATION_FACTOR}.`],
+    ['Saturation Check', satVerdict, '', 'Pass when the saturation factor is at or above the minimum.'],
     [],
     ['COSTING'],
-    ['Core Cost', result.coreCost ?? 'N/A', '₹', 'Steel cost = core weight × steel rate per kg, plus wastage allowance.'],
+    ['Core Cost', result.coreCost ?? 'N/A', '₹', 'Steel cost = core weight × steel rate per kg.'],
     ['Copper Cost', result.copperCost, '₹', 'Copper cost = copper weight × copper rate per kg.'],
-    ['Total Cost', result.totalCost ?? 'N/A', '₹', 'Combined material cost: core + copper + waste allowance.'],
+    ['Total Cost', result.totalCost ?? 'N/A', '₹', 'Combined material cost: core + copper. Labour, resin and overheads are not included.'],
   ];
 
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);

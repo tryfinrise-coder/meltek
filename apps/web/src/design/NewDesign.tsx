@@ -539,7 +539,7 @@ function Calculator({ editing, editingKey }: { editing?: Design; editingKey?: st
                   title={`${selected.gradeLabel} · ${selected.wireCombinationLabel || `SWG ${selected.swg}`}`}
                   subtitle="Every substituted value, the convergence passes, and the operating point on the grade's curve."
                 >
-                  <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} presentation="report" />
+                  <DetailPanel result={detail} grade={grade} gradeLabel={selected.gradeLabel} presentation="report" frequencyHz={reference.data?.settings.frequencyHz ?? 50} />
                 </Card>
               </motion.div>
             </AnimatePresence>

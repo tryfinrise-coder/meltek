@@ -26,15 +26,15 @@ const TAB_LABEL: Record<Tab, string> = {
  * "Show the working. Every result should be traceable to the inputs that produced it in
  * one click." (§16)
  */
-export function DetailPanel({ result, grade, gradeLabel, presentation = 'tabs' }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string; presentation?: 'tabs' | 'report' }) {
+export function DetailPanel({ result, grade, gradeLabel, presentation = 'tabs', frequencyHz = 50 }: { result: SolveResult; grade: SteelGrade | undefined; gradeLabel?: string; presentation?: 'tabs' | 'report'; frequencyHz?: number }) {
   const reduce = useReducedMotion();
   const [tab, setTab] = useState<Tab>('chain');
   const tabId = useId();
   const handleExport = useCallback(() => {
-    exportCalcChain(result, gradeLabel ?? result.gradeCode);
-  }, [result, gradeLabel]);
+    exportCalcChain(result, gradeLabel ?? result.gradeCode, grade, frequencyHz);
+  }, [result, gradeLabel, grade, frequencyHz]);
 
-  if (result.engineering) return <EngineeringResults result={result} gradeLabel={gradeLabel ?? result.gradeCode} />;
+  if (result.engineering) return <EngineeringResults result={result} onExport={handleExport} />;
 
   if (presentation === 'report') return (
     <div className="calculation-report">

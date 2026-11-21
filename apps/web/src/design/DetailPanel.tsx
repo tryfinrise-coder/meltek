@@ -301,7 +301,7 @@ export function WarningStrip({ warnings, collapsible = false }: { warnings: { co
       {unique.map((w) => (
         <Callout
           key={`${w.code}:${w.message}`}
-          tone={w.code === 'PROVISIONAL_OUTPUTS' ? 'provisional' : w.code === 'FLUX_CEILING_APPLIED' ? 'info' : 'warn'}
+          tone={w.code === 'PROVISIONAL_OUTPUTS' ? 'provisional' : w.code === 'FLUX_CEILING_APPLIED' || w.code === 'WIDTH_SHAPED' ? 'info' : 'warn'}
           title={
             <span className="flex items-center gap-2">
               {titleFor(w.code)}
@@ -329,6 +329,7 @@ export function WarningStrip({ warnings, collapsible = false }: { warnings: { co
 function titleFor(code: string): string {
   switch (code) {
     case 'FLUX_CEILING_APPLIED': return 'Flux ceiling applied';
+    case 'WIDTH_SHAPED': return 'Narrower width chosen for shape';
     case 'H_BELOW_CURVE':
     case 'H_ABOVE_CURVE': return 'Outside the characterised range';
     case 'CLASS_NOT_PER_IS': return 'In-house error budget';

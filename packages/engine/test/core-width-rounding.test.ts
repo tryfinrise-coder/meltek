@@ -91,3 +91,22 @@ describe('configurable core-width rounding', () => {
     expect(()=>calculateRequestSchema.parse({inputs,settingsOverride:{coreWidthRoundingTolerancePercent:101}})).toThrow();
   });
 });
+
+describe('shape rule for cores at the flux ceiling', () => {
+  const big: DesignInputs = { primaryCurrent:1000,secondaryCurrent:5,burdenVA:15,accuracyClass:'1.0',finishedIdMm:100,finishedOdMm:135,ctType:'ring',wireCombination:[{swg:21,count:1},{swg:22,count:2}] };
+  it('takes the lower step on the same ID/OD when that is nearer 2 : 1', () => {
+    const r = solve(big, reference, settings(), 'M-4', 21);
+    expect(r.coreWidthMm).toBeGreaterThan(20.2);
+    expect(r.orderedWidthMm).toBe(20);
+    expect(r.geometry.radialBuildMm * 20 / 100).toBeCloseTo(r.finalAreaCm2, 10);
+    expect(r.bUsedT).toBeCloseTo(0.65 * r.coreWidthMm / 20, 10);
+    expect(1.9 / r.bUsedT).toBeGreaterThanOrEqual(2.5);
+    expect(r.warnings.some(w => w.code === 'WIDTH_SHAPED')).toBe(true);
+  });
+  it('still rounds up when the lower step would drop the saturation factor below 2.5', () => {
+    const r = solve({ ...big, burdenVA: 18 }, reference, settings(), 'M-4', 21);
+    expect(r.coreWidthMm).toBeGreaterThan(20 * 0.76 / 0.65);
+    expect(r.orderedWidthMm).toBe(25);
+    expect(r.bUsedT).toBe(0.65);
+  });
+});

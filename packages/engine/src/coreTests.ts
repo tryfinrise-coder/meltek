@@ -1,5 +1,5 @@
 import { interpolateH } from './interpolate.js';
-import { transformerConstant } from './solve.js';
+import { saturationFluxOf, transformerConstant } from './solve.js';
 import { EngineError, type BhPoint } from './types.js';
 import { positive } from './validate.js';
 
@@ -39,14 +39,19 @@ export function calculateCoreTests(input: CoreTestInputs) {
   };
 }
 
-export const MIN_SATURATION_FACTOR = 2.5;
+/**
+ * Worst-case ratio error: the whole exciting current (H × MML ÷ CT turns) is counted as error,
+ * against the secondary current flowing at that test point.
+ */
+export function ratioErrorPercent(hAtCm: number, mmlCm: number, turns: number, secondaryCurrentA: number, currentPercent: number): number {
+  return -(hAtCm * mmlCm / turns) / (secondaryCurrentA * currentPercent / 100) * 100;
+}
 
 /**
  * Saturation voltage ÷ working voltage. Turns and area cancel, so it equals saturation flux ÷ working flux.
- * shortcut: saturation flux is the highest flux on the grade's own B–H curve, add a per-grade field if mills quote a different figure.
  */
 export function saturationFactor(input: { curve: readonly BhPoint[]; turns: number; areaCm2: number; workingVoltageV: number; frequencyHz: number }) {
-  const saturationFluxT = Math.max(0, ...input.curve.filter(point => point.hAtCm !== null).map(point => point.teslaT));
+  const saturationFluxT = saturationFluxOf(input.curve);
   if (!(saturationFluxT > 0) || !(input.workingVoltageV > 0)) return null;
   const saturationVoltageV = transformerConstant(input.frequencyHz) * input.turns * saturationFluxT * input.areaCm2;
   return { saturationFluxT, saturationVoltageV, factor: saturationVoltageV / input.workingVoltageV };

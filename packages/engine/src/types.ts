@@ -124,6 +124,7 @@ export interface ReferenceData {
 
 export type WarningCode =
   | 'FLUX_CEILING_APPLIED'
+  | 'WIDTH_SHAPED'
   | 'H_BELOW_CURVE'
   | 'H_ABOVE_CURVE'
   | 'CLASS_NOT_PER_IS'

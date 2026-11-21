@@ -124,3 +124,12 @@ describe('saturation factor', () => {
     expect(saturationFactor({ curve: [], turns: 200, areaCm2: 1.33, workingVoltageV: 3.85, frequencyHz: 50 })).toBeNull();
   });
 });
+
+describe('ratio error', () => {
+  it('matches the works sheet: 48x65 core, 40 turns, 5 A', async () => {
+    const { ratioErrorPercent } = await import('../src/index.js');
+    const mml = Math.PI * (48 + 65) / 20;
+    expect(ratioErrorPercent(0.099, mml, 40, 5, 100)).toBeCloseTo(-0.8787, 3) // the sheet rounds pi to 3.142;
+    expect(ratioErrorPercent(0.011, mml, 40, 5, 5)).toBeCloseTo(-1.9528, 3);
+  });
+});

@@ -7,6 +7,7 @@ import { computeWindingAllowance, fitLayers, type WindingResult } from './windin
 import { positive, validateDesign } from './validate.js';
 import {
   EngineError,
+  type BhPoint,
   type CalcStep,
   type DesignInputs,
   type EngineWarning,
@@ -214,6 +215,13 @@ export function transformerConstant(frequencyHz: number): number {
 }
 
 
+export const MIN_SATURATION_FACTOR = 2.5;
+
+/** shortcut: saturation flux is the highest flux on the grade's own B–H curve, add a per-grade field if mills quote a different figure. */
+export function saturationFluxOf(curve: readonly BhPoint[]): number {
+  return Math.max(0, ...curve.filter(point => point.hAtCm !== null).map(point => point.teslaT));
+}
+
 export interface SolveOptions {
   /** Attach the full substituted chain. On by default. */
   withSteps?: boolean;
@@ -355,7 +363,28 @@ export function solve(
   const coreWidthMm = widthCm * 10;
 
   /* Steps 13-14 - rounding, weight and cost. PROVISIONAL (§5.9). */
-  const orderedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings, geometry.radialBuildMm);
+  const steppedWidthMm = roundToSlitWidth(coreWidthMm, ref, settings, geometry.radialBuildMm);
+
+  // Shape rule. A design sized at the flux ceiling has flux to spare, so when rounding would go up, the lower
+  // step is taken on the same core ID/OD if that brings width : build-up nearer 2 : 1. The smaller area raises
+  // the flux; it must stay within the curve value and keep the saturation factor at or above the minimum.
+  const lowerStepMm = Math.floor(coreWidthMm / settings.slitStepMm) * settings.slitStepMm;
+  const fluxAtLowerStepT = lowerStepMm > 0 ? bUsedT * coreWidthMm / lowerStepMm : Infinity;
+  const offTwo = (ratio: number) => Math.abs(ratio - 2);
+  const shaped = settings.coreWidthRoundingTolerancePercent !== undefined && wasCapped && steppedWidthMm > coreWidthMm
+    && (ref.slitWidthsMm.length === 0 || ref.slitWidthsMm.some(w => Math.abs(w - lowerStepMm) < 1e-8))
+    && fluxAtLowerStepT <= Math.min(bRawT, saturationFluxOf(grade.curve) / MIN_SATURATION_FACTOR)
+    && offTwo(lowerStepMm / geometry.radialBuildMm) < offTwo(steppedWidthMm ** 2 / (coreWidthMm * geometry.radialBuildMm));
+  const orderedWidthMm = shaped ? lowerStepMm : steppedWidthMm;
+  const finalAreaCm2 = shaped ? (lowerStepMm / 10) * geometry.radialBuildCm : areaCm2;
+  const finalFluxT = shaped ? fluxAtLowerStepT : bUsedT;
+  if (shaped) {
+    warnings.push({
+      code: 'WIDTH_SHAPED',
+      message: `Core width taken as ${lowerStepMm} mm instead of ${steppedWidthMm} mm to keep width : build-up nearer 2 : 1 on the same core ID and OD. The steel area is ${f((1 - lowerStepMm / coreWidthMm) * 100, 1)}% smaller than calculated, so the working flux is ${f(finalFluxT, 4)} T instead of ${f(bUsedT, 4)} T. The saturation factor stays at or above ${MIN_SATURATION_FACTOR}.`,
+      ref: 'Core sizing',
+    });
+  }
 
   // Snapshot the original geometry before OD adjustment for the calc chain.
   const origOdMm = geometry.coreOdMm;
@@ -366,7 +395,7 @@ export function solve(
   // Adjust OD to maintain the converged cross-sectional area after width rounding.
   // ID stays fixed; radial build changes so area = radialBuild × width is preserved.
   const orderedWidthCm = orderedWidthMm / 10;
-  const newRadialBuildCm = areaCm2 / orderedWidthCm;
+  const newRadialBuildCm = finalAreaCm2 / orderedWidthCm;
   const newRadialBuildMm = newRadialBuildCm * 10;
   geometry.coreOdMm = geometry.coreIdMm + 2 * newRadialBuildMm;
   geometry.radialBuildMm = newRadialBuildMm;
@@ -376,7 +405,6 @@ export function solve(
   // Cost the winding actually ordered, while retaining converged intermediates.
   const orderedWireLengthM = (((geometry.coreOdMm - geometry.coreIdMm + 2 * orderedWidthMm) * settings.lengthFactor * N) + settings.leadWireMm) / 1000;
   if (![coreWidthMm, orderedWidthMm, orderedWireLengthM].every(Number.isFinite)) throw new EngineError('INVALID_INPUT', 'The winding calculation overflowed. Check the specification and wire resistance.');
-  const finalAreaCm2 = areaCm2;
   // Volume is area x magnetic path length and nothing else. The spreadsheet multiplies
   // by width a second time; area already contains the width.
   const coreVolumeCm3 = finalAreaCm2 * geometry.mmlCm;
@@ -423,7 +451,7 @@ export function solve(
     atLoss,
     h,
     bRawT,
-    bUsedT,
+    bUsedT: finalFluxT,
     wasCapped,
     coreAreaCm2: areaCm2,
     coreWidthMm,
@@ -448,7 +476,7 @@ export function solve(
   };
 
   if (options.withSteps !== false) {
-    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild, comboLabel, { origOdMm, origRadialBuildMm, origRadialBuildCm, origMmlCm });
+    result.steps = buildSteps(result, ref, settings, grade, gauge, klass.percent, interp, denominator, k, windingBuild, comboLabel, { origOdMm, origRadialBuildMm, origRadialBuildCm, origMmlCm, sizingFluxT: bUsedT, shaped });
   }
   return result;
 }
@@ -466,7 +494,7 @@ function buildSteps(
   k: number,
   windingBuild: WindingResult | null,
   comboLabel: string,
-  orig: { origOdMm: number; origRadialBuildMm: number; origRadialBuildCm: number; origMmlCm: number },
+  orig: { origOdMm: number; origRadialBuildMm: number; origRadialBuildCm: number; origMmlCm: number; sizingFluxT: number; shaped: boolean },
 ): CalcStep[] {
   const g = r.geometry;
   const i = r.inputs;
@@ -506,22 +534,24 @@ function buildSteps(
       substituted: r.wasCapped
         ? `${f(r.bRawT, 4)} > ${s.saturationTriggerTesla} -> ${s.saturationCapTesla}`
         : `${f(r.bRawT, 4)} <= ${s.saturationTriggerTesla} -> uncapped`,
-      value: r.bUsedT, unit: 'T',
+      value: orig.sizingFluxT, unit: 'T',
       note: 'The ceiling applies to every grade, so the core will not saturate below roughly 2 to 2.5 times the working voltage.' },
     { step: 12, key: 'area', label: 'Core area (converged)', formula: 'A = V / (4.44 x f x 1e-4 x N x B)',
-      substituted: `${f(r.vTotal, 5)} / (${f(k, 5)} x ${g.turns} x ${f(r.bUsedT, 4)}) = ${f(r.vTotal, 5)} / ${f(denominator, 6)}`,
+      substituted: `${f(r.vTotal, 5)} / (${f(k, 5)} x ${g.turns} x ${f(orig.sizingFluxT, 4)}) = ${f(r.vTotal, 5)} / ${f(denominator, 6)}`,
       value: r.coreAreaCm2, unit: 'cm2',
       note: `${r.passes} passes; wire drop ${f(r.vDrop, 5)} V on ${f(r.wireLengthM, 3)} m of ${comboLabel || `SWG ${gauge.swg}`}.` },
     { step: 13, key: 'width', label: 'Core width', formula: 'A / radial build',
       substituted: `${f(r.coreAreaCm2, 4)} / ${f(orig.origRadialBuildCm, 4)} cm`, value: r.coreWidthMm, unit: 'mm' },
-    { step: 14, key: 'orderedWidth', label: 'Rounded core width', formula: s.coreWidthRoundingTolerancePercent === undefined ? 'nearest stocked slit width to core width' : `round to ${s.slitStepMm} mm steps; allow ${s.coreWidthRoundingTolerancePercent}% above the lower width, then prefer the step with width : build-up nearer 2 : 1`,
+    { step: 14, key: 'orderedWidth', label: 'Rounded core width', formula: s.coreWidthRoundingTolerancePercent === undefined ? 'nearest stocked slit width to core width' : `round to ${s.slitStepMm} mm steps; allow ${s.coreWidthRoundingTolerancePercent}% above the lower width; a core at the flux ceiling takes the lower step when that is nearer 2 : 1 and the saturation factor stays ≥ ${MIN_SATURATION_FACTOR}`,
       substituted: s.coreWidthRoundingTolerancePercent !== undefined
         ? `${f(r.coreWidthMm)} mm → ${f(r.orderedWidthMm, 0)} mm; tolerance ${s.coreWidthRoundingTolerancePercent}% of lower step${ref.slitWidthsMm.length ? '; stocked step widths checked' : ''}`
         : ref.slitWidthsMm.length
         ? `stocked widths: ${ref.slitWidthsMm.join(', ')} mm`
         : `no slit widths on record - rounded to nearest ${s.slitStepMm} mm`,
       value: r.orderedWidthMm, unit: 'mm', provisional: true,
-      note: `OD adjusted from ${f(orig.origOdMm, 2)} to ${f(g.coreOdMm, 2)} mm (radial build ${f(orig.origRadialBuildMm, 2)} → ${f(g.radialBuildMm, 2)} mm) to preserve area ${f(r.coreAreaCm2, 4)} cm². Core ID stays ${f(g.coreIdMm, 2)} mm.` },
+      note: orig.shaped
+        ? `Lower step taken for a better width : build-up (${f(r.orderedWidthMm / g.radialBuildMm, 2)} : 1). Core ID ${f(g.coreIdMm, 2)} mm and OD ${f(g.coreOdMm, 2)} mm are unchanged. Area becomes ${f(r.finalAreaCm2, 4)} cm², so flux rises from ${f(orig.sizingFluxT, 4)} to ${f(r.bUsedT, 4)} T.`
+        : `OD adjusted from ${f(orig.origOdMm, 2)} to ${f(g.coreOdMm, 2)} mm (radial build ${f(orig.origRadialBuildMm, 2)} → ${f(g.radialBuildMm, 2)} mm) to preserve area ${f(r.coreAreaCm2, 4)} cm². Core ID stays ${f(g.coreIdMm, 2)} mm.` },
     { step: 15, key: 'coreWeight', label: 'Core weight', formula: 'area x MML x density x stacking / 1000',
       substituted: `${f(r.finalAreaCm2, 4)} x ${f(g.mmlCm, 4)} x ${grade.densityGCm3 ?? s.steelDensity} x ${grade.stackingFactor ?? s.stackingFactor} / 1000`,
       value: r.coreWeightKg, unit: 'kg', provisional: true },
